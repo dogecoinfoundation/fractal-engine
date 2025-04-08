@@ -27,16 +27,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = dbStore.Migrate()
+	dbStore.Migrate()
+
+	blockHeight, blockHash, err := dbStore.GetChainPosition()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	messageChan := chainfollower.Start(&state.ChainPos{})
+	log.Println("Starting chainfollower from block height:", blockHeight, "and block hash:", blockHash)
+
+	messageChan := chainfollower.Start(&state.ChainPos{
+		BlockHeight: blockHeight,
+		BlockHash:   blockHash,
+	})
 
 	for message := range messageChan {
 		switch msg := message.(type) {
 		case messages.BlockMessage:
+
 			for _, tx := range msg.Block.Tx {
 				for _, vout := range tx.VOut {
 					bytes := doge.ParseOpReturnData(vout)
@@ -69,12 +77,21 @@ func main() {
 					}
 				}
 			}
-			// log.Println(msg.ChainPos)
+
+			err := dbStore.UpsertChainPosition(msg.Block.Height, msg.Block.Hash)
+			if err != nil {
+				log.Println("Error setting chain position:", err)
+			}
 
 		case messages.RollbackMessage:
 			log.Println("Received rollback message from chainfollower:")
 			// log.Println(msg.OldChainPos)
 			// log.Println(msg.NewChainPos)
+
+			err := dbStore.UpsertChainPosition(msg.NewChainPos.BlockHeight, msg.NewChainPos.BlockHash)
+			if err != nil {
+				log.Println("Error setting chain position:", err)
+			}
 
 		default:
 			log.Println("Received unknown message from chainfollower:")
