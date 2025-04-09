@@ -3,9 +3,12 @@ package protocol
 import "encoding/json"
 
 type Mint struct {
-	Title         string `json:"title"`
-	FractionCount int    `json:"fraction_count"`
-	Description   string `json:"description"`
+	Id            string      `json:"id"`
+	Title         string      `json:"title"`
+	FractionCount int         `json:"fraction_count"`
+	Description   string      `json:"description"`
+	Tags          []string    `json:"tags"`
+	Metadata      interface{} `json:"metadata"`
 }
 
 func (m *Mint) Deserialize(data []byte) error {

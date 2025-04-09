@@ -6,8 +6,9 @@ import (
 	"dogecoin.org/chainfollower/pkg/chainfollower"
 	"dogecoin.org/chainfollower/pkg/config"
 	"dogecoin.org/chainfollower/pkg/messages"
-	"dogecoin.org/chainfollower/pkg/rpc"
+	cfrpc "dogecoin.org/chainfollower/pkg/rpc"
 	"dogecoin.org/chainfollower/pkg/state"
+	"dogecoin.org/fractal-engine/pkg/api"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
@@ -19,7 +20,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	rpcClient := rpc.NewRpcTransport(config)
+	rpcClient := cfrpc.NewRpcTransport(config)
 	chainfollower := chainfollower.NewChainFollower(rpcClient)
 
 	dbStore, err := store.NewStore(config.DbUrl)
@@ -27,7 +28,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	dbStore.Migrate()
+	err = dbStore.Migrate()
+	if err != nil {
+		if err.Error() != "no change" {
+			log.Fatal(err)
+		}
+	}
+
+	dogeClient := doge.NewDogeClient(rpcClient)
+	apiServer := api.NewAPIServer(dbStore, dogeClient)
+	go apiServer.Start()
 
 	blockHeight, blockHash, err := dbStore.GetChainPosition()
 	if err != nil {
@@ -69,10 +79,23 @@ func main() {
 								continue
 							}
 
-							log.Println("Received mint message from chainfollower:")
-							log.Println("Title:", mint.Title)
-							log.Println("Fraction Count:", mint.FractionCount)
-							log.Println("Description:", mint.Description)
+							existingMint, err := dbStore.GetMint(mint.Id)
+							if err != nil {
+								log.Println("Error getting mint:", err)
+								continue
+							}
+
+							if existingMint != nil {
+								// TODO VALIDATE
+
+								err = dbStore.VerifyMint(mint.Id)
+								if err != nil {
+									log.Println("Error verifying mint:", err)
+									continue
+								}
+
+								log.Println("Mint verified:", mint.Id)
+							}
 						}
 					}
 				}

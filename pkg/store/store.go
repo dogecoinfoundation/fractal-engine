@@ -2,14 +2,17 @@ package store
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/url"
 
+	"dogecoin.org/fractal-engine/pkg/protocol"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -77,6 +80,45 @@ func (s *Store) getMigrationDriver() (database.Driver, error) {
 	}
 
 	return nil, fmt.Errorf("unsupported database scheme: %s", s.backend)
+}
+
+func (s *Store) GetMint(id string) (*protocol.Mint, error) {
+	var mint protocol.Mint
+	err := s.db.QueryRow("SELECT * FROM mints WHERE id = $1", id).Scan(&mint)
+	if err != nil {
+		return nil, err
+	}
+
+	return &mint, nil
+}
+
+func (s *Store) VerifyMint(id string) error {
+	_, err := s.db.Exec("UPDATE mints SET verified = true WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Store) SaveMint(mint *protocol.Mint) error {
+	id := uuid.New().String()
+
+	metadata, err := json.Marshal(mint.Metadata)
+	if err != nil {
+		return err
+	}
+
+	tags, err := json.Marshal(mint.Tags)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.db.Exec(`
+	INSERT INTO mints (id, title, description, fraction_count, tags, metadata)
+	VALUES ($1, $2, $3, $4, $5, $6)
+	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata))
+
+	return err
 }
 
 func (s *Store) GetChainPosition() (int64, string, error) {
