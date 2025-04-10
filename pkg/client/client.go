@@ -39,3 +39,21 @@ func (c *FractalEngineClient) CreateMint(mint api.CreateMintRequest) (string, er
 
 	return mintCreateResponse.Id, nil
 }
+
+func (c *FractalEngineClient) GetMints(page int, limit int) (api.GetMintsResponse, error) {
+	url := fmt.Sprintf("%s/mints?page=%d&limit=%d", c.BaseURL, page, limit)
+
+	resp, err := c.HTTPClient.Get(url)
+	if err != nil {
+		return api.GetMintsResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	var getMintsResponse api.GetMintsResponse
+	err = json.NewDecoder(resp.Body).Decode(&getMintsResponse)
+	if err != nil {
+		return api.GetMintsResponse{}, err
+	}
+
+	return getMintsResponse, nil
+}

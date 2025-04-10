@@ -14,6 +14,13 @@ type CreateMintResponse struct {
 	Id string `json:"id"`
 }
 
+type GetMintsResponse struct {
+	Mints []protocol.Mint `json:"mints"`
+	Total int             `json:"total"`
+	Page  int             `json:"page"`
+	Limit int             `json:"limit"`
+}
+
 func NewCreateMintRequest(mint protocol.MintWithoutID) CreateMintRequest {
 	return CreateMintRequest{
 		MintWithoutID: mint,

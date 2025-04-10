@@ -1,6 +1,9 @@
 package protocol
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type MintWithoutID struct {
 	Title         string      `json:"title"`
@@ -8,6 +11,8 @@ type MintWithoutID struct {
 	Description   string      `json:"description"`
 	Tags          []string    `json:"tags"`
 	Metadata      interface{} `json:"metadata"`
+	Verified      bool        `json:"verified"`
+	CreatedAt     time.Time   `json:"created_at"`
 }
 
 type Mint struct {

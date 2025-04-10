@@ -6,6 +6,5 @@ create table mints (
     tags TEXT,
     metadata TEXT,
     verified boolean not null default false,
-    synced boolean not null default false,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

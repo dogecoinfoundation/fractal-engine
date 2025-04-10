@@ -92,6 +92,32 @@ func (s *Store) GetMint(id string) (*protocol.Mint, error) {
 	return &mint, nil
 }
 
+func (s *Store) GetMints(limit int, offset int, verified bool) ([]protocol.Mint, error) {
+	rows, err := s.db.Query("SELECT * FROM mints WHERE verified = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3", verified, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mints []protocol.Mint
+	for rows.Next() {
+		var m protocol.Mint
+		if err := rows.Scan(
+			&m.Id,        // adjust these fields
+			&m.CreatedAt, // to match your struct and columns
+			// ... other fields ...
+		); err != nil {
+			return nil, err
+		}
+		mints = append(mints, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return mints, nil
+}
+
 func (s *Store) GetUnsyncedMints() ([]protocol.Mint, error) {
 	var mints []protocol.Mint
 	err := s.db.QueryRow("SELECT * FROM mints WHERE synced = false").Scan(&mints)
@@ -119,7 +145,7 @@ func (s *Store) VerifyMint(id string) error {
 	return nil
 }
 
-func (s *Store) SaveMint(mint *protocol.Mint) (string, error) {
+func (s *Store) SaveMint(mint *protocol.MintWithoutID) (string, error) {
 	id := uuid.New().String()
 
 	metadata, err := json.Marshal(mint.Metadata)
