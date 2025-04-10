@@ -35,8 +35,8 @@ func main() {
 		}
 	}
 
-	dogeClient := doge.NewDogeClient(rpcClient)
-	apiServer := api.NewAPIServer(dbStore, dogeClient)
+	apiServer := api.NewAPIServer(dbStore)
+
 	go apiServer.Start()
 
 	blockHeight, blockHash, err := dbStore.GetChainPosition()

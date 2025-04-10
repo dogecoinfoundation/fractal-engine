@@ -92,6 +92,25 @@ func (s *Store) GetMint(id string) (*protocol.Mint, error) {
 	return &mint, nil
 }
 
+func (s *Store) GetUnsyncedMints() ([]protocol.Mint, error) {
+	var mints []protocol.Mint
+	err := s.db.QueryRow("SELECT * FROM mints WHERE synced = false").Scan(&mints)
+	if err != nil {
+		return nil, err
+	}
+
+	return mints, nil
+}
+
+func (s *Store) SetMintSynced(mint protocol.Mint) error {
+	_, err := s.db.Exec("UPDATE mints SET synced = true WHERE id = $1", mint.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Store) VerifyMint(id string) error {
 	_, err := s.db.Exec("UPDATE mints SET verified = true WHERE id = $1", id)
 	if err != nil {
@@ -100,17 +119,17 @@ func (s *Store) VerifyMint(id string) error {
 	return nil
 }
 
-func (s *Store) SaveMint(mint *protocol.Mint) error {
+func (s *Store) SaveMint(mint *protocol.Mint) (string, error) {
 	id := uuid.New().String()
 
 	metadata, err := json.Marshal(mint.Metadata)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	tags, err := json.Marshal(mint.Tags)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	_, err = s.db.Exec(`
@@ -118,7 +137,7 @@ func (s *Store) SaveMint(mint *protocol.Mint) error {
 	VALUES ($1, $2, $3, $4, $5, $6)
 	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata))
 
-	return err
+	return id, err
 }
 
 func (s *Store) GetChainPosition() (int64, string, error) {

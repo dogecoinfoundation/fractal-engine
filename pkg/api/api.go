@@ -3,7 +3,6 @@ package api
 import (
 	"net/http"
 
-	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/gin-gonic/gin"
@@ -12,16 +11,14 @@ import (
 type APIServer struct {
 	store  *store.Store
 	router *gin.Engine
-	doge   *doge.DogeClient
 }
 
-func NewAPIServer(store *store.Store, doge *doge.DogeClient) *APIServer {
+func NewAPIServer(store *store.Store) *APIServer {
 	router := gin.Default()
 
 	apiServer := &APIServer{
 		store:  store,
 		router: router,
-		doge:   doge,
 	}
 
 	apiServer.routes()
@@ -41,12 +38,12 @@ func (s *APIServer) routes() {
 			return
 		}
 
-		err := s.store.SaveMint(&mint)
+		id, err := s.store.SaveMint(&mint)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Mint saved successfully"})
+		c.JSON(http.StatusOK, gin.H{"id": id})
 	})
 }
