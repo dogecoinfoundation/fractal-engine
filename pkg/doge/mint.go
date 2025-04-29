@@ -33,7 +33,22 @@ func NewDogeClient(rpc *rpc.RpcTransport) *DogeClient {
 	}
 }
 
-func (c *DogeClient) CreateMint(mint *protocol.Mint, fromPrivateKey string, firstUnspent UTXO, toAddress string) (string, error) {
+func (c *DogeClient) GetUnspent(address string) ([]UTXO, error) {
+	unspent, err := c.rpc.Request("listunspent", []any{0, 99999999, []string{address}})
+	if err != nil {
+		return nil, err
+	}
+
+	var result []UTXO
+	err = json.Unmarshal(*unspent, &result)
+	if err != nil {
+		return nil, fmt.Errorf("json-rpc unmarshal error: %v | %v", err, string(*unspent))
+	}
+
+	return result, nil
+}
+
+func (c *DogeClient) CreateMint(mint *protocol.Mint, fromPrivateKey string, unspents []UTXO, toAddress string) (string, error) {
 	mintBytes, err := mint.Serialize()
 	if err != nil {
 		fmt.Println("Error serializing mint:", err)
@@ -43,7 +58,7 @@ func (c *DogeClient) CreateMint(mint *protocol.Mint, fromPrivateKey string, firs
 	message := protocol.NewMessageEnvelope(protocol.ACTION_MINT, mintBytes)
 	bytes := message.Serialize()
 
-	trxnId, err := c.createAndSendTransaction(fromPrivateKey, firstUnspent, bytes, toAddress)
+	trxnId, err := c.createAndSendTransaction(fromPrivateKey, unspents, bytes, mint.FractionCount, toAddress)
 	if err != nil {
 		fmt.Println("Error creating and sending transaction:", err)
 		return "", err
@@ -52,8 +67,10 @@ func (c *DogeClient) CreateMint(mint *protocol.Mint, fromPrivateKey string, firs
 	return trxnId, nil
 }
 
-func (c *DogeClient) createAndSendTransaction(privateKey string, selectedUTXO UTXO, opReturnData []byte, outAddress string) (string, error) {
-	// Step 2: Create raw transaction with OP_RETURN output
+func (c *DogeClient) createAndSendTransaction(privateKey string, uxtos []UTXO, opReturnData []byte, fractions int, outAddress string) (string, error) {
+
+	selectedUTXO := uxtos[0]
+
 	inputs := []map[string]interface{}{
 		{
 			"txid": selectedUTXO.TxID,
@@ -61,11 +78,12 @@ func (c *DogeClient) createAndSendTransaction(privateKey string, selectedUTXO UT
 		},
 	}
 
-	outputs := map[string]interface{}{
-		"data": hex.EncodeToString([]byte(opReturnData)),
-	}
+	change := selectedUTXO.Amount - 0.1
 
-	outputs[outAddress] = selectedUTXO.Amount - 1.0
+	outputs := map[string]interface{}{
+		"data":     hex.EncodeToString(opReturnData),
+		outAddress: change,
+	}
 
 	// Create raw transaction
 	createResp, err := c.rpc.Request("createrawtransaction", []interface{}{inputs, outputs})
@@ -89,6 +107,7 @@ func (c *DogeClient) createAndSendTransaction(privateKey string, selectedUTXO UT
 	// Prepare prevtxs (previous transaction inputs)
 	prevTxs := []map[string]interface{}{
 		{
+
 			"txid":         selectedUTXO.TxID,
 			"vout":         selectedUTXO.Vout,
 			"scriptPubKey": selectedUTXO.ScriptPubKey,

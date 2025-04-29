@@ -40,6 +40,28 @@ func (c *FractalEngineClient) CreateMint(mint api.CreateMintRequest) (string, er
 	return mintCreateResponse.Id, nil
 }
 
+func (c *FractalEngineClient) CreateTransferRequest(transferRequest api.CreateTransferRequestRequest) (string, error) {
+	url := fmt.Sprintf("%s/transfer-requests", c.BaseURL)
+	transferRequestBytes, err := json.Marshal(transferRequest)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := c.HTTPClient.Post(url, "application/json", bytes.NewBuffer(transferRequestBytes))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var transferRequestCreateResponse api.CreateTransferRequestResponse
+	err = json.NewDecoder(resp.Body).Decode(&transferRequestCreateResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return transferRequestCreateResponse.Id, nil
+}
+
 func (c *FractalEngineClient) GetMints(page int, limit int) (api.GetMintsResponse, error) {
 	url := fmt.Sprintf("%s/mints?page=%d&limit=%d", c.BaseURL, page, limit)
 

@@ -8,6 +8,7 @@ import (
 const (
 	FRACTAL_ENGINE_IDENTIFIER = 0xFE0001FE
 	ACTION_MINT               = 0x01
+	ACTION_TRANSFER_REQUEST   = 0x02
 )
 
 type MessageEnvelope struct {

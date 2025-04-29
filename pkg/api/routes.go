@@ -37,11 +37,15 @@ func (r *Routes) Route_CreateMint(c *gin.Context) {
 		return
 	}
 
-	mint := protocol.MintWithoutID{
+	mint, err := protocol.NewMint(protocol.MintWithoutID{
 		Title:       mintRequest.Title,
 		Description: mintRequest.Description,
 		Tags:        mintRequest.Tags,
 		Metadata:    mintRequest.Metadata,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	id, err := r.store.SaveMint(&mint)
@@ -50,7 +54,7 @@ func (r *Routes) Route_CreateMint(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"id": id})
+	c.JSON(http.StatusOK, gin.H{"id": id, "hash": mint.Hash})
 }
 
 func (r *Routes) Route_GetMints(c *gin.Context) {

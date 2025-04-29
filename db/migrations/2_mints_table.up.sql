@@ -5,6 +5,7 @@ create table mints (
     fraction_count integer not null,
     tags TEXT,
     metadata TEXT,
+    hash TEXT,
     verified boolean not null default false,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
