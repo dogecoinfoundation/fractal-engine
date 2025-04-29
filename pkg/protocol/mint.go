@@ -30,14 +30,15 @@ func (s StringArray) Value() (driver.Value, error) {
 }
 
 type MintWithoutID struct {
-	Hash          string      `json:"hash"`
-	Title         string      `json:"title"`
-	FractionCount int         `json:"fraction_count"`
-	Description   string      `json:"description"`
-	Tags          StringArray `json:"tags"`
-	Metadata      interface{} `json:"metadata"`
-	Verified      bool        `json:"verified"`
-	CreatedAt     time.Time   `json:"created_at"`
+	Hash            string      `json:"hash"`
+	Title           string      `json:"title"`
+	FractionCount   int         `json:"fraction_count"`
+	Description     string      `json:"description"`
+	Tags            StringArray `json:"tags"`
+	Metadata        interface{} `json:"metadata"`
+	TransactionHash string      `json:"transaction_hash"`
+	Verified        bool        `json:"verified"`
+	CreatedAt       time.Time   `json:"created_at"`
 }
 
 type MintHash struct {

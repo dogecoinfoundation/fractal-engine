@@ -18,48 +18,48 @@ func NewFractalEngineClient(BaseURL string, HTTPClient *http.Client) FractalEngi
 	return FractalEngineClient{BaseURL: BaseURL, HTTPClient: HTTPClient}
 }
 
-func (c *FractalEngineClient) CreateMint(mint api.CreateMintRequest) (string, error) {
+func (c *FractalEngineClient) CreateMint(mint api.CreateMintRequest) (api.CreateMintResponse, error) {
 	url := fmt.Sprintf("%s/mints", c.BaseURL)
 	mintBytes, err := json.Marshal(mint)
 	if err != nil {
-		return "", err
+		return api.CreateMintResponse{}, err
 	}
 
 	resp, err := c.HTTPClient.Post(url, "application/json", bytes.NewBuffer(mintBytes))
 	if err != nil {
-		return "", err
+		return api.CreateMintResponse{}, err
 	}
 	defer resp.Body.Close()
 
 	var mintCreateResponse api.CreateMintResponse
 	err = json.NewDecoder(resp.Body).Decode(&mintCreateResponse)
 	if err != nil {
-		return "", err
+		return api.CreateMintResponse{}, err
 	}
 
-	return mintCreateResponse.Id, nil
+	return mintCreateResponse, nil
 }
 
-func (c *FractalEngineClient) CreateTransferRequest(transferRequest api.CreateTransferRequestRequest) (string, error) {
+func (c *FractalEngineClient) CreateTransferRequest(transferRequest api.CreateTransferRequestRequest) (api.CreateTransferRequestResponse, error) {
 	url := fmt.Sprintf("%s/transfer-requests", c.BaseURL)
 	transferRequestBytes, err := json.Marshal(transferRequest)
 	if err != nil {
-		return "", err
+		return api.CreateTransferRequestResponse{}, err
 	}
 
 	resp, err := c.HTTPClient.Post(url, "application/json", bytes.NewBuffer(transferRequestBytes))
 	if err != nil {
-		return "", err
+		return api.CreateTransferRequestResponse{}, err
 	}
 	defer resp.Body.Close()
 
 	var transferRequestCreateResponse api.CreateTransferRequestResponse
 	err = json.NewDecoder(resp.Body).Decode(&transferRequestCreateResponse)
 	if err != nil {
-		return "", err
+		return api.CreateTransferRequestResponse{}, err
 	}
 
-	return transferRequestCreateResponse.Id, nil
+	return transferRequestCreateResponse, nil
 }
 
 func (c *FractalEngineClient) GetMints(page int, limit int) (api.GetMintsResponse, error) {

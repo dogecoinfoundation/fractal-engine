@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -53,6 +54,14 @@ func (r *Routes) Route_CreateMint(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	mintz, err := r.store.GetMints(0, 10, false)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	fmt.Println(mintz)
 
 	c.JSON(http.StatusOK, gin.H{"id": id, "hash": mint.Hash})
 }

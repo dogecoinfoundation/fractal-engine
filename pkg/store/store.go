@@ -139,6 +139,14 @@ func (s *Store) GetMint(id string) (*protocol.Mint, error) {
 	return &mint, nil
 }
 
+func (s *Store) RemoveOnchainMint(id string) error {
+	_, err := s.DB.Exec("DELETE FROM onchain_mints WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Store) GetMints(limit int, offset int, verified bool) ([]protocol.Mint, error) {
 	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, verified FROM mints WHERE verified = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3", verified, limit, offset)
 	if err != nil {
@@ -155,6 +163,16 @@ func (s *Store) GetMints(limit int, offset int, verified bool) ([]protocol.Mint,
 		mints = append(mints, m)
 	}
 	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return mints, nil
+}
+
+func (s *Store) GetUnverifiedOnchainMints() ([]protocol.Mint, error) {
+	var mints []protocol.Mint
+	err := s.DB.QueryRow("SELECT * FROM onchain_mints WHERE verified = false").Scan(&mints)
+	if err != nil {
 		return nil, err
 	}
 
@@ -180,8 +198,8 @@ func (s *Store) SetMintSynced(mint protocol.Mint) error {
 	return nil
 }
 
-func (s *Store) VerifyMint(id string) error {
-	_, err := s.DB.Exec("UPDATE mints SET verified = true WHERE id = $1", id)
+func (s *Store) VerifyMint(id string, transactionHash string) error {
+	_, err := s.DB.Exec("UPDATE mints SET verified = true, transaction_hash = $1 WHERE id = $2", transactionHash, id)
 	if err != nil {
 		return err
 	}
@@ -207,6 +225,15 @@ func (s *Store) SaveMint(mint *protocol.MintWithoutID) (string, error) {
 	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash)
 
 	return id, err
+}
+
+func (s *Store) CreateOnchainMint(mint protocol.Mint, transactionHash string) error {
+	_, err := s.DB.Exec(`
+	INSERT INTO onchain_mints (id, hash, transaction_hash)
+	VALUES ($1, $2, $3)
+	`, mint.Id, mint.Hash, transactionHash)
+
+	return err
 }
 
 func (s *Store) GetChainPosition() (int64, string, error) {
