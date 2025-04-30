@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"database/sql/driver"
 	"encoding/hex"
 	"encoding/json"
@@ -30,15 +31,16 @@ func (s StringArray) Value() (driver.Value, error) {
 }
 
 type MintWithoutID struct {
-	Hash            string      `json:"hash"`
-	Title           string      `json:"title"`
-	FractionCount   int         `json:"fraction_count"`
-	Description     string      `json:"description"`
-	Tags            StringArray `json:"tags"`
-	Metadata        interface{} `json:"metadata"`
-	TransactionHash string      `json:"transaction_hash"`
-	Verified        bool        `json:"verified"`
-	CreatedAt       time.Time   `json:"created_at"`
+	Hash            string         `json:"hash"`
+	Title           string         `json:"title"`
+	FractionCount   int            `json:"fraction_count"`
+	Description     string         `json:"description"`
+	Tags            StringArray    `json:"tags"`
+	Metadata        interface{}    `json:"metadata"`
+	TransactionHash sql.NullString `json:"transaction_hash"`
+	Verified        bool           `json:"verified"`
+	OutputAddress   string         `json:"output_address"`
+	CreatedAt       time.Time      `json:"created_at"`
 }
 
 type MintHash struct {
@@ -47,11 +49,19 @@ type MintHash struct {
 	Description   string      `json:"description"`
 	Tags          StringArray `json:"tags"`
 	Metadata      interface{} `json:"metadata"`
+	OutputAddress string      `json:"output_address"`
 }
 
 type Mint struct {
 	MintWithoutID
 	Id string `json:"id"`
+}
+
+type OnchainMint struct {
+	Id              string `json:"id"`
+	Hash            string `json:"hash"`
+	TransactionHash string `json:"transaction_hash"`
+	OutputAddress   string `json:"output_address"`
 }
 
 func NewMint(mintWithoutID MintWithoutID) (MintWithoutID, error) {
@@ -84,6 +94,7 @@ func (m *MintWithoutID) GenerateHash() (string, error) {
 		Description:   m.Description,
 		Tags:          m.Tags,
 		Metadata:      m.Metadata,
+		OutputAddress: m.OutputAddress,
 	}
 
 	// Serialize to JSON with sorted keys

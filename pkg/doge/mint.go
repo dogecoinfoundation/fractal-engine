@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"dogecoin.org/chainfollower/pkg/rpc"
+	"dogecoin.org/dogeclient/pkg/dogeclient"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 )
 
@@ -23,32 +23,17 @@ type UTXO struct {
 	Confirmations int     `json:"confirmations"`
 }
 
-type DogeClient struct {
-	rpc *rpc.RpcTransport
+type FractalDogeClient struct {
+	dogeClient *dogeclient.RpcClient
 }
 
-func NewDogeClient(rpc *rpc.RpcTransport) *DogeClient {
-	return &DogeClient{
-		rpc: rpc,
+func NewFractalDogeClient(dogeClient *dogeclient.RpcClient) *FractalDogeClient {
+	return &FractalDogeClient{
+		dogeClient: dogeClient,
 	}
 }
 
-func (c *DogeClient) GetUnspent(address string) ([]UTXO, error) {
-	unspent, err := c.rpc.Request("listunspent", []any{0, 99999999, []string{address}})
-	if err != nil {
-		return nil, err
-	}
-
-	var result []UTXO
-	err = json.Unmarshal(*unspent, &result)
-	if err != nil {
-		return nil, fmt.Errorf("json-rpc unmarshal error: %v | %v", err, string(*unspent))
-	}
-
-	return result, nil
-}
-
-func (c *DogeClient) CreateMint(mint *protocol.Mint, fromPrivateKey string, unspents []UTXO, toAddress string) (string, error) {
+func (c *FractalDogeClient) CreateMint(mint *protocol.Mint, fromPrivateKey string, unspents []UTXO, toAddress string) (string, error) {
 	mintBytes, err := mint.Serialize()
 	if err != nil {
 		fmt.Println("Error serializing mint:", err)
@@ -67,7 +52,22 @@ func (c *DogeClient) CreateMint(mint *protocol.Mint, fromPrivateKey string, unsp
 	return trxnId, nil
 }
 
-func (c *DogeClient) createAndSendTransaction(privateKey string, uxtos []UTXO, opReturnData []byte, fractions int, outAddress string) (string, error) {
+func (c *FractalDogeClient) GetUnspent(address string) ([]UTXO, error) {
+	unspent, err := c.dogeClient.Request("listunspent", []any{0, 99999999, []string{address}})
+	if err != nil {
+		return nil, err
+	}
+
+	var result []UTXO
+	err = json.Unmarshal(*unspent, &result)
+	if err != nil {
+		return nil, fmt.Errorf("jsonrpc unmarshal error: %v | %v", err, string(*unspent))
+	}
+
+	return result, nil
+}
+
+func (c *FractalDogeClient) createAndSendTransaction(privateKey string, uxtos []UTXO, opReturnData []byte, fractions int, outAddress string) (string, error) {
 
 	selectedUTXO := uxtos[0]
 
@@ -86,7 +86,7 @@ func (c *DogeClient) createAndSendTransaction(privateKey string, uxtos []UTXO, o
 	}
 
 	// Create raw transaction
-	createResp, err := c.rpc.Request("createrawtransaction", []interface{}{inputs, outputs})
+	createResp, err := c.dogeClient.Request("createrawtransaction", []interface{}{inputs, outputs})
 	if err != nil {
 		return "", err
 	}
@@ -119,7 +119,7 @@ func (c *DogeClient) createAndSendTransaction(privateKey string, uxtos []UTXO, o
 	privkeys := []string{privateKey}
 
 	// Sign the transaction
-	signResp, err := c.rpc.Request("signrawtransaction", []interface{}{hex.EncodeToString(rawTxBytes), prevTxs, privkeys})
+	signResp, err := c.dogeClient.Request("signrawtransaction", []interface{}{hex.EncodeToString(rawTxBytes), prevTxs, privkeys})
 	if err != nil {
 		log.Fatalf("Error signing raw transaction: %v", err)
 	}
@@ -135,7 +135,7 @@ func (c *DogeClient) createAndSendTransaction(privateKey string, uxtos []UTXO, o
 	}
 
 	// Step 5: Broadcast the signed transaction
-	sendResp, err := c.rpc.Request("sendrawtransaction", []interface{}{signedTx})
+	sendResp, err := c.dogeClient.Request("sendrawtransaction", []interface{}{signedTx})
 	if err != nil {
 		log.Fatalf("Error broadcasting transaction: %v", err)
 	}

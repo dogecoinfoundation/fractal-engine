@@ -46,6 +46,7 @@ func (r *Routes) Route_CreateMint(c *gin.Context) {
 		Metadata:        mintRequest.Metadata,
 		Hash:            mintRequest.Hash,
 		Verified:        mintRequest.Verified,
+		OutputAddress:   mintRequest.OutputAddress,
 		TransactionHash: mintRequest.TransactionHash,
 		FractionCount:   mintRequest.FractionCount,
 		CreatedAt:       time.Now(),

@@ -23,11 +23,13 @@ func NewOnChainProcessor(dbStore *store.Store) *OnChainProcessor {
 	}
 }
 
-func (p *OnChainProcessor) Start() error {
+func (p *OnChainProcessor) Start(notify chan string) error {
+	go p.Process(notify)
+
 	return nil
 }
 
-func (p *OnChainProcessor) Process() error {
+func (p *OnChainProcessor) Process(notify chan string) error {
 	ticker := time.NewTicker(5 * time.Second) // Wait 5 seconds between polls
 	defer ticker.Stop()
 
@@ -38,7 +40,7 @@ func (p *OnChainProcessor) Process() error {
 			return nil
 		case <-ticker.C:
 			// Do your database work
-			err := p.checkForRecords()
+			err := p.checkForRecords(notify)
 			if err != nil {
 				log.Println("Error processing onchain mints:", err)
 			}
@@ -46,7 +48,7 @@ func (p *OnChainProcessor) Process() error {
 	}
 }
 
-func (p *OnChainProcessor) checkForRecords() error {
+func (p *OnChainProcessor) checkForRecords(notify chan string) error {
 	records, err := p.dbStore.GetUnverifiedOnchainMints()
 	if err != nil {
 		return err
@@ -54,15 +56,29 @@ func (p *OnChainProcessor) checkForRecords() error {
 
 	for _, record := range records {
 		log.Println("Processing onchain mint:", record.Id)
-		mint, _ := p.dbStore.GetMint(record.Id)
+		mint, _ := p.dbStore.GetMintForOutputAddress(record.Id, record.OutputAddress)
 		if mint == nil {
 			log.Println("Mint not found:", record.Id)
 			continue
 		}
 
-		err = p.dbStore.VerifyMint(mint.Id, mint.TransactionHash)
+		err = p.dbStore.VerifyMint(mint.Id, record.Hash)
 		if err != nil {
 			log.Println("Error updating mint:", err)
+			continue
+		}
+
+		// Insert Account Record
+
+		// id text primary key,
+		// address VARCHAR(255) NOT NULL,
+		// balance BIGINT NOT NULL DEFAULT 0,
+		// mint_id text NOT NULL,
+		// created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+		err = p.dbStore.CreateAccountFromMint(mint)
+		if err != nil {
+			log.Println("Error creating account:", err)
 			continue
 		}
 
@@ -71,6 +87,8 @@ func (p *OnChainProcessor) checkForRecords() error {
 			log.Println("Error removing onchain mint:", err)
 			continue
 		}
+
+		notify <- "mint verified"
 	}
 
 	return nil

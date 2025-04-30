@@ -25,6 +25,18 @@ type Store struct {
 	backend string
 }
 
+func (s *Store) CreateAccountFromMint(mint *protocol.Mint) error {
+	_, err := s.DB.Exec(`
+	INSERT INTO accounts (id, address, balance, mint_id)
+	VALUES ($1, $2, $3, $4)
+	`, mint.Id, mint.OutputAddress, mint.FractionCount, mint.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewStore(dbUrl string) (*Store, error) {
 	u, err := url.Parse(dbUrl)
 	if err != nil {
@@ -39,7 +51,14 @@ func NewStore(dbUrl string) (*Store, error) {
 
 		return &Store{DB: sqlite, backend: "sqlite"}, nil
 	} else if u.Scheme == "sqlite" {
-		sqlite, err := sql.Open("sqlite3", u.Host)
+		var url string
+		if u.Host == "" {
+			url = u.Path
+		} else {
+			url = u.Host
+		}
+
+		sqlite, err := sql.Open("sqlite3", url)
 		if err != nil {
 			return nil, err
 		}
@@ -129,9 +148,9 @@ func (s *Store) getMigrationDriver() (database.Driver, error) {
 	return nil, fmt.Errorf("unsupported database scheme: %s", s.backend)
 }
 
-func (s *Store) GetMint(id string) (*protocol.Mint, error) {
+func (s *Store) GetMintForOutputAddress(id string, outputAddress string) (*protocol.Mint, error) {
 	var mint protocol.Mint
-	err := s.DB.QueryRow("SELECT * FROM mints WHERE id = $1", id).Scan(&mint)
+	err := s.DB.QueryRow("SELECT id, title, description, fraction_count, tags, metadata, hash, verified, output_address FROM mints WHERE id = $1 AND output_address = $2", id, outputAddress).Scan(&mint.Id, &mint.Title, &mint.Description, &mint.FractionCount, &mint.Tags, &mint.Metadata, &mint.Hash, &mint.Verified, &mint.OutputAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +175,9 @@ func (s *Store) ClearMints() error {
 }
 
 func (s *Store) GetMints(limit int, offset int, verified bool) ([]protocol.Mint, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, verified FROM mints ")
+	fmt.Println("Getting mints:", limit, offset, verified)
+
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, verified, output_address, transaction_hash FROM mints WHERE verified = $1", verified)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +186,7 @@ func (s *Store) GetMints(limit int, offset int, verified bool) ([]protocol.Mint,
 	var mints []protocol.Mint
 	for rows.Next() {
 		var m protocol.Mint
-		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.Verified); err != nil {
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.Verified, &m.OutputAddress, &m.TransactionHash); err != nil {
 			return nil, err
 		}
 		mints = append(mints, m)
@@ -177,10 +198,22 @@ func (s *Store) GetMints(limit int, offset int, verified bool) ([]protocol.Mint,
 	return mints, nil
 }
 
-func (s *Store) GetUnverifiedOnchainMints() ([]protocol.Mint, error) {
-	var mints []protocol.Mint
-	err := s.DB.QueryRow("SELECT * FROM onchain_mints WHERE verified = false").Scan(&mints)
+func (s *Store) GetUnverifiedOnchainMints() ([]protocol.OnchainMint, error) {
+	rows, err := s.DB.Query("SELECT id, hash, transaction_hash, output_address FROM onchain_mints WHERE verified = false")
 	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mints []protocol.OnchainMint
+	for rows.Next() {
+		var m protocol.OnchainMint
+		if err := rows.Scan(&m.Id, &m.Hash, &m.TransactionHash, &m.OutputAddress); err != nil {
+			return nil, err
+		}
+		mints = append(mints, m)
+	}
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
@@ -207,6 +240,8 @@ func (s *Store) SetMintSynced(mint protocol.Mint) error {
 }
 
 func (s *Store) VerifyMint(id string, transactionHash string) error {
+	fmt.Println("Verifying mint:", id, transactionHash)
+
 	_, err := s.DB.Exec("UPDATE mints SET verified = true, transaction_hash = $1 WHERE id = $2", transactionHash, id)
 	if err != nil {
 		return err
@@ -215,6 +250,8 @@ func (s *Store) VerifyMint(id string, transactionHash string) error {
 }
 
 func (s *Store) SaveMint(mint *protocol.MintWithoutID) (string, error) {
+	fmt.Println("Saving mint:", mint.Hash)
+
 	id := uuid.New().String()
 
 	metadata, err := json.Marshal(mint.Metadata)
@@ -228,18 +265,20 @@ func (s *Store) SaveMint(mint *protocol.MintWithoutID) (string, error) {
 	}
 
 	_, err = s.DB.Exec(`
-	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, verified)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, false)
+	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, verified, output_address)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, false, mint.OutputAddress)
 
 	return id, err
 }
 
-func (s *Store) CreateOnchainMint(mint protocol.Mint, transactionHash string) error {
+func (s *Store) CreateOnchainMint(mint protocol.Mint, transactionHash string, outputAddress string) error {
+	fmt.Println("Creating onchain mint:", mint.Id, mint.Hash, transactionHash, outputAddress)
+
 	_, err := s.DB.Exec(`
-	INSERT INTO onchain_mints (id, hash, transaction_hash)
-	VALUES ($1, $2, $3)
-	`, mint.Id, mint.Hash, transactionHash)
+	INSERT INTO onchain_mints (id, hash, transaction_hash, output_address)
+	VALUES ($1, $2, $3, $4)
+	`, mint.Id, mint.Hash, transactionHash, outputAddress)
 
 	return err
 }
@@ -261,6 +300,7 @@ func (s *Store) GetChainPosition() (int64, string, error) {
 }
 
 func (s *Store) UpsertChainPosition(blockHeight int64, blockHash string) error {
+
 	_, err := s.DB.Exec(`
 	INSERT INTO chain_position (id, block_height, block_hash)
 	VALUES (1, $1, $2)

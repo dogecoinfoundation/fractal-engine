@@ -2,11 +2,14 @@ module dogecoin.org/fractal-engine
 
 replace dogecoin.org/chainfollower => ../chainfollower
 
+replace dogecoin.org/dogeclient => ../dogeclient
+
 go 1.24.0
 
 require (
 	dogecoin.org/chainfollower v0.0.0
-	dogecoin.org/dogetest v0.0.0-00010101000000-000000000000
+	dogecoin.org/dogeclient v0.0.0-00010101000000-000000000000
+	dogecoin.org/dogetest v0.0.0
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.27
@@ -37,6 +40,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
@@ -54,6 +58,7 @@ require (
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gotest.tools v2.2.0+incompatible // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
 	modernc.org/cc/v3 v3.36.3 // indirect
 	modernc.org/ccgo/v3 v3.16.9 // indirect
