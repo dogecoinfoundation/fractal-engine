@@ -16,49 +16,51 @@ import (
 
 type FractalServer struct {
 	config *config.Config
+	Store  *store.Store
 }
 
-func NewFractalServer(config *config.Config) *FractalServer {
-	return &FractalServer{
-		config: config,
-	}
-}
-
-func (s *FractalServer) Start(status chan string) {
-	if s.config == nil {
-		config, err := config.LoadConfig("config.toml")
+func NewFractalServer(cfg *config.Config) *FractalServer {
+	if cfg == nil {
+		localConfig, err := config.LoadConfig("config.toml")
 		if err != nil {
 			log.Fatal(err)
 		}
-		s.config = config
+		cfg = localConfig
 	}
 
-	rpcClient := cfrpc.NewRpcTransport(s.config)
-	chainfollower := chainfollower.NewChainFollower(rpcClient)
-
-	dbStore, err := store.NewStore(s.config.DbUrl)
+	dbStore, err := store.NewStore(cfg.DbUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = dbStore.Migrate()
+	return &FractalServer{
+		config: cfg,
+		Store:  dbStore,
+	}
+}
+
+func (s *FractalServer) Start(status chan string) {
+	rpcClient := cfrpc.NewRpcTransport(s.config)
+	chainfollower := chainfollower.NewChainFollower(rpcClient)
+
+	err := s.Store.Migrate()
 	if err != nil {
 		if err.Error() != "no change" {
 			log.Fatal(err)
 		}
 	}
 
-	apiServer := api.NewAPIServer(dbStore)
+	apiServer := api.NewAPIServer(s.Store)
 
 	go apiServer.Start()
 
-	blockHeight, blockHash, err := dbStore.GetChainPosition()
+	blockHeight, blockHash, err := s.Store.GetChainPosition()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Onchain Doge processor
-	onchainProcessor := doge.NewOnChainProcessor(dbStore)
+	onchainProcessor := doge.NewOnChainProcessor(s.Store)
 	go onchainProcessor.Start()
 
 	log.Println("Starting chainfollower from block height:", blockHeight, "and block hash:", blockHash)
@@ -98,7 +100,7 @@ func (s *FractalServer) Start(status chan string) {
 								continue
 							}
 
-							err = dbStore.CreateOnchainMint(mint, tx.Hash)
+							err = s.Store.CreateOnchainMint(mint, tx.Hash)
 							if err != nil {
 								log.Println("Error creating onchain mint:", err)
 								continue
@@ -110,7 +112,7 @@ func (s *FractalServer) Start(status chan string) {
 				}
 			}
 
-			err := dbStore.UpsertChainPosition(msg.Block.Height, msg.Block.Hash)
+			err := s.Store.UpsertChainPosition(msg.Block.Height, msg.Block.Hash)
 			if err != nil {
 				log.Println("Error setting chain position:", err)
 			}
@@ -120,7 +122,7 @@ func (s *FractalServer) Start(status chan string) {
 			// log.Println(msg.OldChainPos)
 			// log.Println(msg.NewChainPos)
 
-			err := dbStore.UpsertChainPosition(msg.NewChainPos.BlockHeight, msg.NewChainPos.BlockHash)
+			err := s.Store.UpsertChainPosition(msg.NewChainPos.BlockHeight, msg.NewChainPos.BlockHash)
 			if err != nil {
 				log.Println("Error setting chain position:", err)
 			}

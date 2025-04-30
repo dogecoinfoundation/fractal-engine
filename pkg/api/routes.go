@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
@@ -39,10 +40,15 @@ func (r *Routes) Route_CreateMint(c *gin.Context) {
 	}
 
 	mint, err := protocol.NewMint(protocol.MintWithoutID{
-		Title:       mintRequest.Title,
-		Description: mintRequest.Description,
-		Tags:        mintRequest.Tags,
-		Metadata:    mintRequest.Metadata,
+		Title:           mintRequest.Title,
+		Description:     mintRequest.Description,
+		Tags:            mintRequest.Tags,
+		Metadata:        mintRequest.Metadata,
+		Hash:            mintRequest.Hash,
+		Verified:        mintRequest.Verified,
+		TransactionHash: mintRequest.TransactionHash,
+		FractionCount:   mintRequest.FractionCount,
+		CreatedAt:       time.Now(),
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

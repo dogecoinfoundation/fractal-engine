@@ -147,8 +147,16 @@ func (s *Store) RemoveOnchainMint(id string) error {
 	return nil
 }
 
+func (s *Store) ClearMints() error {
+	_, err := s.DB.Exec("DELETE FROM mints")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Store) GetMints(limit int, offset int, verified bool) ([]protocol.Mint, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, verified FROM mints WHERE verified = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3", verified, limit, offset)
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, verified FROM mints ")
 	if err != nil {
 		return nil, err
 	}
@@ -220,9 +228,9 @@ func (s *Store) SaveMint(mint *protocol.MintWithoutID) (string, error) {
 	}
 
 	_, err = s.DB.Exec(`
-	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash)
+	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, verified)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, false)
 
 	return id, err
 }
