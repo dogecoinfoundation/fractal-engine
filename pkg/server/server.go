@@ -6,13 +6,15 @@ import (
 	"log"
 
 	"dogecoin.org/chainfollower/pkg/chainfollower"
-	"dogecoin.org/chainfollower/pkg/config"
+	cfconfig "dogecoin.org/chainfollower/pkg/config"
 	"dogecoin.org/chainfollower/pkg/messages"
 	cfrpc "dogecoin.org/chainfollower/pkg/rpc"
 	"dogecoin.org/chainfollower/pkg/state"
 	"dogecoin.org/chainfollower/pkg/types"
 	"dogecoin.org/fractal-engine/pkg/api"
+	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
+	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
@@ -43,7 +45,9 @@ func NewFractalServer(cfg *config.Config) *FractalServer {
 }
 
 func (s *FractalServer) Start(status chan string) {
-	rpcClient := cfrpc.NewRpcTransport(s.config)
+	rpcClient := cfrpc.NewRpcTransport(&cfconfig.Config{
+		RpcUrl: s.config.RpcUrl,
+	})
 	chainfollower := chainfollower.NewChainFollower(rpcClient)
 
 	err := s.Store.Migrate()
@@ -64,6 +68,10 @@ func (s *FractalServer) Start(status chan string) {
 	// Onchain Doge processor
 	onchainProcessor := doge.NewOnChainProcessor(s.Store)
 	go onchainProcessor.Start(status)
+
+	// DogeNet processor
+	dogeNetProcessor := dogenet.NewDogeNetProcessor(s.config.DogeNetUrl, s.Store)
+	go dogeNetProcessor.Start()
 
 	fmt.Println("Starting chainfollower from block height:", blockHeight, "and block hash:", blockHash)
 

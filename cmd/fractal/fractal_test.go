@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"dogecoin.org/chainfollower/pkg/config"
 	"dogecoin.org/dogeclient/pkg/dogeclient"
 	"dogecoin.org/dogetest/pkg/dogetest"
 	"dogecoin.org/fractal-engine/pkg/api"
 	"dogecoin.org/fractal-engine/pkg/client"
+	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/server"
@@ -89,10 +89,9 @@ func TestFractal(t *testing.T) {
 	fmt.Println("tmpFile", tmpFile)
 
 	server := server.NewFractalServer(&config.Config{
-		DbUrl:   "sqlite:" + tmpFile,
-		RpcUrl:  fmt.Sprintf("http://%s:%d", dogeTest.Host, dogeTest.Port),
-		RpcUser: "test",
-		RpcPass: "test",
+		DbUrl:      "sqlite:" + tmpFile,
+		RpcUrl:     fmt.Sprintf("http://%s:%d", dogeTest.Host, dogeTest.Port),
+		DogeNetUrl: "http://localhost:8080",
 	})
 
 	status := make(chan string)

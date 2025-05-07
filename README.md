@@ -8,6 +8,7 @@ This is a 'side chain' to give DOGE the support for fractionalised tokens that c
 
 ## Doge Foundation Dependancies
 - This project uses Chainfollower this is a library used for listening to blocks/syncing blocks from the Doge L1.
+- This project uses Dogenet for its means to gossip information to other Fractal Engine nodes.
 
 ## Packages
 ### API
