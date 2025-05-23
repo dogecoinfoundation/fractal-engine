@@ -41,6 +41,11 @@ func NewTokenisationService() *tokenisationService {
 }
 
 func (s *tokenisationService) Start() {
+	err := s.store.Migrate()
+	if err != nil {
+		log.Fatalf("Failed to migrate tokenisation store: %v", err)
+	}
+
 	go s.RpcServer.Start()
 
 	<-s.signalChan

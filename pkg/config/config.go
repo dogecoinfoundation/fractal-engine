@@ -21,6 +21,6 @@ func NewConfig() *Config {
 		DogeHost:      "0.0.0.0",
 		DogePort:      "22556",
 		DogeUser:      "doge",
-		DatabaseURL:   "postgres://postgres:postgres@localhost:5432/postgres",
+		DatabaseURL:   "sqlite://fractal-engine.db",
 	}
 }
