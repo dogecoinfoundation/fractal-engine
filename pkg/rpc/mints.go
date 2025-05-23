@@ -1,0 +1,99 @@
+package rpc
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"strconv"
+
+	"dogecoin.org/fractal-engine/pkg/store"
+)
+
+type MintRoutes struct {
+	store *store.TokenisationStore
+}
+
+func HandleMintRoutes(store *store.TokenisationStore, mux *http.ServeMux) {
+	mr := &MintRoutes{store: store}
+
+	mux.HandleFunc("/mints", mr.handleMints)
+}
+
+func (mr *MintRoutes) handleMints(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		mr.getMints(w, r)
+	case http.MethodPost:
+		mr.postMint(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
+	limitStr := r.URL.Query().Get("limit")
+	limit := 100
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l < limit {
+			limit = l
+		}
+	}
+
+	pageStr := r.URL.Query().Get("page")
+	page := 1
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	verifiedStr := r.URL.Query().Get("verified")
+	verified := false
+
+	if verifiedStr != "" {
+		if v, err := strconv.ParseBool(verifiedStr); err == nil {
+			verified = v
+		}
+	}
+
+	start := (page - 1) * limit
+	end := start + limit
+
+	mints, err := mr.store.GetMints(start, end, verified)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Clamp the slice range
+	if start >= len(mints) {
+		respondJSON(w, http.StatusOK, GetMintsResponse{})
+		return
+	}
+
+	if end > len(mints) {
+		end = len(mints)
+	}
+
+	response := GetMintsResponse{
+		Mints: mints[start:end],
+		Total: len(mints),
+		Page:  page,
+		Limit: limit,
+	}
+
+	respondJSON(w, http.StatusOK, response)
+}
+
+func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
+	var request CreateMintRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, []interface{}{})
+}
