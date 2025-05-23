@@ -5,7 +5,7 @@ import (
 )
 
 type CreateMintRequest struct {
-	TokenID string `json:"token_id"`
+	store.MintWithoutID
 }
 
 type CreateMintResponse struct {

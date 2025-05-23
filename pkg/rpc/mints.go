@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"dogecoin.org/fractal-engine/pkg/store"
 )
@@ -95,5 +96,29 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusCreated, []interface{}{})
+	hash, err := request.GenerateHash()
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	trxn, err := mr.store.SaveMint(&store.MintWithoutID{
+		Hash:            hash,
+		Title:           request.Title,
+		FractionCount:   request.FractionCount,
+		Description:     request.Description,
+		Tags:            request.Tags,
+		Metadata:        request.Metadata,
+		TransactionHash: request.TransactionHash,
+		Verified:        request.Verified,
+		OutputAddress:   request.OutputAddress,
+		CreatedAt:       time.Now(),
+	})
+
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, trxn)
 }

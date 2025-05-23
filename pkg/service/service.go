@@ -10,6 +10,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"github.com/golang-migrate/migrate"
 )
 
 type tokenisationService struct {
@@ -42,7 +43,7 @@ func NewTokenisationService() *tokenisationService {
 
 func (s *tokenisationService) Start() {
 	err := s.store.Migrate()
-	if err != nil {
+	if err != nil && err.Error() != migrate.ErrNoChange.Error() {
 		log.Fatalf("Failed to migrate tokenisation store: %v", err)
 	}
 
