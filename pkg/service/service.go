@@ -26,7 +26,10 @@ func NewTokenisationService() *tokenisationService {
 
 	cfg := config.NewConfig()
 
-	store := store.NewTokenisationStore(cfg)
+	store, err := store.NewTokenisationStore(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("Failed to create tokenisation store: %v", err)
+	}
 
 	return &tokenisationService{
 		signalChan:    signalChan,
@@ -48,6 +51,9 @@ func (s *tokenisationService) Start() {
 }
 
 func (s *tokenisationService) Stop() {
-	s.store.Close()
+	err := s.store.Close()
+	if err != nil {
+		log.Fatalf("Failed to close tokenisation store: %v", err)
+	}
 	s.RpcServer.Stop()
 }
