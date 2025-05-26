@@ -22,6 +22,8 @@ func (s *StringArray) Scan(value interface{}) error {
 }
 
 // Value implements the driver.Valuer interface (optional if you want to write back to DB)
+// This is used to convert the StringArray to a driver.Value
+
 func (s StringArray) Value() (driver.Value, error) {
 	return json.Marshal(s)
 }

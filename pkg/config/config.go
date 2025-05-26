@@ -6,6 +6,7 @@ type Config struct {
 	DogeNetHost   string
 	DogeNetPort   string
 	DogeHost      string
+	DogeScheme    string
 	DogePort      string
 	DogeUser      string
 	DogePassword  string
@@ -18,6 +19,7 @@ func NewConfig() *Config {
 		RpcServerPort: "8080",
 		DogeNetHost:   "0.0.0.0",
 		DogeNetPort:   "22555",
+		DogeScheme:    "http",
 		DogeHost:      "0.0.0.0",
 		DogePort:      "22556",
 		DogeUser:      "doge",

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
 
@@ -96,13 +97,19 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err := request.Validate()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	hash, err := request.GenerateHash()
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	trxn, err := mr.store.SaveMint(&store.MintWithoutID{
+	id, err := mr.store.SaveMint(&store.MintWithoutID{
 		Hash:            hash,
 		Title:           request.Title,
 		FractionCount:   request.FractionCount,
@@ -111,8 +118,10 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		Metadata:        request.Metadata,
 		TransactionHash: request.TransactionHash,
 		Verified:        request.Verified,
-		OutputAddress:   request.OutputAddress,
 		CreatedAt:       time.Now(),
+		Requirements:    request.Requirements,
+		Resellable:      request.Resellable,
+		LockupOptions:   request.LockupOptions,
 	})
 
 	if err != nil {
@@ -120,5 +129,11 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusCreated, trxn)
+	envelope := protocol.NewMintTransactionEnvelope(hash)
+	envHash := envelope.Serialize()
+
+	respondJSON(w, http.StatusCreated, map[string]string{
+		"hash": envHash,
+		"id":   id,
+	})
 }

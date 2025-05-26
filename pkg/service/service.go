@@ -18,7 +18,7 @@ type tokenisationService struct {
 	RpcServer     *rpc.RpcServer
 	store         *store.TokenisationStore
 	DogeNetClient *dogenet.DogeNetClient
-	DogeClient    *doge.DogeClient
+	DogeClient    *doge.RpcClient
 }
 
 func NewTokenisationService() *tokenisationService {
@@ -37,7 +37,7 @@ func NewTokenisationService() *tokenisationService {
 		RpcServer:     rpc.NewRpcServer(cfg, store),
 		store:         store,
 		DogeNetClient: dogenet.NewDogeNetClient(cfg),
-		DogeClient:    doge.NewDogeClient(cfg),
+		DogeClient:    doge.NewRpcClient(cfg),
 	}
 }
 

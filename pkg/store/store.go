@@ -146,7 +146,7 @@ func (s *TokenisationStore) ClearMints() error {
 func (s *TokenisationStore) GetMints(limit int, offset int, verified bool) ([]Mint, error) {
 	fmt.Println("Getting mints:", limit, offset, verified)
 
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, verified, output_address, transaction_hash FROM mints WHERE verified = $1", verified)
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, verified, transaction_hash, requirements, resellable, lockup_options FROM mints WHERE verified = $1", verified)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (s *TokenisationStore) GetMints(limit int, offset int, verified bool) ([]Mi
 	var mints []Mint
 	for rows.Next() {
 		var m Mint
-		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.Verified, &m.OutputAddress, &m.TransactionHash); err != nil {
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.Verified, &m.TransactionHash, &m.Requirements, &m.Resellable, &m.LockupOptions); err != nil {
 			return nil, err
 		}
 		mints = append(mints, m)
@@ -206,15 +206,25 @@ func (s *TokenisationStore) SaveMint(mint *MintWithoutID) (string, error) {
 		return "", err
 	}
 
+	requirements, err := json.Marshal(mint.Requirements)
+	if err != nil {
+		return "", err
+	}
+
+	lockupOptions, err := json.Marshal(mint.LockupOptions)
+	if err != nil {
+		return "", err
+	}
+
 	tags, err := json.Marshal(mint.Tags)
 	if err != nil {
 		return "", err
 	}
 
 	_, err = s.DB.Exec(`
-	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, verified, output_address)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, false, mint.OutputAddress)
+	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, verified, requirements, resellable, lockup_options)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, false, string(requirements), mint.Resellable, string(lockupOptions))
 
 	return id, err
 }

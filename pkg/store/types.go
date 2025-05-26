@@ -17,8 +17,10 @@ type MintWithoutID struct {
 	Metadata        interface{}    `json:"metadata"`
 	TransactionHash sql.NullString `json:"transaction_hash"`
 	Verified        bool           `json:"verified"`
-	OutputAddress   string         `json:"output_address"`
 	CreatedAt       time.Time      `json:"created_at"`
+	Requirements    interface{}    `json:"requirements"`
+	Resellable      bool           `json:"resellable"`
+	LockupOptions   interface{}    `json:"lockup_options"`
 }
 
 type MintHash struct {
@@ -27,7 +29,9 @@ type MintHash struct {
 	Description   string      `json:"description"`
 	Tags          StringArray `json:"tags"`
 	Metadata      interface{} `json:"metadata"`
-	OutputAddress string      `json:"output_address"`
+	Requirements  interface{} `json:"requirements"`
+	Resellable    bool        `json:"resellable"`
+	LockupOptions interface{} `json:"lockup_options"`
 }
 
 func (m *MintWithoutID) GenerateHash() (string, error) {
@@ -37,7 +41,9 @@ func (m *MintWithoutID) GenerateHash() (string, error) {
 		Description:   m.Description,
 		Tags:          m.Tags,
 		Metadata:      m.Metadata,
-		OutputAddress: m.OutputAddress,
+		Requirements:  m.Requirements,
+		Resellable:    m.Resellable,
+		LockupOptions: m.LockupOptions,
 	}
 
 	// Serialize to JSON with sorted keys

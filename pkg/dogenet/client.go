@@ -11,3 +11,11 @@ func NewDogeNetClient(cfg *config.Config) *DogeNetClient {
 		cfg: cfg,
 	}
 }
+
+func (c *DogeNetClient) Gossip() error {
+	return nil
+}
+
+func (c *DogeNetClient) Listen(topic string, listener GossipMessageListener) error {
+	return nil
+}
