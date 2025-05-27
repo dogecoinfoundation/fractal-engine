@@ -130,10 +130,13 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	envelope := protocol.NewMintTransactionEnvelope(hash)
-	envHash := envelope.Serialize()
+	encodedTransactionBody := envelope.Serialize()
 
-	respondJSON(w, http.StatusCreated, map[string]string{
-		"hash": envHash,
-		"id":   id,
-	})
+	response := CreateMintResponse{
+		EncodedTransactionBody: encodedTransactionBody,
+		Id:                     id,
+		TransactionHash:        hash,
+	}
+
+	respondJSON(w, http.StatusCreated, response)
 }

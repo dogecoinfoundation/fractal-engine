@@ -229,6 +229,35 @@ func (s *TokenisationStore) SaveMint(mint *MintWithoutID) (string, error) {
 	return id, err
 }
 
+func (s *TokenisationStore) GetChainPosition() (int64, string, error) {
+	var blockHeight int64
+	var blockHash string
+
+	err := s.DB.QueryRow("SELECT block_height, block_hash FROM chain_position").Scan(&blockHeight, &blockHash)
+	if err == sql.ErrNoRows {
+		return 0, "", nil
+	}
+
+	if err != nil {
+		return 0, "", err
+	}
+
+	return blockHeight, blockHash, nil
+}
+
+func (s *TokenisationStore) UpsertChainPosition(blockHeight int64, blockHash string) error {
+
+	_, err := s.DB.Exec(`
+	INSERT INTO chain_position (id, block_height, block_hash)
+	VALUES (1, $1, $2)
+	ON CONFLICT (id)
+	DO UPDATE SET block_height = EXCLUDED.block_height,
+				  block_hash = EXCLUDED.block_hash
+`, blockHeight, blockHash)
+
+	return err
+}
+
 func (s *TokenisationStore) Close() error {
 	return s.DB.Close()
 }

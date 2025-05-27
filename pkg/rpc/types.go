@@ -31,7 +31,9 @@ func (req *CreateMintRequest) Validate() error {
 }
 
 type CreateMintResponse struct {
-	UnsignedTransaction string `json:"unsigned_transaction"`
+	EncodedTransactionBody string `json:"encoded_transaction_body"`
+	TransactionHash        string `json:"transaction_hash"`
+	Id                     string `json:"id"`
 }
 
 type GetMintsResponse struct {
