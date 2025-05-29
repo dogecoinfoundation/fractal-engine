@@ -50,9 +50,6 @@ func (f *DogeFollower) Start() error {
 	f.Running = true
 
 	for message := range msgChan {
-
-		log.Printf("message: %v", message)
-
 		switch msg := message.(type) {
 		case messages.BlockMessage:
 

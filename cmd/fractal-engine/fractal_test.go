@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/signal"
 	"strconv"
+	"testing"
+	"time"
 
 	"dogecoin.org/dogetest/pkg/dogetest"
 	"dogecoin.org/fractal-engine/pkg/client"
@@ -15,28 +16,42 @@ import (
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"gotest.tools/assert"
 )
 
-func main() {
-	dogeTester, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
+var blocks []string
+var addressBook *dogetest.AddressBook
+var dogeTest *dogetest.DogeTest
+var feService *service.TokenisationService
+
+func TestMain(m *testing.M) {
+	// 🚀 Global setup
+	fmt.Println(">>> SETUP: Init resources")
+
+	localDogeTest, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
 		Host:             "localhost",
 		InstallationPath: "C:\\Program Files\\Dogecoin\\daemon\\dogecoind.exe",
 		ConfigPath:       "C:\\Users\\danielw\\code\\doge\\dogetest\\config.json",
 	})
-
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = dogeTester.Start()
+	dogeTest = localDogeTest
+
+	err = dogeTest.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	addressBook, err := dogeTester.SetupAddresses([]dogetest.AddressSetup{
+	addressBook, err = dogeTest.SetupAddresses([]dogetest.AddressSetup{
 		{
-			Label:          "test",
-			InitialBalance: 1000,
+			Label:          "test1",
+			InitialBalance: 100,
+		},
+		{
+			Label:          "test2",
+			InitialBalance: 20,
 		},
 	})
 
@@ -44,23 +59,37 @@ func main() {
 		log.Fatal(err)
 	}
 
-	_, err = dogeTester.ConfirmBlocks()
+	blocks, err = dogeTest.ConfirmBlocks()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	fmt.Println("Blocks confirmed:", blocks)
+
 	cfg := config.NewConfig()
-	cfg.DogeHost = dogeTester.Host
-	cfg.DogePort = strconv.Itoa(dogeTester.Port)
+	cfg.DogeHost = dogeTest.Host
+	cfg.DogePort = strconv.Itoa(dogeTest.Port)
 	cfg.DogeUser = "test"
 	cfg.DogePassword = "test"
 	cfg.PersistFollower = false
 
-	feService := service.NewTokenisationService(cfg)
+	feService = service.NewTokenisationService(cfg)
 	go feService.Start()
 
 	feService.WaitForRunning()
 
+	// Run all tests
+	code := m.Run()
+
+	// 🧹 Global teardown
+	fmt.Println("<<< TEARDOWN: Clean up resources")
+
+	dogeTest.Stop()
+	// Exit with the correct status
+	os.Exit(code)
+}
+
+func TestFractal(t *testing.T) {
 	feClient := client.NewTokenisationClient("http://localhost:8080")
 	mintResponse, err := feClient.Mint(&rpc.CreateMintRequest{
 		MintWithoutID: store.MintWithoutID{
@@ -78,7 +107,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	unspent, err := dogeTester.Rpc.ListUnspent(addressBook.Addresses[0].Address)
+	unspent, err := dogeTest.Rpc.ListUnspent(addressBook.Addresses[0].Address)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -101,7 +130,7 @@ func main() {
 		addressBook.Addresses[0].Address: change,
 	}
 
-	createResp, err := dogeTester.Rpc.Request("createrawtransaction", []interface{}{inputs, outputs})
+	createResp, err := dogeTest.Rpc.Request("createrawtransaction", []interface{}{inputs, outputs})
 
 	if err != nil {
 		log.Fatalf("Error creating raw transaction: %v", err)
@@ -132,7 +161,7 @@ func main() {
 	// Prepare privkeys (private keys for signing)
 	privkeys := []string{addressBook.Addresses[0].PrivateKey}
 
-	signResp, err := dogeTester.Rpc.Request("signrawtransaction", []interface{}{hex.EncodeToString(rawTxBytes), prevTxs, privkeys})
+	signResp, err := dogeTest.Rpc.Request("signrawtransaction", []interface{}{hex.EncodeToString(rawTxBytes), prevTxs, privkeys})
 	if err != nil {
 		log.Fatalf("Error signing raw transaction: %v", err)
 	}
@@ -148,7 +177,7 @@ func main() {
 	}
 
 	// Step 5: Broadcast the signed transaction
-	sendResp, err := dogeTester.Rpc.Request("sendrawtransaction", []interface{}{signedTx})
+	sendResp, err := dogeTest.Rpc.Request("sendrawtransaction", []interface{}{signedTx})
 	if err != nil {
 		log.Fatalf("Error broadcasting transaction: %v", err)
 	}
@@ -160,16 +189,26 @@ func main() {
 
 	fmt.Printf("Transaction sent successfully! TXID: %s\n", txID)
 
-	_, err = dogeTester.ConfirmBlocks()
+	_, err = dogeTest.ConfirmBlocks()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Wait for interrupt signal
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
+	for {
 
-	<-signalChan
+		mints, err := feService.Store.GetMints(0, 1, true)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	feService.Stop()
+		if len(mints) > 0 {
+			assert.Equal(t, mints[0].Title, "Test Mint")
+			assert.Equal(t, mints[0].Description, "Test Description")
+			assert.Equal(t, mints[0].FractionCount, 100)
+
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+	}
 }

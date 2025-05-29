@@ -12,9 +12,9 @@ import (
 	"github.com/golang-migrate/migrate"
 )
 
-type tokenisationService struct {
+type TokenisationService struct {
 	RpcServer      *rpc.RpcServer
-	store          *store.TokenisationStore
+	Store          *store.TokenisationStore
 	DogeNetClient  *dogenet.DogeNetClient
 	DogeClient     *doge.RpcClient
 	StatusChan     chan string
@@ -22,7 +22,7 @@ type tokenisationService struct {
 	ChainProcessor *doge.OnChainProcessor
 }
 
-func NewTokenisationService(cfg *config.Config) *tokenisationService {
+func NewTokenisationService(cfg *config.Config) *TokenisationService {
 	store, err := store.NewTokenisationStore(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Failed to create tokenisation store: %v", err)
@@ -31,9 +31,9 @@ func NewTokenisationService(cfg *config.Config) *tokenisationService {
 	follower := doge.NewFollower(cfg, store)
 	chainProcessor := doge.NewOnChainProcessor(store)
 
-	return &tokenisationService{
+	return &TokenisationService{
 		RpcServer:      rpc.NewRpcServer(cfg, store),
-		store:          store,
+		Store:          store,
 		DogeNetClient:  dogenet.NewDogeNetClient(cfg),
 		DogeClient:     doge.NewRpcClient(cfg),
 		StatusChan:     make(chan string),
@@ -42,8 +42,8 @@ func NewTokenisationService(cfg *config.Config) *tokenisationService {
 	}
 }
 
-func (s *tokenisationService) Start() {
-	err := s.store.Migrate()
+func (s *TokenisationService) Start() {
+	err := s.Store.Migrate()
 	if err != nil && err.Error() != migrate.ErrNoChange.Error() {
 		log.Fatalf("Failed to migrate tokenisation store: %v", err)
 	}
@@ -53,7 +53,7 @@ func (s *tokenisationService) Start() {
 	go s.ChainProcessor.Start(s.StatusChan)
 }
 
-func (s *tokenisationService) waitForFollower() {
+func (s *TokenisationService) waitForFollower() {
 	for {
 		if !s.Follower.Running {
 			time.Sleep(1 * time.Second)
@@ -63,7 +63,7 @@ func (s *tokenisationService) waitForFollower() {
 	}
 }
 
-func (s *tokenisationService) waitForRpc() {
+func (s *TokenisationService) waitForRpc() {
 	for {
 		if !s.RpcServer.Running {
 			time.Sleep(1 * time.Second)
@@ -73,13 +73,13 @@ func (s *tokenisationService) waitForRpc() {
 	}
 }
 
-func (s *tokenisationService) WaitForRunning() {
+func (s *TokenisationService) WaitForRunning() {
 	s.waitForFollower()
 	s.waitForRpc()
 }
 
-func (s *tokenisationService) Stop() {
-	err := s.store.Close()
+func (s *TokenisationService) Stop() {
+	err := s.Store.Close()
 	if err != nil {
 		log.Fatalf("Failed to close tokenisation store: %v", err)
 	}
