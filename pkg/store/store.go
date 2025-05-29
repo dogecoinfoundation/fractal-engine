@@ -186,10 +186,57 @@ func (s *TokenisationStore) SetMintSynced(mint Mint) error {
 	return nil
 }
 
+func (s *TokenisationStore) GetUnverifiedMint(mintId string) (*Mint, error) {
+	var mint Mint
+	err := s.DB.QueryRow("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, verified, transaction_hash, requirements, resellable, lockup_options FROM mints WHERE id = $1 AND verified = false", mintId).Scan(&mint.Id, &mint.CreatedAt, &mint.Title, &mint.Description, &mint.FractionCount, &mint.Tags, &mint.Metadata, &mint.Hash, &mint.Verified, &mint.TransactionHash, &mint.Requirements, &mint.Resellable, &mint.LockupOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return &mint, nil
+}
+
 func (s *TokenisationStore) VerifyMint(id string, transactionHash string) error {
 	fmt.Println("Verifying mint:", id, transactionHash)
 
 	_, err := s.DB.Exec("UPDATE mints SET verified = true, transaction_hash = $1 WHERE id = $2", transactionHash, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *TokenisationStore) SaveOnChainMint(mintId string, address string, transactionHash string) error {
+	_, err := s.DB.Exec("INSERT INTO on_chain_mints (mint_id, transaction_hash, address) VALUES ($1, $2, $3)", mintId, transactionHash, address)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *TokenisationStore) GetOnChainMints() ([]OnChainMint, error) {
+	rows, err := s.DB.Query("SELECT * FROM on_chain_mints LIMIT 10")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var onChainMints []OnChainMint
+	for rows.Next() {
+		var onChainMint OnChainMint
+		if err := rows.Scan(&onChainMint.MintId, &onChainMint.TransactionHash, &onChainMint.Address); err != nil {
+			return nil, err
+		}
+		onChainMints = append(onChainMints, onChainMint)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return onChainMints, nil
+}
+
+func (s *TokenisationStore) DeleteOnChainMint(mintId string) error {
+	_, err := s.DB.Exec("DELETE FROM on_chain_mints WHERE mint_id = $1", mintId)
 	if err != nil {
 		return err
 	}

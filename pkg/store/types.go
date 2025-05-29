@@ -63,3 +63,9 @@ type Mint struct {
 	MintWithoutID
 	Id string `json:"id"`
 }
+
+type OnChainMint struct {
+	MintId          string `json:"mint_id"`
+	TransactionHash string `json:"transaction_hash"`
+	Address         string `json:"address"`
+}

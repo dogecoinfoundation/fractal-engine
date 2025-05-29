@@ -1,0 +1,1 @@
+drop table on_chain_mints;

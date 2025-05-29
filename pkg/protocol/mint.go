@@ -1,9 +1,22 @@
 package protocol
 
+import "bytes"
+
 type MintTransaction struct {
-	TransactionHash string `json:"transaction_hash"`
+	MintID string `json:"mint_id"`
 }
 
-func NewMintTransactionEnvelope(transactionHash string) *MessageEnvelope {
-	return NewMessageEnvelope(ACTION_MINT, []byte(transactionHash))
+func NewMintTransactionEnvelope(mintId string) *MessageEnvelope {
+	return NewMessageEnvelope(ACTION_MINT, []byte(mintId))
+}
+
+func (m *MintTransaction) Serialize() []byte {
+	buf := new(bytes.Buffer)
+	buf.Write([]byte(m.MintID))
+	return buf.Bytes()
+}
+
+func (m *MintTransaction) Deserialize(data []byte) error {
+	m.MintID = string(data)
+	return nil
 }

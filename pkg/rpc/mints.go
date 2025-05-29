@@ -129,7 +129,7 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	envelope := protocol.NewMintTransactionEnvelope(hash)
+	envelope := protocol.NewMintTransactionEnvelope(id)
 	encodedTransactionBody := envelope.Serialize()
 
 	response := CreateMintResponse{

@@ -12,9 +12,10 @@ import (
 )
 
 type RpcServer struct {
-	config *config.Config
-	quit   chan bool
-	server *http.Server
+	config  *config.Config
+	quit    chan bool
+	server  *http.Server
+	Running bool
 }
 
 func NewRpcServer(cfg *config.Config, store *store.TokenisationStore) *RpcServer {
@@ -28,15 +29,17 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore) *RpcServer
 	}
 
 	return &RpcServer{
-		config: cfg,
-		server: server,
-		quit:   make(chan bool),
+		config:  cfg,
+		server:  server,
+		quit:    make(chan bool),
+		Running: false,
 	}
 }
 
 func (s *RpcServer) Start() {
 	go func() {
 		log.Println("Server is ready to handle requests at :8080")
+		s.Running = true
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Could not listen on :8080: %v\n", err)
 		}

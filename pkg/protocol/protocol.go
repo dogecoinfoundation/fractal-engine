@@ -37,25 +37,23 @@ func (m *MessageEnvelope) Serialize() string {
 	buf.Write(bufIdentifier)
 	buf.WriteByte(m.Action)
 	buf.Write(m.Data)
+
 	return hex.EncodeToString(buf.Bytes())
 }
 
-func (m *MessageEnvelope) Deserialize(data string) error {
-	decoded, err := hex.DecodeString(data)
-	if err != nil {
-		return err
-	}
-
-	buf := bytes.NewBuffer(decoded)
+func (m *MessageEnvelope) Deserialize(data []byte) error {
+	buf := bytes.NewBuffer(data)
 
 	bufIdentifier := make([]byte, 4)
 	buf.Read(bufIdentifier)
 	m.EngineIdentifier = binary.BigEndian.Uint32(bufIdentifier)
 
-	m.Action, err = buf.ReadByte()
+	action, err := buf.ReadByte()
 	if err != nil {
 		return err
 	}
+
+	m.Action = action
 
 	m.Data = buf.Bytes()
 	return nil

@@ -2,8 +2,7 @@ package service
 
 import (
 	"log"
-	"os"
-	"os/signal"
+	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
@@ -14,36 +13,32 @@ import (
 )
 
 type tokenisationService struct {
-	signalChan    chan os.Signal
-	RpcServer     *rpc.RpcServer
-	store         *store.TokenisationStore
-	DogeNetClient *dogenet.DogeNetClient
-	DogeClient    *doge.RpcClient
-	StatusChan    chan string
-	Follower      *doge.DogeFollower
+	RpcServer      *rpc.RpcServer
+	store          *store.TokenisationStore
+	DogeNetClient  *dogenet.DogeNetClient
+	DogeClient     *doge.RpcClient
+	StatusChan     chan string
+	Follower       *doge.DogeFollower
+	ChainProcessor *doge.OnChainProcessor
 }
 
-func NewTokenisationService() *tokenisationService {
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-
-	cfg := config.NewConfig()
-
+func NewTokenisationService(cfg *config.Config) *tokenisationService {
 	store, err := store.NewTokenisationStore(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Failed to create tokenisation store: %v", err)
 	}
 
 	follower := doge.NewFollower(cfg, store)
+	chainProcessor := doge.NewOnChainProcessor(store)
 
 	return &tokenisationService{
-		signalChan:    signalChan,
-		RpcServer:     rpc.NewRpcServer(cfg, store),
-		store:         store,
-		DogeNetClient: dogenet.NewDogeNetClient(cfg),
-		DogeClient:    doge.NewRpcClient(cfg),
-		StatusChan:    make(chan string),
-		Follower:      follower,
+		RpcServer:      rpc.NewRpcServer(cfg, store),
+		store:          store,
+		DogeNetClient:  dogenet.NewDogeNetClient(cfg),
+		DogeClient:     doge.NewRpcClient(cfg),
+		StatusChan:     make(chan string),
+		Follower:       follower,
+		ChainProcessor: chainProcessor,
 	}
 }
 
@@ -55,14 +50,32 @@ func (s *tokenisationService) Start() {
 
 	go s.RpcServer.Start()
 	go s.Follower.Start()
+	go s.ChainProcessor.Start(s.StatusChan)
+}
 
-	s.StatusChan <- "Started"
+func (s *tokenisationService) waitForFollower() {
+	for {
+		if !s.Follower.Running {
+			time.Sleep(1 * time.Second)
+		} else {
+			break
+		}
+	}
+}
 
-	<-s.signalChan
+func (s *tokenisationService) waitForRpc() {
+	for {
+		if !s.RpcServer.Running {
+			time.Sleep(1 * time.Second)
+		} else {
+			break
+		}
+	}
+}
 
-	log.Println("Received interrupt signal, shutting down...")
-
-	s.Stop()
+func (s *tokenisationService) WaitForRunning() {
+	s.waitForFollower()
+	s.waitForRpc()
 }
 
 func (s *tokenisationService) Stop() {
