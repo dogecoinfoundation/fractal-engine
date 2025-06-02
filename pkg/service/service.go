@@ -17,7 +17,6 @@ type TokenisationService struct {
 	Store          *store.TokenisationStore
 	DogeNetClient  *dogenet.DogeNetClient
 	DogeClient     *doge.RpcClient
-	StatusChan     chan string
 	Follower       *doge.DogeFollower
 	ChainProcessor *doge.OnChainProcessor
 }
@@ -36,7 +35,6 @@ func NewTokenisationService(cfg *config.Config) *TokenisationService {
 		Store:          store,
 		DogeNetClient:  dogenet.NewDogeNetClient(cfg),
 		DogeClient:     doge.NewRpcClient(cfg),
-		StatusChan:     make(chan string),
 		Follower:       follower,
 		ChainProcessor: chainProcessor,
 	}
@@ -50,7 +48,7 @@ func (s *TokenisationService) Start() {
 
 	go s.RpcServer.Start()
 	go s.Follower.Start()
-	go s.ChainProcessor.Start(s.StatusChan)
+	go s.ChainProcessor.Start()
 }
 
 func (s *TokenisationService) waitForFollower() {

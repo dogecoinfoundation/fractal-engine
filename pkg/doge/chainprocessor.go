@@ -23,13 +23,13 @@ func NewOnChainProcessor(dbStore *store.TokenisationStore) *OnChainProcessor {
 	}
 }
 
-func (p *OnChainProcessor) Start(notify chan string) error {
-	go p.Process(notify)
+func (p *OnChainProcessor) Start() error {
+	go p.Process()
 
 	return nil
 }
 
-func (p *OnChainProcessor) Process(notify chan string) error {
+func (p *OnChainProcessor) Process() error {
 	ticker := time.NewTicker(5 * time.Second) // Wait 5 seconds between polls
 	defer ticker.Stop()
 
@@ -40,7 +40,7 @@ func (p *OnChainProcessor) Process(notify chan string) error {
 			return nil
 		case <-ticker.C:
 			// Do your database work
-			err := p.checkForRecords(notify)
+			err := p.checkForRecords()
 			if err != nil {
 				log.Println("Error processing onchain mints:", err)
 			}
@@ -48,7 +48,7 @@ func (p *OnChainProcessor) Process(notify chan string) error {
 	}
 }
 
-func (p *OnChainProcessor) checkForRecords(notify chan string) error {
+func (p *OnChainProcessor) checkForRecords() error {
 	records, err := p.dbStore.GetOnChainMints()
 	if err != nil {
 		return err
@@ -72,8 +72,6 @@ func (p *OnChainProcessor) checkForRecords(notify chan string) error {
 			log.Println("Error removing onchain mint:", err)
 			continue
 		}
-
-		notify <- "mint verified"
 	}
 
 	return nil

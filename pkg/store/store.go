@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
@@ -68,12 +67,12 @@ func (s *TokenisationStore) Migrate() error {
 		return err
 	}
 
-	path, err := MigrationsPath()
-	if err != nil {
-		return err
-	}
+	// path, err := MigrationsPath()
+	// if err != nil {
+	// 	return err
+	// }
 
-	path = strings.ReplaceAll(path, "\\", "/")
+	path := "/root/db/migrations" //strings.ReplaceAll(path, "\\", "/")
 
 	m, err := migrate.NewWithDatabaseInstance("file://"+path, s.backend, driver)
 	if err != nil {
@@ -165,25 +164,6 @@ func (s *TokenisationStore) GetMints(limit int, offset int, verified bool) ([]Mi
 	}
 
 	return mints, nil
-}
-
-func (s *TokenisationStore) GetUnsyncedMints() ([]Mint, error) {
-	var mints []Mint
-	err := s.DB.QueryRow("SELECT * FROM mints WHERE synced = false").Scan(&mints)
-	if err != nil {
-		return nil, err
-	}
-
-	return mints, nil
-}
-
-func (s *TokenisationStore) SetMintSynced(mint Mint) error {
-	_, err := s.DB.Exec("UPDATE mints SET synced = true WHERE id = $1", mint.Id)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (s *TokenisationStore) GetUnverifiedMint(mintId string) (*Mint, error) {

@@ -21,6 +21,7 @@ type MintWithoutID struct {
 	Requirements    interface{}    `json:"requirements"`
 	Resellable      bool           `json:"resellable"`
 	LockupOptions   interface{}    `json:"lockup_options"`
+	Gossiped        bool           `json:"gossiped"`
 }
 
 type MintHash struct {

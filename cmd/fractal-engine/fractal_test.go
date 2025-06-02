@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"dogecoin.org/dogetest/pkg/dogetest"
 	"dogecoin.org/fractal-engine/pkg/client"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"github.com/dogecoinfoundation/dogetest/pkg/dogetest"
 	"gotest.tools/assert"
 )
 

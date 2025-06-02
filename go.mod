@@ -3,8 +3,9 @@ module dogecoin.org/fractal-engine
 go 1.24.0
 
 require (
-	dogecoin.org/chainfollower v0.0.0-00010101000000-000000000000
-	dogecoin.org/dogetest v0.0.0-00010101000000-000000000000
+	github.com/Dogebox-WG/gossip v0.0.21-0.20250602032058-1408c427c179
+	github.com/dogecoinfoundation/chainfollower v0.0.0-20250602030134-4733dbdc7e04
+	github.com/dogecoinfoundation/dogetest v0.0.0-20250602030431-d5ccd2279f14
 	github.com/golang-migrate/migrate v3.5.4+incompatible
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
@@ -13,11 +14,12 @@ require (
 	github.com/shopspring/decimal v1.4.0
 )
 
-replace dogecoin.org/chainfollower => ../chainfollower
-
-replace dogecoin.org/dogetest => ../dogetest
-
-replace github.com/dogecoinfoundation/gigawallet => ../gigawallet
+require (
+	github.com/btcsuite/golangcrypto v0.0.0-20150304025918-53f62d9b43e8 // indirect
+	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
+	github.com/dogeorg/doge v0.0.12 // indirect
+	github.com/mr-tron/base58 v1.2.0 // indirect
+)
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
@@ -27,7 +29,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect; indirectgo
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
@@ -39,8 +41,7 @@ require (
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
-	gotest.tools v2.2.0+incompatible // indirect
-	gotest.tools/v3 v3.5.2 // indirect
+	gotest.tools v2.2.0+incompatible
 	lukechampine.com/uint128 v1.2.0 // indirect
 	modernc.org/cc/v3 v3.36.3 // indirect
 	modernc.org/ccgo/v3 v3.16.9 // indirect

@@ -3,8 +3,8 @@ package config
 type Config struct {
 	RpcServerHost   string
 	RpcServerPort   string
-	DogeNetHost     string
-	DogeNetPort     string
+	DogeNetNetwork  string
+	DogeNetAddress  string
 	DogeHost        string
 	DogeScheme      string
 	DogePort        string
@@ -17,14 +17,15 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		RpcServerHost:   "0.0.0.0",
-		RpcServerPort:   "8080",
-		DogeNetHost:     "0.0.0.0",
-		DogeNetPort:     "22555",
+		RpcServerPort:   "8891",
+		DogeNetNetwork:  "tcp",
+		DogeNetAddress:  "0.0.0.0:8085",
 		DogeScheme:      "http",
-		DogeHost:        "0.0.0.0",
-		DogePort:        "22556",
-		DogeUser:        "doge",
-		DatabaseURL:     "sqlite://fractal-engine.db",
+		DogeHost:        "dogecoin",
+		DogePort:        "22555",
+		DogeUser:        "test",
+		DogePassword:    "test",
+		DatabaseURL:     "memory://fractal-engine.db",
 		PersistFollower: true,
 	}
 }

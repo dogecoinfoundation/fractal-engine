@@ -6,15 +6,15 @@ import (
 	"log"
 	"strings"
 
-	"dogecoin.org/chainfollower/pkg/chainfollower"
-	"dogecoin.org/chainfollower/pkg/config"
-	"dogecoin.org/chainfollower/pkg/messages"
-	"dogecoin.org/chainfollower/pkg/rpc"
-	"dogecoin.org/chainfollower/pkg/state"
-	"dogecoin.org/chainfollower/pkg/types"
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"github.com/dogecoinfoundation/chainfollower/pkg/chainfollower"
+	"github.com/dogecoinfoundation/chainfollower/pkg/config"
+	"github.com/dogecoinfoundation/chainfollower/pkg/messages"
+	"github.com/dogecoinfoundation/chainfollower/pkg/rpc"
+	"github.com/dogecoinfoundation/chainfollower/pkg/state"
+	"github.com/dogecoinfoundation/chainfollower/pkg/types"
 )
 
 type DogeFollower struct {
