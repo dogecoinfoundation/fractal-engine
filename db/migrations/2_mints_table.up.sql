@@ -11,6 +11,7 @@ create table mints (
     requirements TEXT,
     resellable boolean not null default true,
     lockup_options TEXT,
+    gossiped boolean not null default false,
     verified boolean not null default false,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

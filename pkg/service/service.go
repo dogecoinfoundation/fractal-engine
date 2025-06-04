@@ -19,6 +19,7 @@ type TokenisationService struct {
 	DogeClient     *doge.RpcClient
 	Follower       *doge.DogeFollower
 	ChainProcessor *doge.OnChainProcessor
+	DogenetService *dogenet.DogenetService
 }
 
 func NewTokenisationService(cfg *config.Config) *TokenisationService {
@@ -27,16 +28,19 @@ func NewTokenisationService(cfg *config.Config) *TokenisationService {
 		log.Fatalf("Failed to create tokenisation store: %v", err)
 	}
 
+	dogenetClient := dogenet.NewDogeNetClient(cfg)
 	follower := doge.NewFollower(cfg, store)
 	chainProcessor := doge.NewOnChainProcessor(store)
+	dogenetService := dogenet.NewDogenetService(store, dogenetClient)
 
 	return &TokenisationService{
 		RpcServer:      rpc.NewRpcServer(cfg, store),
 		Store:          store,
-		DogeNetClient:  dogenet.NewDogeNetClient(cfg),
+		DogeNetClient:  dogenetClient,
 		DogeClient:     doge.NewRpcClient(cfg),
 		Follower:       follower,
 		ChainProcessor: chainProcessor,
+		DogenetService: dogenetService,
 	}
 }
 
@@ -49,6 +53,7 @@ func (s *TokenisationService) Start() {
 	go s.RpcServer.Start()
 	go s.Follower.Start()
 	go s.ChainProcessor.Start()
+	go s.DogenetService.Start()
 }
 
 func (s *TokenisationService) waitForFollower() {

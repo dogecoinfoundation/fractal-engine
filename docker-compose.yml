@@ -9,6 +9,15 @@ services:
       - "8085:8085"
     volumes:
       - ./data/dogenet/data:/root/storage
+  dogenet2:
+    build:
+      context: .
+      dockerfile: Dockerfile.dogenet
+    container_name: dogenet2
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./data/dogenet2/data:/root/storage
   # fractalengine:
   #   build:
   #     context: .
@@ -21,21 +30,21 @@ services:
   #   depends_on:
   #     dogecoin:
   #       condition: service_healthy
-  dogecoin:
-    build:
-      context: .
-      dockerfile: Dockerfile.dogecoin
-    container_name: dogecoin
-    ports:
-      - "22555:22555"
-    volumes:
-      - ./data/dogecoin/data:/root/storage
-    healthcheck:
-      test: [
-        "CMD", "curl", "--silent", "--user", "test:test",
-        "--data-binary", "{\"jsonrpc\":\"1.0\",\"id\":\"curltest\",\"method\":\"getblockchaininfo\",\"params\":[]}",
-        "-H", "content-type: text/plain;", "http://127.0.0.1:22555"
-      ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # dogecoin:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.dogecoin
+  #   container_name: dogecoin
+  #   ports:
+  #     - "22555:22555"
+  #   volumes:
+  #     - ./data/dogecoin/data:/root/storage
+  #   healthcheck:
+  #     test: [
+  #       "CMD", "curl", "--silent", "--user", "test:test",
+  #       "--data-binary", "{\"jsonrpc\":\"1.0\",\"id\":\"curltest\",\"method\":\"getblockchaininfo\",\"params\":[]}",
+  #       "-H", "content-type: text/plain;", "http://127.0.0.1:22555"
+  #     ]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5

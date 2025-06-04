@@ -2,16 +2,15 @@ package dogenet
 
 import (
 	"bufio"
+	"encoding/json"
 	"io"
 	"log"
 	"net"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/Dogebox-WG/gossip/dnet"
 )
-
-var ChanFE = dnet.NewTag("FractalEngine")
-var TagMint = dnet.NewTag("Mint")
 
 type NodePubKeyMsg struct {
 	PubKey []byte
@@ -20,9 +19,25 @@ type NodePubKeyMsg struct {
 type DogeNetClient struct {
 	cfg             *config.Config
 	sock            net.Conn
-	idenKey         dnet.KeyPair
+	feKey           dnet.KeyPair
 	announceChanges chan NodePubKeyMsg
 	Stopping        bool
+}
+
+func (c *DogeNetClient) GossipMint(record store.Mint) error {
+	payload, err := json.Marshal(record)
+	if err != nil {
+		return err
+	}
+
+	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagMint, c.feKey, payload)
+
+	err = encodedMsg.Send(c.sock)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewDogeNetClient(cfg *config.Config) *DogeNetClient {
@@ -41,7 +56,7 @@ func (c *DogeNetClient) Start() error {
 	c.sock = sock
 
 	log.Printf("[FE] connected to dogenet.")
-	bind := dnet.BindMessage{Version: 1, Chan: ChanFE, PubKey: *c.idenKey.Pub}
+	bind := dnet.BindMessage{Version: 1, Chan: ChanFE, PubKey: *c.feKey.Pub}
 	_, err = sock.Write(bind.Encode())
 	if err != nil {
 		log.Printf("[FE] cannot send BindMessage: %v", err)

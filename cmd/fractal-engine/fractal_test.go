@@ -195,7 +195,6 @@ func TestFractal(t *testing.T) {
 	}
 
 	for {
-
 		mints, err := feService.Store.GetMints(0, 1, true)
 		if err != nil {
 			log.Fatal(err)

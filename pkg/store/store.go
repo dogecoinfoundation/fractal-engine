@@ -137,6 +137,37 @@ func (s *TokenisationStore) ClearMints() error {
 	return nil
 }
 
+func (s *TokenisationStore) GetMintsForGossip(limit int) ([]Mint, error) {
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, verified, transaction_hash, requirements, resellable, lockup_options FROM mints WHERE gossiped = false LIMIT $1", limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mints []Mint
+	for rows.Next() {
+		var m Mint
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.Verified, &m.TransactionHash, &m.Requirements, &m.Resellable, &m.LockupOptions); err != nil {
+			return nil, err
+		}
+		mints = append(mints, m)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return mints, nil
+}
+
+func (s *TokenisationStore) UpdateMintGossiped(mintId string) error {
+	_, err := s.DB.Exec("UPDATE mints SET gossiped = true WHERE id = $1", mintId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *TokenisationStore) GetMints(limit int, offset int, verified bool) ([]Mint, error) {
 	fmt.Println("Getting mints:", limit, offset, verified)
 
