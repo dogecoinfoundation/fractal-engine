@@ -3,3 +3,15 @@ This engine runs alongside the DOGE Layer 1 and allows users to mint tokens, and
 
 ## Architecture
 [See architecture docs here](ARCHITECTURE.md)
+
+
+# TODO
+Ice Panel tied up.
+- Move landscape
+Protocol Docs -> Protobuf
+API Docs (swagger)
+
+Notion -> ???
+
+
+

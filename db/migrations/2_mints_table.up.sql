@@ -15,3 +15,5 @@ create table mints (
     verified boolean not null default false,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+// FEED URL

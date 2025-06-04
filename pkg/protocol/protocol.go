@@ -6,9 +6,17 @@ import (
 	"encoding/hex"
 )
 
+// Version
+// PROTOBUF
+// 1.0.0
+
 const (
 	FRACTAL_ENGINE_IDENTIFIER = 0xFE0001FE
 	ACTION_MINT               = 0x01
+	ACTION_SELL_OFFER         = 0x02
+	ACTION_BUY_OFFER          = 0x03
+	ACTION_INVOICE            = 0x04
+	ACTION_RECEIPT            = 0x05
 )
 
 type MessageEnvelope struct {

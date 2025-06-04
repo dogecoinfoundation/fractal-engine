@@ -12,7 +12,7 @@ services:
   dogenet2:
     build:
       context: .
-      dockerfile: Dockerfile.dogenet
+      dockerfile: Dockerfile.dogenet2
     container_name: dogenet2
     ports:
       - "8086:8086"
