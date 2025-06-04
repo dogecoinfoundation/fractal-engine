@@ -22,7 +22,7 @@ type TokenisationService struct {
 }
 
 func NewTokenisationService(cfg *config.Config) *TokenisationService {
-	store, err := store.NewTokenisationStore(cfg.DatabaseURL)
+	store, err := store.NewTokenisationStore(cfg.DatabaseURL, *cfg)
 	if err != nil {
 		log.Fatalf("Failed to create tokenisation store: %v", err)
 	}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"dogecoin.org/fractal-engine/pkg/config"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -21,9 +22,10 @@ import (
 type TokenisationStore struct {
 	DB      *sql.DB
 	backend string
+	cfg     config.Config
 }
 
-func NewTokenisationStore(dbUrl string) (*TokenisationStore, error) {
+func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, error) {
 	u, err := url.Parse(dbUrl)
 	if err != nil {
 		return nil, err
@@ -35,7 +37,7 @@ func NewTokenisationStore(dbUrl string) (*TokenisationStore, error) {
 			return nil, err
 		}
 
-		return &TokenisationStore{DB: sqlite, backend: "sqlite"}, nil
+		return &TokenisationStore{DB: sqlite, backend: "sqlite", cfg: cfg}, nil
 	} else if u.Scheme == "sqlite" {
 		var url string
 		if u.Host == "" {
@@ -49,13 +51,13 @@ func NewTokenisationStore(dbUrl string) (*TokenisationStore, error) {
 			return nil, err
 		}
 
-		return &TokenisationStore{DB: sqlite, backend: "sqlite"}, nil
+		return &TokenisationStore{DB: sqlite, backend: "sqlite", cfg: cfg}, nil
 	} else if u.Scheme == "postgres" {
 		postgres, err := sql.Open("postgres", dbUrl)
 		if err != nil {
 			return nil, err
 		}
-		return &TokenisationStore{DB: postgres, backend: "postgres"}, nil
+		return &TokenisationStore{DB: postgres, backend: "postgres", cfg: cfg}, nil
 	}
 
 	return nil, fmt.Errorf("unsupported database scheme: %s", u.Scheme)
@@ -67,14 +69,7 @@ func (s *TokenisationStore) Migrate() error {
 		return err
 	}
 
-	// path, err := MigrationsPath()
-	// if err != nil {
-	// 	return err
-	// }
-
-	path := "/root/db/migrations" //strings.ReplaceAll(path, "\\", "/")
-
-	m, err := migrate.NewWithDatabaseInstance("file://"+path, s.backend, driver)
+	m, err := migrate.NewWithDatabaseInstance("file://"+s.cfg.MigrationsPath, s.backend, driver)
 	if err != nil {
 		return err
 	}

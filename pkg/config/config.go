@@ -12,6 +12,7 @@ type Config struct {
 	DogePassword    string
 	DatabaseURL     string
 	PersistFollower bool
+	MigrationsPath  string
 }
 
 func NewConfig() *Config {
@@ -27,5 +28,6 @@ func NewConfig() *Config {
 		DogePassword:    "test",
 		DatabaseURL:     "memory://fractal-engine.db",
 		PersistFollower: true,
+		MigrationsPath:  "db/migrations",
 	}
 }

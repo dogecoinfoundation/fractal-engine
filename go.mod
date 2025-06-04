@@ -19,6 +19,7 @@ require (
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/dogeorg/doge v0.0.12 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 )
 
 require (

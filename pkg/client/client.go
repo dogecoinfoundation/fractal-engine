@@ -47,3 +47,25 @@ func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintRe
 
 	return result, nil
 }
+
+func (c *TokenisationClient) GetMints(page int, limit int, verified bool) (rpc.GetMintsResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints?page=%d&limit=%d&verified=%t", page, limit, verified))
+	if err != nil {
+		return rpc.GetMintsResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rpc.GetMintsResponse{}, fmt.Errorf("failed to get mints: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.GetMintsResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.GetMintsResponse{}, err
+	}
+
+	return result, nil
+}

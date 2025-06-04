@@ -9,18 +9,18 @@ services:
       - "8085:8085"
     volumes:
       - ./data/dogenet/data:/root/storage
-  fractalengine:
-    build:
-      context: .
-      dockerfile: Dockerfile.fractalengine
-    container_name: fractalengine
-    ports:
-      - "8891:8891"
-    volumes:
-      - ./data/fractalengine/data:/root/storage
-    depends_on:
-      dogecoin:
-        condition: service_healthy
+  # fractalengine:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.fractalengine
+  #   container_name: fractalengine
+  #   ports:
+  #     - "8891:8891"
+  #   volumes:
+  #     - ./data/fractalengine/data:/root/storage
+  #   depends_on:
+  #     dogecoin:
+  #       condition: service_healthy
   dogecoin:
     build:
       context: .
@@ -32,7 +32,7 @@ services:
       - ./data/dogecoin/data:/root/storage
     healthcheck:
       test: [
-        "CMD", "curl", "--silent", "--user", "user:password",
+        "CMD", "curl", "--silent", "--user", "test:test",
         "--data-binary", "{\"jsonrpc\":\"1.0\",\"id\":\"curltest\",\"method\":\"getblockchaininfo\",\"params\":[]}",
         "-H", "content-type: text/plain;", "http://127.0.0.1:22555"
       ]

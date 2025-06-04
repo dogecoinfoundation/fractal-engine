@@ -21,6 +21,7 @@ func main() {
 	var dogePassword string
 	var databaseURL string
 	var persistFollower bool
+	var migrationsPath string
 
 	flag.StringVar(&rpcServerHost, "rpc-server-host", "0.0.0.0", "RPC Server Host")
 	flag.StringVar(&rpcServerPort, "rpc-server-port", "8080", "RPC Server Port")
@@ -32,6 +33,7 @@ func main() {
 	flag.StringVar(&dogeUser, "doge-user", "test", "Doge User")
 	flag.StringVar(&dogePassword, "doge-password", "test", "Doge Password")
 	flag.StringVar(&databaseURL, "database-url", "sqlite://fractal-engine.db", "Database URL")
+	flag.StringVar(&migrationsPath, "migrations-path", "db/migrations", "Migrations Path")
 	flag.BoolVar(&persistFollower, "persist-follower", true, "Persist Follower")
 
 	flag.Parse()
@@ -48,6 +50,7 @@ func main() {
 		DogePassword:    dogePassword,
 		DatabaseURL:     databaseURL,
 		PersistFollower: persistFollower,
+		MigrationsPath:  migrationsPath,
 	}
 
 	service := service.NewTokenisationService(cfg)
