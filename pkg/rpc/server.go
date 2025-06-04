@@ -21,11 +21,13 @@ type RpcServer struct {
 func NewRpcServer(cfg *config.Config, store *store.TokenisationStore) *RpcServer {
 	mux := http.NewServeMux()
 
+	handler := withCORS(mux)
+
 	HandleMintRoutes(store, mux)
 
 	server := &http.Server{
 		Addr:    cfg.RpcServerHost + ":" + cfg.RpcServerPort,
-		Handler: mux,
+		Handler: handler,
 	}
 
 	return &RpcServer{
@@ -34,6 +36,24 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore) *RpcServer
 		quit:    make(chan bool),
 		Running: false,
 	}
+}
+
+func withCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Set CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "*") // or specific origin
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		// Proceed to actual handler
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *RpcServer) Start() {
