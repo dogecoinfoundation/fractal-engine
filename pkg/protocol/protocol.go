@@ -12,6 +12,7 @@ import (
 
 const (
 	FRACTAL_ENGINE_IDENTIFIER = 0xFE0001FE
+	DEFAULT_VERSION           = 1
 	ACTION_MINT               = 0x01
 	ACTION_SELL_OFFER         = 0x02
 	ACTION_BUY_OFFER          = 0x03
@@ -22,13 +23,15 @@ const (
 type MessageEnvelope struct {
 	EngineIdentifier uint32
 	Action           uint8
+	Version          uint8
 	Data             []byte
 }
 
-func NewMessageEnvelope(action uint8, data []byte) *MessageEnvelope {
+func NewMessageEnvelope(action uint8, version uint8, data []byte) *MessageEnvelope {
 	return &MessageEnvelope{
 		EngineIdentifier: FRACTAL_ENGINE_IDENTIFIER,
 		Action:           action,
+		Version:          version,
 		Data:             data,
 	}
 }

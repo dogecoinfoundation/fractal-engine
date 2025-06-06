@@ -1,10 +1,13 @@
 package config
 
+import "github.com/Dogebox-WG/gossip/dnet"
+
 type Config struct {
 	RpcServerHost   string
 	RpcServerPort   string
 	DogeNetNetwork  string
 	DogeNetAddress  string
+	DogeNetKeyPair  dnet.KeyPair
 	DogeHost        string
 	DogeScheme      string
 	DogePort        string
@@ -21,6 +24,7 @@ func NewConfig() *Config {
 		RpcServerPort:   "8891",
 		DogeNetNetwork:  "tcp",
 		DogeNetAddress:  "0.0.0.0:8085",
+		DogeNetKeyPair:  dnet.KeyPair{},
 		DogeScheme:      "http",
 		DogeHost:        "dogecoin",
 		DogePort:        "22555",

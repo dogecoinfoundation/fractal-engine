@@ -25,6 +25,18 @@ type TokenisationStore struct {
 	cfg     config.Config
 }
 
+func (s *TokenisationStore) WriteOnChainTransaction(tx_hash string, height int64, action_type uint8, action_version uint8, action_data []byte) error {
+	id := uuid.New().String()
+
+	_, err := s.DB.Exec("INSERT INTO onchain_transactions (id, tx_hash, block_height, action_type, action_version, action_data) VALUES ($1, $2, $3, $4, $5, $6)", id, tx_hash, height, action_type, action_version, action_data)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, error) {
 	u, err := url.Parse(dbUrl)
 	if err != nil {
@@ -135,6 +147,16 @@ func (s *TokenisationStore) ClearMints() error {
 		return err
 	}
 	return nil
+}
+
+func (s *TokenisationStore) CountOnChainTransactions() (int, error) {
+	var count int
+	err := s.DB.QueryRow("SELECT COUNT(*) FROM onchain_transactions").Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (s *TokenisationStore) GetMintsForGossip(limit int) ([]Mint, error) {

@@ -7,7 +7,7 @@ type MintTransaction struct {
 }
 
 func NewMintTransactionEnvelope(mintId string) *MessageEnvelope {
-	return NewMessageEnvelope(ACTION_MINT, []byte(mintId))
+	return NewMessageEnvelope(ACTION_MINT, DEFAULT_VERSION, []byte(mintId))
 }
 
 func (m *MintTransaction) Serialize() []byte {

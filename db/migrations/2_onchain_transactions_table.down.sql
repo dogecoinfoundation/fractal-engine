@@ -1,0 +1,1 @@
+drop table onchain_transactions;

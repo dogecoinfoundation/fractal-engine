@@ -2,12 +2,15 @@ package dogenet
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
-	"io"
+	"fmt"
 	"log"
 	"net"
+	"net/http"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/Dogebox-WG/gossip/dnet"
 )
@@ -16,9 +19,14 @@ type NodePubKeyMsg struct {
 	PubKey []byte
 }
 
+type AddPeer struct {
+	Key  string `json:"key"`
+	Addr string `json:"addr"`
+}
+
 type DogeNetClient struct {
 	cfg             *config.Config
-	sock            net.Conn
+	sock            *net.Conn
 	feKey           dnet.KeyPair
 	announceChanges chan NodePubKeyMsg
 	Stopping        bool
@@ -32,7 +40,7 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 
 	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagMint, c.feKey, payload)
 
-	err = encodedMsg.Send(c.sock)
+	err = encodedMsg.Send(*c.sock)
 	if err != nil {
 		return err
 	}
@@ -44,16 +52,36 @@ func NewDogeNetClient(cfg *config.Config) *DogeNetClient {
 	return &DogeNetClient{
 		cfg:      cfg,
 		Stopping: false,
+		feKey:    cfg.DogeNetKeyPair,
 	}
 }
 
-func (c *DogeNetClient) Start() error {
+func (c *DogeNetClient) AddPeer(addPeer AddPeer) error {
+	payload, err := json.Marshal(addPeer)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post("https://httpbin.org/post", "application/json", bytes.NewBuffer(payload))
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *DogeNetClient) Start(statusChan chan string) error {
 	sock, err := net.Dial(c.cfg.DogeNetNetwork, c.cfg.DogeNetAddress)
 	if err != nil {
 		log.Printf("[FE] cannot connect: %v", err)
 		return err
 	}
-	c.sock = sock
+	c.sock = &sock
 
 	log.Printf("[FE] connected to dogenet.")
 	bind := dnet.BindMessage{Version: 1, Chan: ChanFE, PubKey: *c.feKey.Pub}
@@ -65,27 +93,13 @@ func (c *DogeNetClient) Start() error {
 	}
 
 	reader := bufio.NewReader(sock)
-	br_buf := [dnet.BindMessageSize]byte{}
-	_, err = io.ReadAtLeast(reader, br_buf[:], len(br_buf))
-	if err != nil {
-		log.Printf("[FE] reading BindMessage reply: %v", err)
-		sock.Close()
-		return err
-	}
-	if br, ok := dnet.DecodeBindMessage(br_buf[:]); ok {
-		// send the node's pubkey to the announce service
-		// so it can include the node key in the identity announcement
-		c.announceChanges <- NodePubKeyMsg{PubKey: br.PubKey[:]}
-	} else {
-		log.Printf("[FE] invalid BindMessage reply: %v", err)
-		sock.Close()
-		return err
-	}
+	c.sock = &sock
 
-	c.sock = sock // for Stop()
 	// go s.gossipMyIdentity(sock)
 	// go s.gossipRandomIdentities(sock)
-	// read messages until reading fails
+
+	statusChan <- "Running"
+
 	for !c.Stopping {
 		msg, err := dnet.ReadMessage(reader)
 		if err != nil {
@@ -110,7 +124,7 @@ func (c *DogeNetClient) Start() error {
 
 func (c *DogeNetClient) Stop() error {
 	c.Stopping = true
-	return c.sock.Close()
+	return (*c.sock).Close()
 }
 
 func (c *DogeNetClient) Gossip() error {
@@ -122,8 +136,12 @@ func (c *DogeNetClient) Listen(topic string, listener GossipMessageListener) err
 }
 
 func (c *DogeNetClient) recvMint(msg dnet.Message) {
-	// id := iden.DecodeIdentityMsg(msg.Payload)
-	// days := (id.Time.Local().Unix() - time.Now().Unix()) / OneUnixDay
-	// log.Printf("[Iden] received identity: %v %v %v %v %v signed by: %v (%v days remain)", id.Name, id.Country, id.City, id.Lat, id.Long, hex.EncodeToString(msg.PubKey), days)
-	// s.store.SetIdentity(msg.PubKey, msg.Payload, msg.Signature, id.Time.Local().Unix())
+	envelope := protocol.MessageEnvelope{}
+	err := envelope.Deserialize(msg.Payload)
+	if err != nil {
+		log.Println("Error deserializing message envelope:", err)
+		return
+	}
+
+	fmt.Println(envelope)
 }

@@ -1,0 +1,38 @@
+syntax = "proto3";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+package fractalengine;
+
+option go_package = "pkg/protocol";
+
+// This is what gets written to the OP_RETURN on the L1
+message OnChainMintMessage {
+    string type = 1;
+    string version = 2;
+    string hash = 3;
+}
+
+// This is what gets gossiped + stored in the gossip mempool + confirmed_transactions
+message MintMessageEnvelope {
+    string type = 1;
+    string version = 2;
+    MintMessage payload = 3;
+}
+
+// Payload of a mint
+message MintMessage {
+    string id = 1;
+    string title = 2;
+    string description = 3;
+    int32 fraction_count = 4;
+    repeated string tags = 5;
+    string transaction_hash = 6;
+    google.protobuf.Struct metadata = 7;
+    string hash = 8;
+    google.protobuf.Struct requirements = 9;
+    google.protobuf.Struct lockup_options = 10; 
+    string feed_url = 11;
+    google.protobuf.Timestamp created_at = 12;
+}
+

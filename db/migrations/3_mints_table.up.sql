@@ -13,7 +13,8 @@ create table mints (
     lockup_options TEXT,
     gossiped boolean not null default false,
     verified boolean not null default false,
+    feed_url TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-// FEED URL
+ 
