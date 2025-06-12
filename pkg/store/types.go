@@ -19,7 +19,6 @@ type MintWithoutID struct {
 	Verified        bool           `json:"verified"`
 	CreatedAt       time.Time      `json:"created_at"`
 	Requirements    interface{}    `json:"requirements"`
-	Resellable      bool           `json:"resellable"`
 	LockupOptions   interface{}    `json:"lockup_options"`
 	Gossiped        bool           `json:"gossiped"`
 	FeedURL         string         `json:"feed_url"`
@@ -32,8 +31,16 @@ type MintHash struct {
 	Tags          StringArray `json:"tags"`
 	Metadata      interface{} `json:"metadata"`
 	Requirements  interface{} `json:"requirements"`
-	Resellable    bool        `json:"resellable"`
 	LockupOptions interface{} `json:"lockup_options"`
+}
+
+type OnChainTransaction struct {
+	Id            string `json:"id"`
+	TxHash        string `json:"tx_hash"`
+	Height        int64  `json:"height"`
+	ActionType    uint8  `json:"action_type"`
+	ActionVersion uint8  `json:"action_version"`
+	ActionData    []byte `json:"action_data"`
 }
 
 func (m *MintWithoutID) GenerateHash() (string, error) {
@@ -44,7 +51,6 @@ func (m *MintWithoutID) GenerateHash() (string, error) {
 		Tags:          m.Tags,
 		Metadata:      m.Metadata,
 		Requirements:  m.Requirements,
-		Resellable:    m.Resellable,
 		LockupOptions: m.LockupOptions,
 	}
 

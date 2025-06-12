@@ -124,7 +124,7 @@ func TestMintMessage(t *testing.T) {
 	})
 
 	if err != nil {
-		panic(err)
+		assert.Error(t, err, "failed to gossip mint")
 	}
 
 	fmt.Println("Waiting for message...")
@@ -245,7 +245,12 @@ func StartDogenetInstance(ctx context.Context, image string, instanceId string, 
 		DogeNetKeyPair:    nodeKey,
 	}
 
-	dogenetClient := NewDogeNetClient(dogenetConfig)
+	store, err := store.NewTokenisationStore("sqlite3://test.db", config.Config{})
+	if err != nil {
+		panic(err)
+	}
+
+	dogenetClient := NewDogeNetClient(dogenetConfig, store)
 
 	for {
 		err := dogenetClient.CheckRunning()

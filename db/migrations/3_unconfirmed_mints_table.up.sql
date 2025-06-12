@@ -1,4 +1,4 @@
-create table mints (
+create table unconfirmed_mints (
     id text primary key,
     title text not null,
     description text not null,
@@ -9,10 +9,7 @@ create table mints (
     metadata TEXT,
     hash TEXT,
     requirements TEXT,
-    resellable boolean not null default true,
     lockup_options TEXT,
-    gossiped boolean not null default false,
-    verified boolean not null default false,
     feed_url TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

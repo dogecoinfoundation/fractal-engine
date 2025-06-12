@@ -3,20 +3,20 @@ package dogenet
 import (
 	"bufio"
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"strings"
-	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/Dogebox-WG/gossip/dnet"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type NodePubKeyMsg struct {
@@ -38,6 +38,7 @@ type GetNodesResponse []NodeInfo
 
 type DogeNetClient struct {
 	cfg      *config.Config
+	store    *store.TokenisationStore
 	sock     *net.Conn
 	feKey    dnet.KeyPair
 	Stopping bool
@@ -50,17 +51,14 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 		Title:           record.Title,
 		Description:     record.Description,
 		FractionCount:   int32(record.FractionCount),
-		Tags:            strings.Join(record.Tags, ","),
+		Tags:            record.Tags,
 		TransactionHash: record.TransactionHash.String,
 		// Metadata:        &structpb.Struct{Fields: record.Metadata},
 		Hash: record.Hash,
 		// Requirements:    &structpb.Struct{Fields: record.Requirements},
-		Resellable: record.Resellable,
 		// LockupOptions:   &structpb.Struct{Fields: record.LockupOptions},
-		Gossiped:  record.Gossiped,
-		Verified:  record.Verified,
 		FeedUrl:   record.FeedURL,
-		CreatedAt: record.CreatedAt.Format(time.RFC3339),
+		CreatedAt: timestamppb.New(record.CreatedAt),
 	}
 
 	data, err := proto.Marshal(&mintMessage)
@@ -78,9 +76,10 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 	return nil
 }
 
-func NewDogeNetClient(cfg *config.Config) *DogeNetClient {
+func NewDogeNetClient(cfg *config.Config, store *store.TokenisationStore) *DogeNetClient {
 	return &DogeNetClient{
 		cfg:      cfg,
+		store:    store,
 		Stopping: false,
 		feKey:    cfg.DogeNetKeyPair,
 		Messages: make(chan dnet.Message),
@@ -238,5 +237,35 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 		return
 	}
 
-	log.Printf("[FE] %v", msg)
+	if envelope.Action != protocol.ACTION_MINT {
+		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Action)
+		return
+	}
+
+	mint := protocol.MintMessage{}
+	err = proto.Unmarshal(envelope.Data, &mint)
+	if err != nil {
+		log.Println("Error deserializing mint:", err)
+		return
+	}
+
+	id, err := c.store.SaveUnconfirmedMint(&store.MintWithoutID{
+		Hash:            mint.Hash,
+		Title:           mint.Title,
+		FractionCount:   int(mint.FractionCount),
+		Description:     mint.Description,
+		Tags:            mint.Tags,
+		Metadata:        mint.Metadata,
+		TransactionHash: sql.NullString{String: mint.TransactionHash, Valid: true},
+		CreatedAt:       mint.CreatedAt.AsTime(),
+		Requirements:    mint.Requirements,
+		LockupOptions:   mint.LockupOptions,
+	})
+
+	if err != nil {
+		log.Println("Error saving unconfirmed mint:", err)
+		return
+	}
+
+	log.Printf("[FE] unconfirmed mint saved: %v", id)
 }

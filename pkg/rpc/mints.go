@@ -51,19 +51,10 @@ func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	verifiedStr := r.URL.Query().Get("verified")
-	verified := false
-
-	if verifiedStr != "" {
-		if v, err := strconv.ParseBool(verifiedStr); err == nil {
-			verified = v
-		}
-	}
-
 	start := (page - 1) * limit
 	end := start + limit
 
-	mints, err := mr.store.GetMints(start, end, verified)
+	mints, err := mr.store.GetMints(start, end)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -109,7 +100,7 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := mr.store.SaveMint(&store.MintWithoutID{
+	id, err := mr.store.SaveUnconfirmedMint(&store.MintWithoutID{
 		Hash:            hash,
 		Title:           request.Title,
 		FractionCount:   request.FractionCount,
@@ -120,8 +111,8 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		Verified:        request.Verified,
 		CreatedAt:       time.Now(),
 		Requirements:    request.Requirements,
-		Resellable:      request.Resellable,
 		LockupOptions:   request.LockupOptions,
+		FeedURL:         request.FeedURL,
 	})
 
 	if err != nil {

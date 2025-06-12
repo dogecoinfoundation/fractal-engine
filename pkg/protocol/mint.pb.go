@@ -10,6 +10,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,30 +23,143 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// This is what gets written to the OP_RETURN on the L1
+type OnChainMintMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Version       string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	Hash          string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OnChainMintMessage) Reset() {
+	*x = OnChainMintMessage{}
+	mi := &file_pkg_protocol_mint_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OnChainMintMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OnChainMintMessage) ProtoMessage() {}
+
+func (x *OnChainMintMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_protocol_mint_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OnChainMintMessage.ProtoReflect.Descriptor instead.
+func (*OnChainMintMessage) Descriptor() ([]byte, []int) {
+	return file_pkg_protocol_mint_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *OnChainMintMessage) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *OnChainMintMessage) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+// This is what gets gossiped + stored in the gossip mempool + confirmed_transactions
+type MintMessageEnvelope struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	Payload       *MintMessage           `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MintMessageEnvelope) Reset() {
+	*x = MintMessageEnvelope{}
+	mi := &file_pkg_protocol_mint_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MintMessageEnvelope) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MintMessageEnvelope) ProtoMessage() {}
+
+func (x *MintMessageEnvelope) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_protocol_mint_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MintMessageEnvelope.ProtoReflect.Descriptor instead.
+func (*MintMessageEnvelope) Descriptor() ([]byte, []int) {
+	return file_pkg_protocol_mint_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *MintMessageEnvelope) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *MintMessageEnvelope) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *MintMessageEnvelope) GetPayload() *MintMessage {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+// Payload of a mint
 type MintMessage struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Title           string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	Description     string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	FractionCount   int32                  `protobuf:"varint,4,opt,name=fraction_count,json=fractionCount,proto3" json:"fraction_count,omitempty"`
-	Tags            string                 `protobuf:"bytes,5,opt,name=tags,proto3" json:"tags,omitempty"`
+	Tags            []string               `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
 	TransactionHash string                 `protobuf:"bytes,6,opt,name=transaction_hash,json=transactionHash,proto3" json:"transaction_hash,omitempty"`
 	Metadata        *structpb.Struct       `protobuf:"bytes,7,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	Hash            string                 `protobuf:"bytes,8,opt,name=hash,proto3" json:"hash,omitempty"`
 	Requirements    *structpb.Struct       `protobuf:"bytes,9,opt,name=requirements,proto3" json:"requirements,omitempty"`
-	Resellable      bool                   `protobuf:"varint,10,opt,name=resellable,proto3" json:"resellable,omitempty"`
-	LockupOptions   *structpb.Struct       `protobuf:"bytes,11,opt,name=lockup_options,json=lockupOptions,proto3" json:"lockup_options,omitempty"`
-	Gossiped        bool                   `protobuf:"varint,12,opt,name=gossiped,proto3" json:"gossiped,omitempty"`
-	Verified        bool                   `protobuf:"varint,13,opt,name=verified,proto3" json:"verified,omitempty"`
-	FeedUrl         string                 `protobuf:"bytes,14,opt,name=feed_url,json=feedUrl,proto3" json:"feed_url,omitempty"`
-	CreatedAt       string                 `protobuf:"bytes,15,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	LockupOptions   *structpb.Struct       `protobuf:"bytes,10,opt,name=lockup_options,json=lockupOptions,proto3" json:"lockup_options,omitempty"`
+	FeedUrl         string                 `protobuf:"bytes,11,opt,name=feed_url,json=feedUrl,proto3" json:"feed_url,omitempty"`
+	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	BlockHeight     int32                  `protobuf:"varint,13,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *MintMessage) Reset() {
 	*x = MintMessage{}
-	mi := &file_pkg_protocol_mint_proto_msgTypes[0]
+	mi := &file_pkg_protocol_mint_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -57,7 +171,7 @@ func (x *MintMessage) String() string {
 func (*MintMessage) ProtoMessage() {}
 
 func (x *MintMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_protocol_mint_proto_msgTypes[0]
+	mi := &file_pkg_protocol_mint_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -70,7 +184,7 @@ func (x *MintMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MintMessage.ProtoReflect.Descriptor instead.
 func (*MintMessage) Descriptor() ([]byte, []int) {
-	return file_pkg_protocol_mint_proto_rawDescGZIP(), []int{0}
+	return file_pkg_protocol_mint_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *MintMessage) GetId() string {
@@ -101,11 +215,11 @@ func (x *MintMessage) GetFractionCount() int32 {
 	return 0
 }
 
-func (x *MintMessage) GetTags() string {
+func (x *MintMessage) GetTags() []string {
 	if x != nil {
 		return x.Tags
 	}
-	return ""
+	return nil
 }
 
 func (x *MintMessage) GetTransactionHash() string {
@@ -136,32 +250,11 @@ func (x *MintMessage) GetRequirements() *structpb.Struct {
 	return nil
 }
 
-func (x *MintMessage) GetResellable() bool {
-	if x != nil {
-		return x.Resellable
-	}
-	return false
-}
-
 func (x *MintMessage) GetLockupOptions() *structpb.Struct {
 	if x != nil {
 		return x.LockupOptions
 	}
 	return nil
-}
-
-func (x *MintMessage) GetGossiped() bool {
-	if x != nil {
-		return x.Gossiped
-	}
-	return false
-}
-
-func (x *MintMessage) GetVerified() bool {
-	if x != nil {
-		return x.Verified
-	}
-	return false
 }
 
 func (x *MintMessage) GetFeedUrl() string {
@@ -171,38 +264,48 @@ func (x *MintMessage) GetFeedUrl() string {
 	return ""
 }
 
-func (x *MintMessage) GetCreatedAt() string {
+func (x *MintMessage) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return ""
+	return nil
+}
+
+func (x *MintMessage) GetBlockHeight() int32 {
+	if x != nil {
+		return x.BlockHeight
+	}
+	return 0
 }
 
 var File_pkg_protocol_mint_proto protoreflect.FileDescriptor
 
 const file_pkg_protocol_mint_proto_rawDesc = "" +
 	"\n" +
-	"\x17pkg/protocol/mint.proto\x12\rfractalengine\x1a\x1cgoogle/protobuf/struct.proto\"\x93\x04\n" +
+	"\x17pkg/protocol/mint.proto\x12\rfractalengine\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"B\n" +
+	"\x12OnChainMintMessage\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\x12\x12\n" +
+	"\x04hash\x18\x02 \x01(\tR\x04hash\"y\n" +
+	"\x13MintMessageEnvelope\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\x124\n" +
+	"\apayload\x18\x03 \x01(\v2\x1a.fractalengine.MintMessageR\apayload\"\xfa\x03\n" +
 	"\vMintMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12%\n" +
 	"\x0efraction_count\x18\x04 \x01(\x05R\rfractionCount\x12\x12\n" +
-	"\x04tags\x18\x05 \x01(\tR\x04tags\x12)\n" +
+	"\x04tags\x18\x05 \x03(\tR\x04tags\x12)\n" +
 	"\x10transaction_hash\x18\x06 \x01(\tR\x0ftransactionHash\x123\n" +
 	"\bmetadata\x18\a \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12\x12\n" +
 	"\x04hash\x18\b \x01(\tR\x04hash\x12;\n" +
-	"\frequirements\x18\t \x01(\v2\x17.google.protobuf.StructR\frequirements\x12\x1e\n" +
+	"\frequirements\x18\t \x01(\v2\x17.google.protobuf.StructR\frequirements\x12>\n" +
+	"\x0elockup_options\x18\n" +
+	" \x01(\v2\x17.google.protobuf.StructR\rlockupOptions\x12\x19\n" +
+	"\bfeed_url\x18\v \x01(\tR\afeedUrl\x129\n" +
 	"\n" +
-	"resellable\x18\n" +
-	" \x01(\bR\n" +
-	"resellable\x12>\n" +
-	"\x0elockup_options\x18\v \x01(\v2\x17.google.protobuf.StructR\rlockupOptions\x12\x1a\n" +
-	"\bgossiped\x18\f \x01(\bR\bgossiped\x12\x1a\n" +
-	"\bverified\x18\r \x01(\bR\bverified\x12\x19\n" +
-	"\bfeed_url\x18\x0e \x01(\tR\afeedUrl\x12\x1d\n" +
-	"\n" +
-	"created_at\x18\x0f \x01(\tR\tcreatedAtB\x0eZ\fpkg/protocolb\x06proto3"
+	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12!\n" +
+	"\fblock_height\x18\r \x01(\x05R\vblockHeightB\x0eZ\fpkg/protocolb\x06proto3"
 
 var (
 	file_pkg_protocol_mint_proto_rawDescOnce sync.Once
@@ -216,20 +319,25 @@ func file_pkg_protocol_mint_proto_rawDescGZIP() []byte {
 	return file_pkg_protocol_mint_proto_rawDescData
 }
 
-var file_pkg_protocol_mint_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_pkg_protocol_mint_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_pkg_protocol_mint_proto_goTypes = []any{
-	(*MintMessage)(nil),     // 0: fractalengine.MintMessage
-	(*structpb.Struct)(nil), // 1: google.protobuf.Struct
+	(*OnChainMintMessage)(nil),    // 0: fractalengine.OnChainMintMessage
+	(*MintMessageEnvelope)(nil),   // 1: fractalengine.MintMessageEnvelope
+	(*MintMessage)(nil),           // 2: fractalengine.MintMessage
+	(*structpb.Struct)(nil),       // 3: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
 }
 var file_pkg_protocol_mint_proto_depIdxs = []int32{
-	1, // 0: fractalengine.MintMessage.metadata:type_name -> google.protobuf.Struct
-	1, // 1: fractalengine.MintMessage.requirements:type_name -> google.protobuf.Struct
-	1, // 2: fractalengine.MintMessage.lockup_options:type_name -> google.protobuf.Struct
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 0: fractalengine.MintMessageEnvelope.payload:type_name -> fractalengine.MintMessage
+	3, // 1: fractalengine.MintMessage.metadata:type_name -> google.protobuf.Struct
+	3, // 2: fractalengine.MintMessage.requirements:type_name -> google.protobuf.Struct
+	3, // 3: fractalengine.MintMessage.lockup_options:type_name -> google.protobuf.Struct
+	4, // 4: fractalengine.MintMessage.created_at:type_name -> google.protobuf.Timestamp
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_pkg_protocol_mint_proto_init() }
@@ -243,7 +351,7 @@ func file_pkg_protocol_mint_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_protocol_mint_proto_rawDesc), len(file_pkg_protocol_mint_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

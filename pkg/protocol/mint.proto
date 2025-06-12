@@ -8,9 +8,8 @@ option go_package = "pkg/protocol";
 
 // This is what gets written to the OP_RETURN on the L1
 message OnChainMintMessage {
-    string type = 1;
-    string version = 2;
-    string hash = 3;
+    string version = 1;
+    string hash = 2;
 }
 
 // This is what gets gossiped + stored in the gossip mempool + confirmed_transactions
@@ -34,5 +33,6 @@ message MintMessage {
     google.protobuf.Struct lockup_options = 10; 
     string feed_url = 11;
     google.protobuf.Timestamp created_at = 12;
+    int32 block_height = 13;
 }
 

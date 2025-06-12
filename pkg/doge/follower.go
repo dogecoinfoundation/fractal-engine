@@ -38,18 +38,19 @@ func NewFollower(cfg *fecfg.Config, store *store.TokenisationStore) *DogeFollowe
 }
 
 func (f *DogeFollower) Start() error {
+
 	for {
-		count, err := f.store.CountOnChainTransactions()
+		blockHeight, blockHash, err := f.store.GetChainPosition()
+		if err != nil {
+			return err
+		}
+
+		count, err := f.store.CountOnChainTransactions(blockHeight)
 		if err != nil {
 			return err
 		}
 
 		if count == 0 {
-			blockHeight, blockHash, err := f.store.GetChainPosition()
-			if err != nil {
-				return err
-			}
-
 			chainPos, err := f.chainfollower.FetchStartingPos(&state.ChainPos{
 				BlockHash:   blockHash,
 				BlockHeight: blockHeight,
@@ -71,7 +72,10 @@ func (f *DogeFollower) Start() error {
 						continue
 					}
 
-					f.store.WriteOnChainTransaction(tx.Hash, msg.Block.Height, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data)
+					err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data)
+					if err != nil {
+						log.Println("Error matching unconfirmed mint:", err)
+					}
 				}
 
 				if f.cfg.PersistFollower {

@@ -9,11 +9,9 @@ This engine runs alongside the DOGE Layer 1 and allows users to mint tokens, and
 
 `protoc --proto_path=. --go_out=. .\pkg\protocol\mint.proto`
 
-# TODO
-Ice Panel tied up.
-- Move landscape
-Protocol Docs -> Protobuf
-API Docs (swagger)
+## Flows
 
-Notion -> ???
-
+- DogeFollower: L1 messages are listened too and if FE messages are identified they are stored into onchain_transactions. As soon as there are FE messages identified, it will not seek the next block until they have been matched by the MatcherService.
+- DogeNetClient: DogeNet gossips (for mints) are stored into unconfirmed_mints.
+- MatcherService: This will continuely run and attempt to match unconfirmed_mints with onchain_transactions, if matched correctly the onchain_transaction is removed and the mint is moved from unconfirmed_mints to mints.
+- TrimmerService: Periodically removes old unconfirmed_mints.

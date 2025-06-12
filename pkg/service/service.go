@@ -18,29 +18,28 @@ type TokenisationService struct {
 	DogeNetClient  *dogenet.DogeNetClient
 	DogeClient     *doge.RpcClient
 	Follower       *doge.DogeFollower
-	ChainProcessor *doge.OnChainProcessor
-	DogenetService *dogenet.DogenetService
+	TrimmerService *store.TrimmerService
+	MatcherService *MatcherService
 }
 
 func NewTokenisationService(cfg *config.Config) *TokenisationService {
-	store, err := store.NewTokenisationStore(cfg.DatabaseURL, *cfg)
+	tokenStore, err := store.NewTokenisationStore(cfg.DatabaseURL, *cfg)
 	if err != nil {
 		log.Fatalf("Failed to create tokenisation store: %v", err)
 	}
 
-	dogenetClient := dogenet.NewDogeNetClient(cfg)
-	follower := doge.NewFollower(cfg, store)
-	chainProcessor := doge.NewOnChainProcessor(store)
-	dogenetService := dogenet.NewDogenetService(store, dogenetClient)
+	dogenetClient := dogenet.NewDogeNetClient(cfg, tokenStore)
+	follower := doge.NewFollower(cfg, tokenStore)
+	trimmerService := store.NewTrimmerService(tokenStore)
 
 	return &TokenisationService{
-		RpcServer:      rpc.NewRpcServer(cfg, store),
-		Store:          store,
+		RpcServer:      rpc.NewRpcServer(cfg, tokenStore),
+		Store:          tokenStore,
 		DogeNetClient:  dogenetClient,
 		DogeClient:     doge.NewRpcClient(cfg),
 		Follower:       follower,
-		ChainProcessor: chainProcessor,
-		DogenetService: dogenetService,
+		TrimmerService: trimmerService,
+		MatcherService: NewMatcherService(tokenStore),
 	}
 }
 
@@ -52,8 +51,8 @@ func (s *TokenisationService) Start() {
 
 	go s.RpcServer.Start()
 	go s.Follower.Start()
-	go s.ChainProcessor.Start()
-	go s.DogenetService.Start()
+	go s.TrimmerService.Start()
+	go s.MatcherService.Start()
 }
 
 func (s *TokenisationService) waitForFollower() {
@@ -87,4 +86,7 @@ func (s *TokenisationService) Stop() {
 		log.Fatalf("Failed to close tokenisation store: %v", err)
 	}
 	s.RpcServer.Stop()
+	s.TrimmerService.Stop()
+	s.DogeNetClient.Stop()
+	s.MatcherService.Stop()
 }
