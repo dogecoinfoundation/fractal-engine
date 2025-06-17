@@ -31,11 +31,44 @@ func (s *TokenisationStore) SaveOnChainTransaction(tx_hash string, height int64,
 	id := uuid.New().String()
 
 	_, err := s.DB.Exec(`
-	INSERT INTO onchain_transactions (id, tx_hash, height, action_type, action_version, action_data)
+	INSERT INTO onchain_transactions (id, tx_hash, block_height, action_type, action_version, action_data)
 	VALUES ($1, $2, $3, $4, $5, $6)
 	`, id, tx_hash, height, action_type, action_version, action_data)
 
 	return err
+}
+
+func (s *TokenisationStore) MatchMint(onchainTransaction OnChainTransaction) bool {
+	if onchainTransaction.ActionType != protocol.ACTION_MINT {
+		return false
+	}
+
+	var onchainMessage protocol.OnChainMintMessage
+	err := proto.Unmarshal(onchainTransaction.ActionData, &onchainMessage)
+	if err != nil {
+		return false
+	}
+
+	if onchainMessage.Hash != onchainTransaction.TxHash {
+		return false
+	}
+
+	rows, err := s.DB.Query("SELECT hash, transaction_hash FROM mints WHERE transaction_hash = $1 and block_height = $2 and hash = $3", onchainTransaction.TxHash, onchainTransaction.Height, onchainMessage.Hash)
+	if err != nil {
+		return false
+	}
+	defer rows.Close()
+
+	exists := rows.Next()
+
+	if exists {
+		_, err = s.DB.Exec("DELETE FROM onchain_transactions WHERE $1", onchainTransaction.Id)
+		if err != nil {
+			return false
+		}
+	}
+
+	return exists
 }
 
 func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTransaction) error {
@@ -47,10 +80,6 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 	err := proto.Unmarshal(onchainTransaction.ActionData, &onchainMessage)
 	if err != nil {
 		return err
-	}
-
-	if onchainMessage.Hash != onchainTransaction.TxHash {
-		return fmt.Errorf("hash mismatch: %s != %s", onchainMessage.Hash, onchainTransaction.TxHash)
 	}
 
 	rows, err := s.DB.Query("SELECT id, title, description, fraction_count, tags, metadata, hash, verified, transaction_hash, requirements, lockup_options, feed_url FROM unconfirmed_mints WHERE transaction_hash = $1 and block_height = $2", onchainTransaction.TxHash, onchainTransaction.Height)
@@ -76,6 +105,7 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 		Tags:            unconfirmedMint.Tags,
 		Metadata:        unconfirmedMint.Metadata,
 		TransactionHash: unconfirmedMint.TransactionHash,
+		BlockHeight:     unconfirmedMint.BlockHeight,
 		Verified:        unconfirmedMint.Verified,
 		CreatedAt:       unconfirmedMint.CreatedAt,
 		Requirements:    unconfirmedMint.Requirements,
@@ -206,6 +236,30 @@ func (s *TokenisationStore) getMigrationDriver() (database.Driver, error) {
 	return nil, fmt.Errorf("unsupported database scheme: %s", s.backend)
 }
 
+func (s *TokenisationStore) SaveBlockPosition(blockHeight int64, blockHash string) error {
+	_, err := s.DB.Exec("DELETE FROM block_position")
+	if err != nil {
+		return err
+	}
+
+	_, err = s.DB.Exec("INSERT INTO block_position (block_height, block_hash) VALUES ($1, $2)", blockHeight, blockHash)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *TokenisationStore) GetBlockPosition() (int64, string, error) {
+	var blockHeight int64
+	var blockHash string
+	err := s.DB.QueryRow("SELECT block_height, block_hash FROM block_position").Scan(&blockHeight, &blockHash)
+	if err != nil {
+		return 0, "", err
+	}
+
+	return blockHeight, blockHash, nil
+}
+
 func (s *TokenisationStore) ClearMints() error {
 	_, err := s.DB.Exec("DELETE FROM mints")
 	if err != nil {
@@ -216,7 +270,7 @@ func (s *TokenisationStore) ClearMints() error {
 
 func (s *TokenisationStore) CountOnChainTransactions(blockHeight int64) (int, error) {
 	var count int
-	err := s.DB.QueryRow("SELECT COUNT(*) FROM onchain_transactions WHERE height = $1", blockHeight).Scan(&count)
+	err := s.DB.QueryRow("SELECT COUNT(*) FROM onchain_transactions WHERE block_height = $1", blockHeight).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
@@ -225,7 +279,7 @@ func (s *TokenisationStore) CountOnChainTransactions(blockHeight int64) (int, er
 }
 
 func (s *TokenisationStore) GetOnChainTransactions(limit int) ([]OnChainTransaction, error) {
-	rows, err := s.DB.Query("SELECT tx_hash, height, action_type, action_version, action_data FROM onchain_transactions LIMIT $1", limit)
+	rows, err := s.DB.Query("SELECT id, tx_hash, block_height, action_type, action_version, action_data FROM onchain_transactions LIMIT $1", limit)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +288,7 @@ func (s *TokenisationStore) GetOnChainTransactions(limit int) ([]OnChainTransact
 	var transactions []OnChainTransaction
 	for rows.Next() {
 		var transaction OnChainTransaction
-		if err := rows.Scan(&transaction.TxHash, &transaction.Height, &transaction.ActionType, &transaction.ActionVersion, &transaction.ActionData); err != nil {
+		if err := rows.Scan(&transaction.Id, &transaction.TxHash, &transaction.Height, &transaction.ActionType, &transaction.ActionVersion, &transaction.ActionData); err != nil {
 			return nil, err
 		}
 		transactions = append(transactions, transaction)
@@ -250,7 +304,7 @@ func (s *TokenisationStore) GetOnChainTransactions(limit int) ([]OnChainTransact
 func (s *TokenisationStore) GetMints(limit int, offset int) ([]Mint, error) {
 	fmt.Println("Getting mints:", limit, offset)
 
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, verified, transaction_hash, requirements, lockup_options, feed_url FROM mints LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url FROM mints LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +313,7 @@ func (s *TokenisationStore) GetMints(limit int, offset int) ([]Mint, error) {
 	var mints []Mint
 	for rows.Next() {
 		var m Mint
-		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.Verified, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL); err != nil {
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL); err != nil {
 			return nil, err
 		}
 		mints = append(mints, m)
@@ -346,31 +400,33 @@ func (s *TokenisationStore) SaveUnconfirmedMint(mint *MintWithoutID) (string, er
 	return id, err
 }
 
-func (s *TokenisationStore) GetChainPosition() (int64, string, error) {
+func (s *TokenisationStore) GetChainPosition() (int64, string, bool, error) {
 	var blockHeight int64
 	var blockHash string
+	var waitingForNextHash bool
 
-	err := s.DB.QueryRow("SELECT block_height, block_hash FROM chain_position").Scan(&blockHeight, &blockHash)
+	err := s.DB.QueryRow("SELECT block_height, block_hash, waiting_for_next_hash FROM chain_position").Scan(&blockHeight, &blockHash, &waitingForNextHash)
 	if err == sql.ErrNoRows {
-		return 0, "", nil
+		return 0, "", false, nil
 	}
 
 	if err != nil {
-		return 0, "", err
+		return 0, "", false, err
 	}
 
-	return blockHeight, blockHash, nil
+	return blockHeight, blockHash, waitingForNextHash, nil
 }
 
-func (s *TokenisationStore) UpsertChainPosition(blockHeight int64, blockHash string) error {
+func (s *TokenisationStore) UpsertChainPosition(blockHeight int64, blockHash string, waitingForNextHash bool) error {
 
 	_, err := s.DB.Exec(`
-	INSERT INTO chain_position (id, block_height, block_hash)
-	VALUES (1, $1, $2)
+	INSERT INTO chain_position (id, block_height, block_hash, waiting_for_next_hash)
+	VALUES (1, $1, $2, $3)
 	ON CONFLICT (id)
 	DO UPDATE SET block_height = EXCLUDED.block_height,
-				  block_hash = EXCLUDED.block_hash
-`, blockHeight, blockHash)
+				  block_hash = EXCLUDED.block_hash,
+				  waiting_for_next_hash = EXCLUDED.waiting_for_next_hash
+`, blockHeight, blockHash, waitingForNextHash)
 
 	return err
 }

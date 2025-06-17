@@ -16,6 +16,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/Dogebox-WG/gossip/dnet"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -45,6 +46,14 @@ type DogeNetClient struct {
 	Messages chan dnet.Message
 }
 
+func convertToStructPBMap(m map[string]interface{}) map[string]*structpb.Value {
+	fields := make(map[string]*structpb.Value)
+	for k, v := range m {
+		fields[k] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v.(string)}}
+	}
+	return fields
+}
+
 func (c *DogeNetClient) GossipMint(record store.Mint) error {
 	mintMessage := protocol.MintMessage{
 		Id:              record.Id,
@@ -53,12 +62,12 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 		FractionCount:   int32(record.FractionCount),
 		Tags:            record.Tags,
 		TransactionHash: record.TransactionHash.String,
-		// Metadata:        &structpb.Struct{Fields: record.Metadata},
-		Hash: record.Hash,
-		// Requirements:    &structpb.Struct{Fields: record.Requirements},
-		// LockupOptions:   &structpb.Struct{Fields: record.LockupOptions},
-		FeedUrl:   record.FeedURL,
-		CreatedAt: timestamppb.New(record.CreatedAt),
+		Metadata:        &structpb.Struct{Fields: convertToStructPBMap(record.Metadata)},
+		Hash:            record.Hash,
+		Requirements:    &structpb.Struct{Fields: convertToStructPBMap(record.Requirements)},
+		LockupOptions:   &structpb.Struct{Fields: convertToStructPBMap(record.LockupOptions)},
+		FeedUrl:         record.FeedURL,
+		CreatedAt:       timestamppb.New(record.CreatedAt),
 	}
 
 	data, err := proto.Marshal(&mintMessage)
@@ -255,11 +264,11 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 		FractionCount:   int(mint.FractionCount),
 		Description:     mint.Description,
 		Tags:            mint.Tags,
-		Metadata:        mint.Metadata,
+		Metadata:        mint.Metadata.AsMap(),
 		TransactionHash: sql.NullString{String: mint.TransactionHash, Valid: true},
 		CreatedAt:       mint.CreatedAt.AsTime(),
-		Requirements:    mint.Requirements,
-		LockupOptions:   mint.LockupOptions,
+		Requirements:    mint.Requirements.AsMap(),
+		LockupOptions:   mint.LockupOptions.AsMap(),
 	})
 
 	if err != nil {

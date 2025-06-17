@@ -23,6 +23,7 @@ var blocks []string
 var addressBook *dogetest.AddressBook
 var dogeTest *dogetest.DogeTest
 var feService *service.TokenisationService
+var feConfig *config.Config
 
 func TestMain(m *testing.M) {
 	// 🚀 Global setup
@@ -30,7 +31,7 @@ func TestMain(m *testing.M) {
 
 	localDogeTest, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
 		Host:             "localhost",
-		InstallationPath: "C:\\Program Files\\Dogecoin\\daemon\\dogecoind.exe",
+		InstallationPath: "C:\\Program Files\\Dogecoin\\dogecoin-qt.exe",
 		ConfigPath:       "C:\\Users\\danielw\\code\\doge\\dogetest\\config.json",
 	})
 	if err != nil {
@@ -66,17 +67,22 @@ func TestMain(m *testing.M) {
 
 	fmt.Println("Blocks confirmed:", blocks)
 
-	cfg := config.NewConfig()
-	cfg.DogeHost = dogeTest.Host
-	cfg.DogePort = strconv.Itoa(dogeTest.Port)
-	cfg.DogeUser = "test"
-	cfg.DogePassword = "test"
-	cfg.PersistFollower = false
+	os.Remove("../../cmd/fractal-engine/fractal-engine.db")
 
-	feService = service.NewTokenisationService(cfg)
+	feConfig = config.NewConfig()
+	feConfig.DogeHost = dogeTest.Host
+	feConfig.DogePort = strconv.Itoa(dogeTest.Port)
+	feConfig.DogeUser = "test"
+	feConfig.DogePassword = "test"
+	// feConfig.PersistFollower = false
+	feConfig.MigrationsPath = "../../db/migrations"
+
+	feService = service.NewTokenisationService(feConfig)
 	go feService.Start()
 
 	feService.WaitForRunning()
+
+	fmt.Println("Starting feService")
 
 	// Run all tests
 	code := m.Run()
@@ -90,7 +96,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestFractal(t *testing.T) {
-	feClient := client.NewTokenisationClient("http://localhost:8080")
+	feClient := client.NewTokenisationClient("http://" + feConfig.RpcServerHost + ":" + feConfig.RpcServerPort)
+
 	mintResponse, err := feClient.Mint(&rpc.CreateMintRequest{
 		MintWithoutID: store.MintWithoutID{
 			Title:         "Test Mint",
@@ -121,13 +128,11 @@ func TestFractal(t *testing.T) {
 		},
 	}
 
-	change := selectedUTXO.Amount - 0.1
-
-	log.Printf("mintResponse: %v", mintResponse.EncodedTransactionBody)
+	change := selectedUTXO.Amount - 0.5
 
 	outputs := map[string]interface{}{
-		"data":                           mintResponse.EncodedTransactionBody,
 		addressBook.Addresses[0].Address: change,
+		"data":                           mintResponse.EncodedTransactionBody,
 	}
 
 	createResp, err := dogeTest.Rpc.Request("createrawtransaction", []interface{}{inputs, outputs})
@@ -189,10 +194,14 @@ func TestFractal(t *testing.T) {
 
 	fmt.Printf("Transaction sent successfully! TXID: %s\n", txID)
 
-	_, err = dogeTest.ConfirmBlocks()
+	time.Sleep(2 * time.Second)
+
+	blockies, err := dogeTest.ConfirmBlocks()
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println("Blockies:", blockies)
 
 	for {
 		mints, err := feService.Store.GetMints(0, 1)

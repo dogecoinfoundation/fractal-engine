@@ -9,29 +9,30 @@ import (
 )
 
 type MintWithoutID struct {
-	Hash            string         `json:"hash"`
-	Title           string         `json:"title"`
-	FractionCount   int            `json:"fraction_count"`
-	Description     string         `json:"description"`
-	Tags            StringArray    `json:"tags"`
-	Metadata        interface{}    `json:"metadata"`
-	TransactionHash sql.NullString `json:"transaction_hash"`
-	Verified        bool           `json:"verified"`
-	CreatedAt       time.Time      `json:"created_at"`
-	Requirements    interface{}    `json:"requirements"`
-	LockupOptions   interface{}    `json:"lockup_options"`
-	Gossiped        bool           `json:"gossiped"`
-	FeedURL         string         `json:"feed_url"`
+	Hash            string                 `json:"hash"`
+	Title           string                 `json:"title"`
+	FractionCount   int                    `json:"fraction_count"`
+	Description     string                 `json:"description"`
+	Tags            StringArray            `json:"tags"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	TransactionHash sql.NullString         `json:"transaction_hash"`
+	BlockHeight     int64                  `json:"block_height"`
+	Verified        bool                   `json:"verified"`
+	CreatedAt       time.Time              `json:"created_at"`
+	Requirements    map[string]interface{} `json:"requirements"`
+	LockupOptions   map[string]interface{} `json:"lockup_options"`
+	Gossiped        bool                   `json:"gossiped"`
+	FeedURL         string                 `json:"feed_url"`
 }
 
 type MintHash struct {
-	Title         string      `json:"title"`
-	FractionCount int         `json:"fraction_count"`
-	Description   string      `json:"description"`
-	Tags          StringArray `json:"tags"`
-	Metadata      interface{} `json:"metadata"`
-	Requirements  interface{} `json:"requirements"`
-	LockupOptions interface{} `json:"lockup_options"`
+	Title         string                 `json:"title"`
+	FractionCount int                    `json:"fraction_count"`
+	Description   string                 `json:"description"`
+	Tags          StringArray            `json:"tags"`
+	Metadata      map[string]interface{} `json:"metadata"`
+	Requirements  map[string]interface{} `json:"requirements"`
+	LockupOptions map[string]interface{} `json:"lockup_options"`
 }
 
 type OnChainTransaction struct {
