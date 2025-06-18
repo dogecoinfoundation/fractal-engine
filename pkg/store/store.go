@@ -329,30 +329,6 @@ func (s *TokenisationStore) getMigrationDriver() (database.Driver, error) {
 	return nil, fmt.Errorf("unsupported database scheme: %s", s.backend)
 }
 
-func (s *TokenisationStore) SaveBlockPosition(blockHeight int64, blockHash string) error {
-	_, err := s.DB.Exec("DELETE FROM block_position")
-	if err != nil {
-		return err
-	}
-
-	_, err = s.DB.Exec("INSERT INTO block_position (block_height, block_hash) VALUES ($1, $2)", blockHeight, blockHash)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *TokenisationStore) GetBlockPosition() (int64, string, error) {
-	var blockHeight int64
-	var blockHash string
-	err := s.DB.QueryRow("SELECT block_height, block_hash FROM block_position").Scan(&blockHeight, &blockHash)
-	if err != nil {
-		return 0, "", err
-	}
-
-	return blockHeight, blockHash, nil
-}
-
 func (s *TokenisationStore) ClearMints() error {
 	_, err := s.DB.Exec("DELETE FROM mints")
 	if err != nil {
