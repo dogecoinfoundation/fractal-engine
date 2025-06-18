@@ -270,6 +270,8 @@ func StartDogenetInstance(ctx context.Context, image string, instanceId string, 
 
 	<-dogenetStatusChan
 
+	store.Close()
+
 	log.Println("dogenetClient started")
 	return dogenetClient, dogenetA
 }

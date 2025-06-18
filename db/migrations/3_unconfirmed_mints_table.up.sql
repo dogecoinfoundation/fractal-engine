@@ -10,7 +10,6 @@ create table unconfirmed_mints (
     metadata TEXT,
     hash TEXT,
     requirements TEXT,
-    verified BOOLEAN NOT NULL DEFAULT FALSE,
     lockup_options TEXT,
     feed_url TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
