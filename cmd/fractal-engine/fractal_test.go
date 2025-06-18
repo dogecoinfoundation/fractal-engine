@@ -15,6 +15,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"github.com/BurntSushi/toml"
 	"github.com/dogecoinfoundation/dogetest/pkg/dogetest"
 	"gotest.tools/assert"
 )
@@ -25,14 +26,26 @@ var dogeTest *dogetest.DogeTest
 var feService *service.TokenisationService
 var feConfig *config.Config
 
+type TestDogeConfig struct {
+	DogecoindPath string `toml:"dogecoind_path"`
+}
+
+type TestConfig struct {
+	Doge TestDogeConfig
+}
+
 func TestMain(m *testing.M) {
 	// 🚀 Global setup
 	fmt.Println(">>> SETUP: Init resources")
 
+	var testConfig TestConfig
+	if _, err := toml.DecodeFile("../../test.toml", &testConfig); err != nil {
+		panic(err)
+	}
+
 	localDogeTest, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
 		Host:             "localhost",
-		InstallationPath: "C:\\Program Files\\Dogecoin\\dogecoin-qt.exe",
-		ConfigPath:       "C:\\Users\\danielw\\code\\doge\\dogetest\\config.json",
+		InstallationPath: testConfig.Doge.DogecoindPath,
 	})
 	if err != nil {
 		log.Fatal(err)
