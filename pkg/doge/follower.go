@@ -3,7 +3,6 @@ package doge
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 
@@ -91,9 +90,6 @@ func (f *DogeFollower) Start() error {
 
 func GetFractalMessageFromVout(vout []types.RawTxnVOut) (protocol.MessageEnvelope, error) {
 	for _, vout := range vout {
-
-		fmt.Println("vout:", vout)
-
 		bytes := ParseOpReturnData(vout)
 		if bytes == nil {
 			return protocol.MessageEnvelope{}, errors.New("no op return data")
