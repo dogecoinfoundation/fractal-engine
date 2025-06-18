@@ -23,7 +23,7 @@ func (t *TrimmerService) Start() {
 			log.Println("Error trimming unconfirmed mints:", err)
 		}
 
-		time.Sleep(1 * time.Minute)
+		time.Sleep(10 * time.Second)
 
 		if !t.running {
 			break

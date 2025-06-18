@@ -43,3 +43,9 @@ Ensure docker is running.
 - DogeNetClient: DogeNet gossips (for mints) are stored into unconfirmed_mints.
 - Processor: This will continuely run and attempt to match unconfirmed_mints with onchain_transactions, if matched correctly the onchain_transaction is removed and the mint is moved from unconfirmed_mints to mints.
 - TrimmerService: Periodically removes old unconfirmed_mints.
+
+
+## Known Issues
+
+- Handle overflows of Mint API call (Current limit is 100, but we need to add logic incase an unmatched mint gets discarded because of the limit)
+- Handle overflows of Onchain Transactions from L1 (Similar issue, there is currently no limit, but in theory over time this could fill up with junk)
