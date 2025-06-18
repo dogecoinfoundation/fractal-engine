@@ -6,7 +6,7 @@ This engine runs alongside the DOGE Layer 1 and allows users to mint tokens, and
 
 ## Automated Testing
 
-### End to End Test
+### Fractal Engine e2e test with 1 Node (no gossip)
 This test does the following: 
 - Spins up a Doge Core instance
 - Sets up a few wallets with account balances
@@ -19,6 +19,19 @@ Copy `test.toml.example` to `test.toml` and update config to reflect your local 
 
 #### Running
 `go test -v  .\cmd\fractal-engine\fractal_test.go`
+
+
+### DogeNet integration test
+This test does the following: 
+- Spins up a Two DogeNet instances in containers
+- Gossips a mint to Node A
+- Ensure Node B receieves the gossiped mint
+
+#### Setup
+Ensure docker is running.
+
+#### Running
+`go test -v  .\pkg\dogenet\dogenet_test.go`
 
 ## Generate Protobuffers
 
