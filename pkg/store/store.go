@@ -27,6 +27,95 @@ type TokenisationStore struct {
 	cfg     config.Config
 }
 
+func (s *TokenisationStore) GetStats() (map[string]int, error) {
+	stats := make(map[string]int)
+
+	mints, err := getMintsCount(s)
+	if err != nil {
+		fmt.Println("Error getting mints count:", err)
+		return nil, err
+	}
+
+	unconfirmedMints, err := getUnconfirmedMintsCount(s)
+	if err != nil {
+		fmt.Println("Error getting unconfirmed mints count:", err)
+		return nil, err
+	}
+
+	onChainTransactions, err := getOnChainTransactionsCount(s)
+	if err != nil {
+		fmt.Println("Error getting onchain transactions count:", err)
+		return nil, err
+	}
+
+	stats["mints"] = mints
+	stats["unconfirmed_mints"] = unconfirmedMints
+	stats["onchain_transactions"] = onChainTransactions
+
+	return stats, nil
+
+}
+
+func getMintsCount(s *TokenisationStore) (int, error) {
+	rows, err := s.DB.Query("SELECT COUNT(*) FROM mints")
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return 0, nil
+	}
+
+	var count int
+	err = rows.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func getUnconfirmedMintsCount(s *TokenisationStore) (int, error) {
+	rows, err := s.DB.Query("SELECT COUNT(*) FROM unconfirmed_mints")
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return 0, nil
+	}
+
+	var count int
+	err = rows.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func getOnChainTransactionsCount(s *TokenisationStore) (int, error) {
+	rows, err := s.DB.Query("SELECT COUNT(*) FROM onchain_transactions")
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return 0, nil
+	}
+
+	var count int
+	err = rows.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func (s *TokenisationStore) SaveOnChainTransaction(tx_hash string, height int64, action_type uint8, action_version uint8, action_data []byte) error {
 	id := uuid.New().String()
 

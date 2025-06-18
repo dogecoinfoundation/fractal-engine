@@ -24,6 +24,7 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore) *RpcServer
 	handler := withCORS(mux)
 
 	HandleMintRoutes(store, mux)
+	HandleStatRoutes(store, mux)
 
 	server := &http.Server{
 		Addr:    cfg.RpcServerHost + ":" + cfg.RpcServerPort,
