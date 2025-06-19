@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -101,18 +102,16 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, err := mr.store.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:            hash,
-		Title:           request.Title,
-		FractionCount:   request.FractionCount,
-		Description:     request.Description,
-		Tags:            request.Tags,
-		Metadata:        request.Metadata,
-		TransactionHash: request.TransactionHash,
-		Verified:        request.Verified,
-		CreatedAt:       time.Now(),
-		Requirements:    request.Requirements,
-		LockupOptions:   request.LockupOptions,
-		FeedURL:         request.FeedURL,
+		Hash:          hash,
+		Title:         request.Title,
+		FractionCount: request.FractionCount,
+		Description:   request.Description,
+		Tags:          request.Tags,
+		Metadata:      request.Metadata,
+		CreatedAt:     time.Now(),
+		Requirements:  request.Requirements,
+		LockupOptions: request.LockupOptions,
+		FeedURL:       request.FeedURL,
 	})
 
 	if err != nil {
@@ -120,11 +119,11 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	envelope := protocol.NewMintTransactionEnvelope(id)
+	envelope := protocol.NewMintTransactionEnvelope(hash)
 	encodedTransactionBody := envelope.Serialize()
 
 	response := CreateMintResponse{
-		EncodedTransactionBody: encodedTransactionBody,
+		EncodedTransactionBody: hex.EncodeToString(encodedTransactionBody),
 		Id:                     id,
 		TransactionHash:        hash,
 	}

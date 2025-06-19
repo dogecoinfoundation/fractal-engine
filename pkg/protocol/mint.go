@@ -1,13 +1,27 @@
 package protocol
 
-import "bytes"
+import (
+	"bytes"
+
+	"google.golang.org/protobuf/proto"
+)
 
 type MintTransaction struct {
 	MintID string `json:"mint_id"`
 }
 
 func NewMintTransactionEnvelope(mintId string) *MessageEnvelope {
-	return NewMessageEnvelope(ACTION_MINT, DEFAULT_VERSION, []byte(mintId))
+	message := &OnChainMintMessage{
+		Version: DEFAULT_VERSION,
+		Hash:    mintId,
+	}
+
+	protoBytes, err := proto.Marshal(message)
+	if err != nil {
+		return nil
+	}
+
+	return NewMessageEnvelope(ACTION_MINT, DEFAULT_VERSION, protoBytes)
 }
 
 func (m *MintTransaction) Serialize() []byte {

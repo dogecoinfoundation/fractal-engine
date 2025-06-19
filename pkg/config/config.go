@@ -32,7 +32,7 @@ func NewConfig() *Config {
 		DogePort:          "22555",
 		DogeUser:          "test",
 		DogePassword:      "test",
-		DatabaseURL:       "memory://fractal-engine.db",
+		DatabaseURL:       "sqlite://fractal-engine.db",
 		PersistFollower:   true,
 		MigrationsPath:    "db/migrations",
 	}

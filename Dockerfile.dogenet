@@ -14,9 +14,6 @@ WORKDIR /app
 # Clone the repo
 RUN git clone https://github.com/Dogebox-WG/dogenet.git .
 
-# Optional: checkout a specific tag or commit
-# RUN git checkout <tag-or-commit>
-
 # Download dependencies
 RUN go mod download
 RUN ls
@@ -35,10 +32,13 @@ WORKDIR /root/
 # Copy built binary
 COPY --from=builder /app/dogenet .
 
-EXPOSE 8085 44069 33069
+ARG CACHE_BUSTER=default
+ENV WEB_PORT=8085
+ENV HANDLER_PORT=44069
+ENV BIND_PORT=33069
+ENV KEY=default
+ENV IDENT_KEY=default
 
-RUN ./dogenet genkey dev-key
-RUN ./dogenet genkey ident-key ident-pub
+CMD export KEY=${KEY} && export IDENT=${IDENT_KEY} && ./dogenet --local --public 0.0.0.0:${BIND_PORT} --web 0.0.0.0:${WEB_PORT} --handler 0.0.0.0:${HANDLER_PORT} --bind 0.0.0.0:${BIND_PORT}
 
-CMD export KEY=$(cat dev-key) && export IDENT=$(cat ident-pub) && ./dogenet --local --public 0.0.0.0 --web 0.0.0.0:8085 --handler 0.0.0.0:44069 --bind 0.0.0.0:33069
  

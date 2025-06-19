@@ -3,7 +3,6 @@ package protocol
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 )
 
 // Version
@@ -40,7 +39,7 @@ func (m *MessageEnvelope) IsFractalEngineMessage() bool {
 	return m.EngineIdentifier == FRACTAL_ENGINE_IDENTIFIER
 }
 
-func (m *MessageEnvelope) Serialize() string {
+func (m *MessageEnvelope) Serialize() []byte {
 	bufIdentifier := make([]byte, 4)
 	binary.BigEndian.PutUint32(bufIdentifier, m.EngineIdentifier)
 
@@ -49,7 +48,7 @@ func (m *MessageEnvelope) Serialize() string {
 	buf.WriteByte(m.Action)
 	buf.Write(m.Data)
 
-	return hex.EncodeToString(buf.Bytes())
+	return buf.Bytes()
 }
 
 func (m *MessageEnvelope) Deserialize(data []byte) error {

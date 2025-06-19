@@ -48,8 +48,8 @@ func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintRe
 	return result, nil
 }
 
-func (c *TokenisationClient) GetMints(page int, limit int, verified bool) (rpc.GetMintsResponse, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints?page=%d&limit=%d&verified=%t", page, limit, verified))
+func (c *TokenisationClient) GetMints(page int, limit int) (rpc.GetMintsResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints?page=%d&limit=%d", page, limit))
 	if err != nil {
 		return rpc.GetMintsResponse{}, err
 	}

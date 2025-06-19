@@ -26,7 +26,7 @@ const (
 // This is what gets written to the OP_RETURN on the L1
 type OnChainMintMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Version       string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	Version       int32                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
 	Hash          string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -62,11 +62,11 @@ func (*OnChainMintMessage) Descriptor() ([]byte, []int) {
 	return file_pkg_protocol_mint_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *OnChainMintMessage) GetVersion() string {
+func (x *OnChainMintMessage) GetVersion() int32 {
 	if x != nil {
 		return x.Version
 	}
-	return ""
+	return 0
 }
 
 func (x *OnChainMintMessage) GetHash() string {
@@ -80,7 +80,7 @@ func (x *OnChainMintMessage) GetHash() string {
 type MintMessageEnvelope struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	Version       int32                  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
 	Payload       *MintMessage           `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -123,11 +123,11 @@ func (x *MintMessageEnvelope) GetType() string {
 	return ""
 }
 
-func (x *MintMessageEnvelope) GetVersion() string {
+func (x *MintMessageEnvelope) GetVersion() int32 {
 	if x != nil {
 		return x.Version
 	}
-	return ""
+	return 0
 }
 
 func (x *MintMessageEnvelope) GetPayload() *MintMessage {
@@ -284,11 +284,11 @@ const file_pkg_protocol_mint_proto_rawDesc = "" +
 	"\n" +
 	"\x17pkg/protocol/mint.proto\x12\rfractalengine\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"B\n" +
 	"\x12OnChainMintMessage\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\x12\x12\n" +
+	"\aversion\x18\x01 \x01(\x05R\aversion\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\"y\n" +
 	"\x13MintMessageEnvelope\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\tR\aversion\x124\n" +
+	"\aversion\x18\x02 \x01(\x05R\aversion\x124\n" +
 	"\apayload\x18\x03 \x01(\v2\x1a.fractalengine.MintMessageR\apayload\"\xfa\x03\n" +
 	"\vMintMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +

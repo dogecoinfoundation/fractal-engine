@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -19,7 +20,7 @@ type TokenisationService struct {
 	DogeClient     *doge.RpcClient
 	Follower       *doge.DogeFollower
 	TrimmerService *store.TrimmerService
-	MatcherService *MatcherService
+	Processor      *FractalEngineProcessor
 }
 
 func NewTokenisationService(cfg *config.Config) *TokenisationService {
@@ -31,6 +32,7 @@ func NewTokenisationService(cfg *config.Config) *TokenisationService {
 	dogenetClient := dogenet.NewDogeNetClient(cfg, tokenStore)
 	follower := doge.NewFollower(cfg, tokenStore)
 	trimmerService := store.NewTrimmerService(tokenStore)
+	processor := NewFractalEngineProcessor(tokenStore)
 
 	return &TokenisationService{
 		RpcServer:      rpc.NewRpcServer(cfg, tokenStore),
@@ -39,12 +41,13 @@ func NewTokenisationService(cfg *config.Config) *TokenisationService {
 		DogeClient:     doge.NewRpcClient(cfg),
 		Follower:       follower,
 		TrimmerService: trimmerService,
-		MatcherService: NewMatcherService(tokenStore),
+		Processor:      processor,
 	}
 }
 
 func (s *TokenisationService) Start() {
 	err := s.Store.Migrate()
+
 	if err != nil && err.Error() != migrate.ErrNoChange.Error() {
 		log.Fatalf("Failed to migrate tokenisation store: %v", err)
 	}
@@ -52,7 +55,7 @@ func (s *TokenisationService) Start() {
 	go s.RpcServer.Start()
 	go s.Follower.Start()
 	go s.TrimmerService.Start()
-	go s.MatcherService.Start()
+	go s.Processor.Start()
 }
 
 func (s *TokenisationService) waitForFollower() {
@@ -76,7 +79,9 @@ func (s *TokenisationService) waitForRpc() {
 }
 
 func (s *TokenisationService) WaitForRunning() {
+	fmt.Println("Waiting for follower")
 	s.waitForFollower()
+	fmt.Println("Waiting for rpc")
 	s.waitForRpc()
 }
 
@@ -88,5 +93,5 @@ func (s *TokenisationService) Stop() {
 	s.RpcServer.Stop()
 	s.TrimmerService.Stop()
 	s.DogeNetClient.Stop()
-	s.MatcherService.Stop()
+	s.Processor.Stop()
 }

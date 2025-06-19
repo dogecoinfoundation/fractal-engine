@@ -1,9 +1,33 @@
-FROM debian:latest
-RUN apt update && apt upgrade -y && apt install -y curl gpg ca-certificates tar dirmngr
-RUN curl -o dogecoin.tar.gz -Lk https://github.com/dogecoin/dogecoin/releases/download/v1.14.9/dogecoin-1.14.9-x86_64-linux-gnu.tar.gz
-RUN tar -xvf dogecoin.tar.gz
-RUN rm dogecoin.tar.gz
-RUN install -m 0755 -o root -g root -t /usr/local/bin dogecoin-1.14.9/bin/*
-EXPOSE 22555
-COPY regtest.conf /dogecoin.conf
-CMD ["dogecoind", "-printtoconsole", "-regtest", "-reindex-chainstate", "-min", "-splash=0", "-conf=/dogecoin.conf"]
+# Dockerfile
+FROM debian:bullseye-slim
+
+RUN apt-get update && apt-get install -y \
+    wget \
+    tar \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install Dogecoin Core
+ENV DOGE_VERSION=1.14.9
+RUN wget https://github.com/dogecoin/dogecoin/releases/download/v${DOGE_VERSION}/dogecoin-${DOGE_VERSION}-x86_64-linux-gnu.tar.gz && \
+    tar -xzf dogecoin-${DOGE_VERSION}-x86_64-linux-gnu.tar.gz && \
+    cp dogecoin-${DOGE_VERSION}/bin/* /usr/local/bin/ && \
+    rm -rf dogecoin-${DOGE_VERSION}*
+
+# Create Dogecoin data directory
+WORKDIR /dogecoin
+
+ENV PORT=22555
+
+RUN echo rpcuser=test > /dogecoin/dogecoin.conf
+RUN echo rpcpassword=test >> /dogecoin/dogecoin.conf
+RUN echo rpcport=${PORT} >> /dogecoin/dogecoin.conf
+RUN echo server=1 >> /dogecoin/dogecoin.conf
+RUN echo regtest=1 >> /dogecoin/dogecoin.conf
+RUN echo rpcbind=0.0.0.0 >> /dogecoin/dogecoin.conf
+RUN echo rpcallowip=0.0.0.0/0 >> /dogecoin/dogecoin.conf
+
+RUN ls /dogecoin/
+
+ENTRYPOINT ["dogecoind"]
+CMD ["-printtoconsole", "-conf=/dogecoin/dogecoin.conf"]
