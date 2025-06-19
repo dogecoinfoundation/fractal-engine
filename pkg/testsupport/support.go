@@ -243,6 +243,8 @@ func (lc *StdoutLogConsumer) Accept(l testcontainers.Log) {
 		pubKey := strings.Split(content, "Node PubKey is: ")[1]
 		lc.PubKey = strings.Trim(pubKey, "\n")
 	}
+
+	log.Println(content)
 }
 
 func StartDogenetInstance(ctx context.Context, image string, instanceId string, webPort string, port string, gossipPort string, networkName string, logConsumer *StdoutLogConsumer, tokenisationStore *store.TokenisationStore) (*dogenet.DogeNetClient, testcontainers.Container, error) {
@@ -262,9 +264,6 @@ func StartDogenetInstance(ctx context.Context, image string, instanceId string, 
 	}
 
 	cacheBuster := strconv.FormatInt(time.Now().UnixNano(), 10)
-
-	log.Printf("KEY: %s", hex.EncodeToString(nodeKey.Priv[:]))
-	log.Printf("IDENT_KEY: %s", hex.EncodeToString(identKey.Pub[:]))
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
@@ -403,14 +402,13 @@ func StartDogecoinInstance(ctx context.Context, image string, networkName string
 			"PORT": port,
 		},
 		WaitingFor: wait.ForLog("init message: Done loading").WithStartupTimeout(10 * time.Second),
-		Mounts: testcontainers.ContainerMounts{
-			{
-				Source: testcontainers.GenericTmpfsMountSource{},
-				Target: "/dogecoin",
-			},
-		},
 		LogConsumerCfg: &testcontainers.LogConsumerConfig{
 			Opts: []testcontainers.LogProductionOption{testcontainers.WithLogProductionTimeout(10 * time.Second)},
+			Consumers: []testcontainers.LogConsumer{
+				&StdoutLogConsumer{
+					Name: "dogecoin",
+				},
+			},
 		},
 	}
 

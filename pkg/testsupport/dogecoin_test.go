@@ -18,7 +18,7 @@ func TestDogecoinContainer(t *testing.T) {
 
 	net, err := network.New(ctx, network.WithDriver("bridge"))
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
 
 	networkName := net.Name
@@ -35,7 +35,7 @@ func TestDogecoinContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	rpcClient := doge.NewRpcClient(&config.Config{
 		DogeHost:     "localhost",
