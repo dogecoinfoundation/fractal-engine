@@ -2,3 +2,7 @@ fractal-engine.db
 test.db
 data
 test.toml
+cmd\fractal-engine\test0.db
+cmd\fractal-engine\test1.db
+cmd\fractal-engine\test2.db
+cmd\fractal-engine\test3.db

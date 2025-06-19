@@ -59,10 +59,10 @@ func withCORS(next http.Handler) http.Handler {
 
 func (s *RpcServer) Start() {
 	go func() {
-		log.Println("Server is ready to handle requests at :8080")
+		log.Println("Server is ready to handle requests at " + s.server.Addr)
 		s.Running = true
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Could not listen on :8080: %v\n", err)
+			log.Fatalf("Could not listen on %s: %v\n", s.server.Addr, err)
 		}
 	}()
 

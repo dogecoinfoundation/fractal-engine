@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/rpc"
 	"sync/atomic"
@@ -374,6 +375,7 @@ func (t *RpcClient) Request(method string, params []any) (*json.RawMessage, erro
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Println("Error", err)
 		return nil, fmt.Errorf("json-rpc transport: %v", err)
 	}
 	// we MUST read all of res.Body and call res.Close,

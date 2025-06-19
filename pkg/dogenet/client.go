@@ -208,6 +208,8 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 			return err
 		}
 
+		log.Printf("[FE] received message: [%s][%s]", msg.Chan, msg.Tag)
+
 		c.Messages <- msg
 
 		if msg.Chan != ChanFE {
