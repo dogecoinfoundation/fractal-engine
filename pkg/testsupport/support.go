@@ -24,14 +24,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-type TestDogeConfig struct {
-	DogecoindPath string `toml:"dogecoind_path"`
-}
-
-type TestConfig struct {
-	Doge TestDogeConfig
-}
-
 type TestGroup struct {
 	InstanceId       int
 	Name             string
@@ -56,18 +48,17 @@ func (tg *TestGroup) Stop() {
 	os.Remove("test" + strconv.Itoa(tg.InstanceId) + ".db")
 }
 
-func NewTestGroup(name string, networkName string, instanceId int, installationPath string, webPort int, port int, gossipPort int) *TestGroup {
+func NewTestGroup(name string, networkName string, instanceId int, webPort int, port int, gossipPort int) *TestGroup {
 	nodeKey, err := dnet.GenerateKeyPair()
 	if err != nil {
 		panic(err)
 	}
 
-	testConfig := dogetest.DogeTestConfig{
-		Host:             "localhost",
-		InstallationPath: installationPath,
-	}
-
-	dogeTest, err := dogetest.NewDogeTest(testConfig)
+	dogeTest, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
+		Host:        "localhost",
+		NetworkName: networkName,
+		Port:        port,
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -113,7 +104,7 @@ func (tg *TestGroup) Start() {
 		panic(err)
 	}
 
-	feService, feConfig := SetupFractalEngineTestInstance(tg.InstanceId, strconv.Itoa(tg.WebPort), tg.DogeTest)
+	feService, feConfig := SetupFractalEngineTestInstance(tg.InstanceId, strconv.Itoa(tg.WebPort), tg.Port, tg.DogeTest)
 
 	tg.FeService = feService
 	tg.FeConfig = feConfig
@@ -130,50 +121,18 @@ func (tg *TestGroup) Start() {
 	tg.DogenetContainer = dogenetContainer
 }
 
-func SetupDogeTestInstance(testConfig TestConfig) (*dogetest.DogeTest, *dogetest.AddressBook, []string) {
-	localDogeTest, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
-		Host:             "localhost",
-		InstallationPath: testConfig.Doge.DogecoindPath,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = localDogeTest.Start()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	addressBook, err := localDogeTest.SetupAddresses([]dogetest.AddressSetup{
-		{
-			Label:          "test1",
-			InitialBalance: 100,
-		},
-		{
-			Label:          "test2",
-			InitialBalance: 20,
-		},
-	})
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	blocks, err := localDogeTest.ConfirmBlocks()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return localDogeTest, addressBook, blocks
-}
-
-func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogeTestInstance *dogetest.DogeTest) (*service.TokenisationService, *config.Config) {
+func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogePort int, dogeTestInstance *dogetest.DogeTest) (*service.TokenisationService, *config.Config) {
 	os.Remove("test" + strconv.Itoa(instanceId) + ".db")
+
+	mappedPort, err := dogeTestInstance.Container.MappedPort(context.Background(), nat.Port(strconv.Itoa(dogePort)+"/tcp"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	feConfig := config.NewConfig()
 	feConfig.DogeHost = dogeTestInstance.Host
 	feConfig.DatabaseURL = "sqlite://test" + strconv.Itoa(instanceId) + ".db"
-	feConfig.DogePort = strconv.Itoa(dogeTestInstance.Port)
+	feConfig.DogePort = mappedPort.Port()
 	feConfig.DogeUser = "test"
 	feConfig.DogePassword = "test"
 	feConfig.RpcServerPort = rpcServerPort
@@ -376,76 +335,6 @@ func StartDogenetInstance(ctx context.Context, image string, instanceId string, 
 
 	log.Println("dogenetClient started")
 	return dogenetClient, dogenetA, nil
-}
-
-func StartDogecoinInstance(ctx context.Context, image string, networkName string, instanceId string, port string) (testcontainers.Container, error) {
-	absPathContext, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		return nil, err
-	}
-
-	req := testcontainers.ContainerRequest{
-		FromDockerfile: testcontainers.FromDockerfile{
-			Context:    absPathContext,
-			Dockerfile: image,
-			KeepImage:  false,
-			BuildArgs: map[string]*string{
-				"PORT": &port,
-			},
-		},
-		Networks: []string{
-			networkName,
-		},
-		Name:         "dogecoin-" + instanceId,
-		ExposedPorts: []string{port + "/tcp"},
-		Env: map[string]string{
-			"PORT": port,
-		},
-		WaitingFor: wait.ForLog("init message: Done loading").WithStartupTimeout(10 * time.Second),
-		LogConsumerCfg: &testcontainers.LogConsumerConfig{
-			Opts: []testcontainers.LogProductionOption{testcontainers.WithLogProductionTimeout(10 * time.Second)},
-			Consumers: []testcontainers.LogConsumer{
-				&StdoutLogConsumer{
-					Name: "dogecoin",
-				},
-			},
-		},
-	}
-
-	dogecoinContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	for {
-		if dogecoinContainer.IsRunning() {
-			break
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-
-	for {
-		handlerPort, err := dogecoinContainer.MappedPort(ctx, nat.Port(port+"/tcp"))
-		if err == nil {
-			fmt.Printf("Handler port mapped to %s\n", handlerPort.Port())
-			break
-		}
-
-		fmt.Printf("Waiting for handler port to be mapped... %s\n", err)
-
-		time.Sleep(1 * time.Second)
-	}
-
-	ip, _ := dogecoinContainer.Host(ctx)
-	mappedPort, _ := dogecoinContainer.MappedPort(ctx, nat.Port(port+"/tcp"))
-
-	fmt.Printf("Dogecoin is running at %s:%s\n", ip, mappedPort.Port())
-
-	return dogecoinContainer, nil
 }
 
 func WriteMintToCore(dogeTest *dogetest.DogeTest, addressBook *dogetest.AddressBook, mintResponse *rpc.CreateMintResponse) error {

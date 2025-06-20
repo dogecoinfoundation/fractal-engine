@@ -12,7 +12,6 @@ import (
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"dogecoin.org/fractal-engine/pkg/testsupport"
-	"github.com/BurntSushi/toml"
 	"github.com/testcontainers/testcontainers-go/network"
 	"gotest.tools/assert"
 )
@@ -23,11 +22,6 @@ func TestMain(m *testing.M) {
 	// 🚀 Global setup
 	fmt.Println(">>> SETUP: Init resources")
 
-	var testConfig testsupport.TestConfig
-	if _, err := toml.DecodeFile("../../test.toml", &testConfig); err != nil {
-		panic(err)
-	}
-
 	ctx := context.Background()
 	net, err := network.New(ctx, network.WithDriver("bridge"))
 	if err != nil {
@@ -37,10 +31,10 @@ func TestMain(m *testing.M) {
 	networkName := net.Name
 
 	testGroups = []*testsupport.TestGroup{
-		testsupport.NewTestGroup("alpha", networkName, 0, testConfig.Doge.DogecoindPath, 8086, 44070, 33070),
-		testsupport.NewTestGroup("beta", networkName, 1, testConfig.Doge.DogecoindPath, 8087, 44071, 33071),
-		testsupport.NewTestGroup("gamma", networkName, 2, testConfig.Doge.DogecoindPath, 8088, 44072, 33072),
-		testsupport.NewTestGroup("delta", networkName, 3, testConfig.Doge.DogecoindPath, 8089, 44073, 33073),
+		testsupport.NewTestGroup("alpha", networkName, 0, 8086, 44070, 33070),
+		testsupport.NewTestGroup("beta", networkName, 1, 8087, 44071, 33071),
+		testsupport.NewTestGroup("gamma", networkName, 2, 8088, 44072, 33072),
+		testsupport.NewTestGroup("delta", networkName, 3, 8089, 44073, 33073),
 	}
 
 	defer func() {

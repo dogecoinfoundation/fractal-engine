@@ -8,7 +8,7 @@ import (
 
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
-	"github.com/docker/go-connections/nat"
+	"github.com/dogecoinfoundation/dogetest/pkg/dogetest"
 	"github.com/testcontainers/testcontainers-go/network"
 	"gotest.tools/assert"
 )
@@ -23,19 +23,25 @@ func TestDogecoinContainer(t *testing.T) {
 
 	networkName := net.Name
 
-	dogecoinContainer, err := StartDogecoinInstance(ctx, "Dockerfile.dogecoin", networkName, "0", "22555")
+	dogeTest, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
+		NetworkName: networkName,
+		Port:        22555,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, dogecoinContainer.IsRunning(), true)
-
-	mappedPort, err := dogecoinContainer.MappedPort(ctx, nat.Port("22555/tcp"))
+	err = dogeTest.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	time.Sleep(20 * time.Second)
+	time.Sleep(2 * time.Second)
+
+	mappedPort, err := dogeTest.Container.MappedPort(ctx, "22555/tcp")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	rpcClient := doge.NewRpcClient(&config.Config{
 		DogeHost:     "localhost",
@@ -45,16 +51,16 @@ func TestDogecoinContainer(t *testing.T) {
 		DogePassword: "test",
 	})
 
-	res, err := rpcClient.Request("listunspent", []any{0, 999999999, []string{"DQ6666666666666666666666666666666666666666666666666666666666666666"}})
+	res, err := rpcClient.Request("getblockchaininfo", []any{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var result []doge.UTXO
+	var result map[string]any
 	err = json.Unmarshal(*res, &result)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, len(result), 0)
+	assert.Equal(t, result["chain"], "regtest")
 }
