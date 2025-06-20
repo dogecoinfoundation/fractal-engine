@@ -58,5 +58,6 @@ func (p *FractalEngineProcessor) Start() {
 }
 
 func (p *FractalEngineProcessor) Stop() {
+	fmt.Println("Stopping processor")
 	p.Running = false
 }

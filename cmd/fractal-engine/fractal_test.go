@@ -31,17 +31,9 @@ func TestMain(m *testing.M) {
 	networkName := net.Name
 
 	testGroups = []*testsupport.TestGroup{
-		testsupport.NewTestGroup("alpha", networkName, 0, 8086, 44070, 33070),
-		testsupport.NewTestGroup("beta", networkName, 1, 8087, 44071, 33071),
-		testsupport.NewTestGroup("gamma", networkName, 2, 8088, 44072, 33072),
-		testsupport.NewTestGroup("delta", networkName, 3, 8089, 44073, 33073),
+		testsupport.NewTestGroup("alpha", networkName, 0, 8086, 22555, 33070),
+		testsupport.NewTestGroup("beta", networkName, 1, 8087, 22556, 33071),
 	}
-
-	defer func() {
-		for _, testGroup := range testGroups {
-			testGroup.Stop()
-		}
-	}()
 
 	for _, testGroup := range testGroups {
 		log.Println("Starting test group", testGroup.Name)
@@ -50,27 +42,14 @@ func TestMain(m *testing.M) {
 
 	fmt.Println("Test groups started")
 
+	// time.Sleep(40 * time.Second)
+
 	err = testsupport.ConnectDogeNetPeers(testGroups[0].DogeNetClient, testGroups[1].DogenetContainer, testGroups[1].GossipPort, testGroups[0].LogConsumer, testGroups[1].LogConsumer)
 	if err != nil {
 		panic(err)
 	}
 
-	err = testsupport.ConnectDogeNetPeers(testGroups[1].DogeNetClient, testGroups[2].DogenetContainer, testGroups[2].GossipPort, testGroups[1].LogConsumer, testGroups[2].LogConsumer)
-	if err != nil {
-		panic(err)
-	}
-
-	err = testsupport.ConnectDogeNetPeers(testGroups[2].DogeNetClient, testGroups[3].DogenetContainer, testGroups[3].GossipPort, testGroups[2].LogConsumer, testGroups[3].LogConsumer)
-	if err != nil {
-		panic(err)
-	}
-
-	err = testsupport.ConnectDogeNetPeers(testGroups[3].DogeNetClient, testGroups[0].DogenetContainer, testGroups[0].GossipPort, testGroups[3].LogConsumer, testGroups[0].LogConsumer)
-	if err != nil {
-		panic(err)
-	}
-
-	time.Sleep(15 * time.Second)
+	// time.Sleep(45 * time.Second)
 
 	// Run all tests
 	code := m.Run()
@@ -79,7 +58,14 @@ func TestMain(m *testing.M) {
 	fmt.Println("<<< TEARDOWN: Clean up resources")
 
 	for _, testGroup := range testGroups {
-		testGroup.Stop()
+		go testGroup.Stop()
+	}
+
+	for _, testGroup := range testGroups {
+		for testGroup.Running {
+			time.Sleep(1 * time.Second)
+			fmt.Println("Waiting for test group", testGroup.Name, "to stop")
+		}
 	}
 
 	// Exit with the correct status

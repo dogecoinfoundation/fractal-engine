@@ -1,8 +1,10 @@
 package doge
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
@@ -22,6 +24,9 @@ type DogeFollower struct {
 	store         *store.TokenisationStore
 	chainfollower *chainfollower.ChainFollower
 	Running       bool
+	msgChan       chan messages.Message
+	context       context.Context
+	cancel        context.CancelFunc
 }
 
 func NewFollower(cfg *fecfg.Config, store *store.TokenisationStore) *DogeFollower {
@@ -33,7 +38,9 @@ func NewFollower(cfg *fecfg.Config, store *store.TokenisationStore) *DogeFollowe
 
 	chainfollower := chainfollower.NewChainFollower(rpcClient)
 
-	return &DogeFollower{cfg: cfg, store: store, chainfollower: chainfollower, Running: false}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	return &DogeFollower{cfg: cfg, store: store, chainfollower: chainfollower, Running: false, context: ctx, cancel: cancel}
 }
 
 func (f *DogeFollower) Start() error {
@@ -44,48 +51,52 @@ func (f *DogeFollower) Start() error {
 		return err
 	}
 
-	msgChan := f.chainfollower.Start(&state.ChainPos{
+	f.msgChan = f.chainfollower.Start(&state.ChainPos{
 		BlockHash:   blockHash,
 		BlockHeight: blockHeight,
 	})
 
-	for msg := range msgChan {
-		switch msg := msg.(type) {
-		case messages.BlockMessage:
-			for _, tx := range msg.Block.Tx {
-				fractalMessage, err := GetFractalMessageFromVout(tx.VOut)
-				if err != nil {
-					continue
+	for {
+		select {
+		case <-f.context.Done():
+			fmt.Println("Exiting follower")
+			return nil
+		case msg := <-f.msgChan:
+			switch msg := msg.(type) {
+			case messages.BlockMessage:
+				for _, tx := range msg.Block.Tx {
+					fractalMessage, err := GetFractalMessageFromVout(tx.VOut)
+					if err != nil {
+						continue
+					}
+
+					err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data)
+					if err != nil {
+						log.Println("Error saving on chain transaction:", err)
+					}
 				}
 
-				err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data)
-				if err != nil {
-					log.Println("Error saving on chain transaction:", err)
+				if f.cfg.PersistFollower {
+					err := f.store.UpsertChainPosition(msg.ChainPos.BlockHeight, msg.ChainPos.BlockHash, msg.ChainPos.WaitingForNextHash)
+					if err != nil {
+						log.Println("Error setting chain position:", err)
+					}
 				}
+
+			case messages.RollbackMessage:
+				log.Println("Received rollback message from chainfollower:")
+				if f.cfg.PersistFollower {
+					err := f.store.UpsertChainPosition(msg.NewChainPos.BlockHeight, msg.NewChainPos.BlockHash, msg.NewChainPos.WaitingForNextHash)
+					if err != nil {
+						log.Println("Error setting chain position:", err)
+					}
+				}
+
+			default:
+				log.Printf("Received unknown message from chainfollower: %v\n", msg)
 			}
-
-			if f.cfg.PersistFollower {
-				err := f.store.UpsertChainPosition(msg.ChainPos.BlockHeight, msg.ChainPos.BlockHash, msg.ChainPos.WaitingForNextHash)
-				if err != nil {
-					log.Println("Error setting chain position:", err)
-				}
-			}
-
-		case messages.RollbackMessage:
-			log.Println("Received rollback message from chainfollower:")
-			if f.cfg.PersistFollower {
-				err := f.store.UpsertChainPosition(msg.NewChainPos.BlockHeight, msg.NewChainPos.BlockHash, msg.NewChainPos.WaitingForNextHash)
-				if err != nil {
-					log.Println("Error setting chain position:", err)
-				}
-			}
-
-		default:
-			log.Println("Received unknown message from chainfollower:")
 		}
 	}
-
-	return nil
 }
 
 func GetFractalMessageFromVout(vout []types.RawTxnVOut) (protocol.MessageEnvelope, error) {
@@ -137,4 +148,14 @@ func ParseOpReturnData(vout types.RawTxnVOut) []byte {
 		}
 	}
 	return nil
+}
+
+func (f *DogeFollower) Stop() {
+	fmt.Println("Stopping follower")
+	if f.Running {
+		f.chainfollower.Stop()
+		f.cancel()
+		f.Running = false
+	}
+
 }

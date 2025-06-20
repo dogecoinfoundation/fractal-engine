@@ -228,8 +228,14 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 }
 
 func (c *DogeNetClient) Stop() error {
+	fmt.Println("Stopping dogenet client")
 	c.Stopping = true
-	return (*c.sock).Close()
+
+	if c.sock != nil {
+		(*c.sock).Close()
+	}
+
+	return nil
 }
 
 func (c *DogeNetClient) Gossip() error {

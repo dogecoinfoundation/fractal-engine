@@ -39,13 +39,29 @@ type TestGroup struct {
 	DogeNetClient    *dogenet.DogeNetClient
 	NodeKey          dnet.KeyPair
 	DogenetContainer testcontainers.Container
+	Running          bool
 }
 
 func (tg *TestGroup) Stop() {
-	tg.DogeTest.Stop()
-	tg.FeService.Stop()
-	tg.DogenetContainer.Stop(context.Background(), nil)
-	os.Remove("test" + strconv.Itoa(tg.InstanceId) + ".db")
+	if tg.DogeTest != nil {
+		err := tg.DogeTest.Stop()
+		if err != nil {
+			log.Println("Error stopping doge test:", err)
+		}
+	}
+
+	if tg.DogenetContainer != nil {
+		err := tg.DogenetContainer.Stop(context.Background(), nil)
+		if err != nil {
+			log.Println("Error stopping dogenet container:", err)
+		}
+	}
+
+	if tg.FeService != nil {
+		tg.FeService.Stop()
+	}
+
+	tg.Running = false
 }
 
 func NewTestGroup(name string, networkName string, instanceId int, webPort int, port int, gossipPort int) *TestGroup {
@@ -55,9 +71,10 @@ func NewTestGroup(name string, networkName string, instanceId int, webPort int, 
 	}
 
 	dogeTest, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
-		Host:        "localhost",
-		NetworkName: networkName,
-		Port:        port,
+		Host:          "localhost",
+		NetworkName:   networkName,
+		Port:          port,
+		LogContainers: false,
 	})
 	if err != nil {
 		panic(err)
@@ -76,6 +93,7 @@ func NewTestGroup(name string, networkName string, instanceId int, webPort int, 
 }
 
 func (tg *TestGroup) Start() {
+	tg.Running = true
 	ctx := context.Background()
 
 	err := tg.DogeTest.Start()
@@ -203,7 +221,7 @@ func (lc *StdoutLogConsumer) Accept(l testcontainers.Log) {
 		lc.PubKey = strings.Trim(pubKey, "\n")
 	}
 
-	log.Println(content)
+	// log.Println(content)
 }
 
 func StartDogenetInstance(ctx context.Context, image string, instanceId string, webPort string, port string, gossipPort string, networkName string, logConsumer *StdoutLogConsumer, tokenisationStore *store.TokenisationStore) (*dogenet.DogeNetClient, testcontainers.Container, error) {

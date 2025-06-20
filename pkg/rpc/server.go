@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -80,6 +81,7 @@ func (s *RpcServer) Start() {
 }
 
 func (s *RpcServer) Stop() {
+	fmt.Println("Stopping rpc server")
 	s.quit <- true
 }
 

@@ -501,5 +501,6 @@ func (s *TokenisationStore) UpsertChainPosition(blockHeight int64, blockHash str
 }
 
 func (s *TokenisationStore) Close() error {
+	fmt.Println("Closing store")
 	return s.DB.Close()
 }

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"log"
 	"time"
 )
@@ -32,5 +33,6 @@ func (t *TrimmerService) Start() {
 }
 
 func (t *TrimmerService) Stop() {
+	fmt.Println("Stopping trimmer service")
 	t.running = false
 }

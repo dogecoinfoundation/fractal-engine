@@ -36,6 +36,20 @@ func TestDogecoinContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	dogeTest2, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
+		NetworkName:   networkName,
+		Port:          22556,
+		LogContainers: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dogeTest2.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	time.Sleep(2 * time.Second)
 
 	mappedPort, err := dogeTest.Container.MappedPort(ctx, "22555/tcp")
@@ -63,4 +77,30 @@ func TestDogecoinContainer(t *testing.T) {
 	}
 
 	assert.Equal(t, result["chain"], "regtest")
+
+	mappedPort2, err := dogeTest2.Container.MappedPort(ctx, "22556/tcp")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rpcClient2 := doge.NewRpcClient(&config.Config{
+		DogeHost:     "localhost",
+		DogeScheme:   "http",
+		DogePort:     mappedPort2.Port(),
+		DogeUser:     "test",
+		DogePassword: "test",
+	})
+
+	res2, err := rpcClient2.Request("getblockchaininfo", []any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var result2 map[string]any
+	err = json.Unmarshal(*res2, &result2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, result2["chain"], "regtest")
 }

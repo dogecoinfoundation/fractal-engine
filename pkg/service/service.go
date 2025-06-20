@@ -86,12 +86,10 @@ func (s *TokenisationService) WaitForRunning() {
 }
 
 func (s *TokenisationService) Stop() {
-	err := s.Store.Close()
-	if err != nil {
-		log.Fatalf("Failed to close tokenisation store: %v", err)
-	}
+	s.Processor.Stop()
+	s.Follower.Stop()
+	s.Store.Close()
 	s.RpcServer.Stop()
 	s.TrimmerService.Stop()
 	s.DogeNetClient.Stop()
-	s.Processor.Stop()
 }
