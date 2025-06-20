@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"testing"
 	"time"
 
@@ -21,6 +23,14 @@ var testGroups []*testsupport.TestGroup
 func TestMain(m *testing.M) {
 	// 🚀 Global setup
 	fmt.Println(">>> SETUP: Init resources")
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-signalChan
+		fmt.Println("Received signal, stopping test")
+		os.Exit(0)
+	}()
 
 	ctx := context.Background()
 	net, err := network.New(ctx, network.WithDriver("bridge"))
@@ -101,6 +111,7 @@ func TestFractal(t *testing.T) {
 		log.Fatal(err)
 	}
 
+	// OG Node
 	for {
 		mints, err := testGroups[0].FeService.Store.GetMints(0, 1)
 		if err != nil {
@@ -113,6 +124,28 @@ func TestFractal(t *testing.T) {
 			assert.Equal(t, mints[0].FractionCount, 100)
 
 			break
+		} else {
+			fmt.Println("Waiting for mints to be found on OG Node")
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
+	// Node should have been gossiped mint + validated from L1
+	for {
+		mints, err := testGroups[1].FeService.Store.GetMints(0, 1)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if len(mints) > 0 {
+			assert.Equal(t, mints[0].Title, "Test Mint")
+			assert.Equal(t, mints[0].Description, "Test Description")
+			assert.Equal(t, mints[0].FractionCount, 100)
+
+			break
+		} else {
+			fmt.Println("Waiting for mints to be found on 2nd Node")
 		}
 
 		time.Sleep(1 * time.Second)

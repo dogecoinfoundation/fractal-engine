@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
 
@@ -17,14 +18,15 @@ type RpcServer struct {
 	quit    chan bool
 	server  *http.Server
 	Running bool
+	dogenet *dogenet.DogeNetClient
 }
 
-func NewRpcServer(cfg *config.Config, store *store.TokenisationStore) *RpcServer {
+func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, dogenet *dogenet.DogeNetClient) *RpcServer {
 	mux := http.NewServeMux()
 
 	handler := withCORS(mux)
 
-	HandleMintRoutes(store, mux)
+	HandleMintRoutes(store, dogenet, mux)
 	HandleStatRoutes(store, mux)
 
 	server := &http.Server{

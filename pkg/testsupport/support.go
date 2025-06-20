@@ -130,7 +130,7 @@ func (tg *TestGroup) Start() {
 	logConsumer := &StdoutLogConsumer{Name: tg.Name}
 	tg.LogConsumer = logConsumer
 
-	dogenetClient, dogenetContainer, err := StartDogenetInstance(ctx, "Dockerfile.dogenet", strconv.Itoa(tg.InstanceId), strconv.Itoa(tg.WebPort), strconv.Itoa(tg.Port), strconv.Itoa(tg.GossipPort), tg.NetworkName, logConsumer, feService.Store)
+	dogenetClient, dogenetContainer, err := StartDogenetInstance(ctx, feConfig.DogeNetKeyPair, "Dockerfile.dogenet", strconv.Itoa(tg.InstanceId), strconv.Itoa(tg.WebPort), strconv.Itoa(tg.Port), strconv.Itoa(tg.GossipPort), tg.NetworkName, logConsumer, feService.Store)
 	if err != nil {
 		panic(err)
 	}
@@ -147,12 +147,18 @@ func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogePo
 		log.Fatal(err)
 	}
 
+	nodeKey, err := dnet.GenerateKeyPair()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	feConfig := config.NewConfig()
 	feConfig.DogeHost = dogeTestInstance.Host
 	feConfig.DatabaseURL = "sqlite://test" + strconv.Itoa(instanceId) + ".db"
 	feConfig.DogePort = mappedPort.Port()
 	feConfig.DogeUser = "test"
 	feConfig.DogePassword = "test"
+	feConfig.DogeNetKeyPair = nodeKey
 	feConfig.RpcServerPort = rpcServerPort
 	// feConfig.PersistFollower = false
 	feConfig.MigrationsPath = "../../db/migrations"
@@ -224,13 +230,8 @@ func (lc *StdoutLogConsumer) Accept(l testcontainers.Log) {
 	// log.Println(content)
 }
 
-func StartDogenetInstance(ctx context.Context, image string, instanceId string, webPort string, port string, gossipPort string, networkName string, logConsumer *StdoutLogConsumer, tokenisationStore *store.TokenisationStore) (*dogenet.DogeNetClient, testcontainers.Container, error) {
+func StartDogenetInstance(ctx context.Context, feKey dnet.KeyPair, image string, instanceId string, webPort string, port string, gossipPort string, networkName string, logConsumer *StdoutLogConsumer, tokenisationStore *store.TokenisationStore) (*dogenet.DogeNetClient, testcontainers.Container, error) {
 	nodeKey, err := dnet.GenerateKeyPair()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	identKey, err := dnet.GenerateKeyPair()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -259,7 +260,7 @@ func StartDogenetInstance(ctx context.Context, image string, instanceId string, 
 		ExposedPorts: []string{webPort + "/tcp", port + "/tcp", gossipPort + "/tcp"},
 		Env: map[string]string{
 			"KEY":          hex.EncodeToString(nodeKey.Priv[:]),
-			"IDENT_KEY":    hex.EncodeToString(identKey.Pub[:]),
+			"IDENT_KEY":    hex.EncodeToString(feKey.Pub[:]),
 			"WEB_PORT":     webPort,
 			"HANDLER_PORT": port,
 			"BIND_PORT":    gossipPort,

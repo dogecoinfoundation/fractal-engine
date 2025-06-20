@@ -371,8 +371,6 @@ func (s *TokenisationStore) GetOnChainTransactions(limit int) ([]OnChainTransact
 }
 
 func (s *TokenisationStore) GetMints(offset int, limit int) ([]Mint, error) {
-	fmt.Println("Getting mints:", limit, offset)
-
 	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url FROM mints LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, err

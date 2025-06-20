@@ -11,6 +11,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"dogecoin.org/fractal-engine/pkg/testsupport"
+	"github.com/Dogebox-WG/gossip/dnet"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"google.golang.org/protobuf/proto"
@@ -36,14 +37,19 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
+	feKey, err := dnet.GenerateKeyPair()
+	if err != nil {
+		panic(err)
+	}
+
 	logConsumerA := &testsupport.StdoutLogConsumer{Name: "alpha"}
-	dogenetClientA, dogenetA, err = testsupport.StartDogenetInstance(ctx, "Dockerfile.dogenet", "alpha", "8085", "44069", "33069", networkName, logConsumerA, tokenisationStore)
+	dogenetClientA, dogenetA, err = testsupport.StartDogenetInstance(ctx, feKey, "Dockerfile.dogenet", "alpha", "8085", "44069", "33069", networkName, logConsumerA, tokenisationStore)
 	if err != nil {
 		panic(err)
 	}
 
 	logConsumerB := &testsupport.StdoutLogConsumer{Name: "beta"}
-	dogenetClientB, dogenetB, err = testsupport.StartDogenetInstance(ctx, "Dockerfile.dogenet", "beta", "8086", "44070", "33070", networkName, logConsumerB, tokenisationStore)
+	dogenetClientB, dogenetB, err = testsupport.StartDogenetInstance(ctx, feKey, "Dockerfile.dogenet", "beta", "8086", "44070", "33070", networkName, logConsumerB, tokenisationStore)
 	if err != nil {
 		panic(err)
 	}

@@ -75,6 +75,8 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 		log.Fatalf("Failed to marshal: %v", err)
 	}
 
+	log.Printf("[FE] KEY: %v", c.feKey)
+
 	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagMint, c.feKey, data)
 
 	err = encodedMsg.Send(*c.sock)

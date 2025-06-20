@@ -35,7 +35,7 @@ func NewTokenisationService(cfg *config.Config) *TokenisationService {
 	processor := NewFractalEngineProcessor(tokenStore)
 
 	return &TokenisationService{
-		RpcServer:      rpc.NewRpcServer(cfg, tokenStore),
+		RpcServer:      rpc.NewRpcServer(cfg, tokenStore, dogenetClient),
 		Store:          tokenStore,
 		DogeNetClient:  dogenetClient,
 		DogeClient:     doge.NewRpcClient(cfg),
