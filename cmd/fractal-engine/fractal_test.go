@@ -41,8 +41,8 @@ func TestMain(m *testing.M) {
 	networkName := net.Name
 
 	testGroups = []*testsupport.TestGroup{
-		testsupport.NewTestGroup("alpha", networkName, 0, 8086, 22555, 33070),
-		testsupport.NewTestGroup("beta", networkName, 1, 8087, 22556, 33071),
+		testsupport.NewTestGroup("alpha", networkName, 0, 20000, 21000, 8086, 22555, 33070),
+		testsupport.NewTestGroup("beta", networkName, 1, 20001, 21001, 8087, 22556, 33071),
 	}
 
 	for _, testGroup := range testGroups {
@@ -54,12 +54,12 @@ func TestMain(m *testing.M) {
 
 	// time.Sleep(40 * time.Second)
 
-	err = testsupport.ConnectDogeNetPeers(testGroups[0].DogeNetClient, testGroups[1].DogenetContainer, testGroups[1].GossipPort, testGroups[0].LogConsumer, testGroups[1].LogConsumer)
+	err = testsupport.ConnectDogeNetPeers(testGroups[0].DogeNetClient, testGroups[1].DogenetContainer, testGroups[1].DnGossipPort, testGroups[0].LogConsumer, testGroups[1].LogConsumer)
 	if err != nil {
 		panic(err)
 	}
 
-	// time.Sleep(45 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// Run all tests
 	code := m.Run()
@@ -106,7 +106,14 @@ func TestFractal(t *testing.T) {
 	log.Println("Address book", testGroups[0].AddressBook)
 	log.Println("Doge test", testGroups[0].DogeTest)
 
+	// Write mint to core (OG Node)
 	err = testsupport.WriteMintToCore(testGroups[0].DogeTest, testGroups[0].AddressBook, &mintResponse)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Write mint to core (2nd node)
+	err = testsupport.WriteMintToCore(testGroups[1].DogeTest, testGroups[1].AddressBook, &mintResponse)
 	if err != nil {
 		log.Fatal(err)
 	}

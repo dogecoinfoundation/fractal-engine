@@ -14,7 +14,7 @@ message OnChainMintMessage {
 
 // This is what gets gossiped + stored in the gossip mempool + confirmed_transactions
 message MintMessageEnvelope {
-    string type = 1;
+    int32 type = 1;
     int32 version = 2;
     MintMessage payload = 3;
 }

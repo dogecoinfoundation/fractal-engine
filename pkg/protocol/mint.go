@@ -10,7 +10,7 @@ type MintTransaction struct {
 	MintID string `json:"mint_id"`
 }
 
-func NewMintTransactionEnvelope(mintId string) *MessageEnvelope {
+func NewMintTransactionEnvelope(mintId string) MessageEnvelope {
 	message := &OnChainMintMessage{
 		Version: DEFAULT_VERSION,
 		Hash:    mintId,
@@ -18,7 +18,7 @@ func NewMintTransactionEnvelope(mintId string) *MessageEnvelope {
 
 	protoBytes, err := proto.Marshal(message)
 	if err != nil {
-		return nil
+		return MessageEnvelope{}
 	}
 
 	return NewMessageEnvelope(ACTION_MINT, DEFAULT_VERSION, protoBytes)

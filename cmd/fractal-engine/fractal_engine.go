@@ -2,11 +2,14 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
 	"os/signal"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/service"
+	"dogecoin.org/fractal-engine/pkg/store"
 )
 
 func main() {
@@ -53,7 +56,14 @@ func main() {
 		MigrationsPath:  migrationsPath,
 	}
 
-	service := service.NewTokenisationService(cfg)
+	tokenStore, err := store.NewTokenisationStore(cfg.DatabaseURL, *cfg)
+	if err != nil {
+		log.Fatalf("Failed to create tokenisation store: %v", err)
+	}
+
+	dogenetClient := dogenet.NewDogeNetClient(cfg, tokenStore)
+
+	service := service.NewTokenisationService(cfg, dogenetClient, tokenStore)
 	service.Start()
 
 	signalChan := make(chan os.Signal, 1)

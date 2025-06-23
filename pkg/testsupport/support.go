@@ -28,10 +28,7 @@ type TestGroup struct {
 	InstanceId       int
 	Name             string
 	LogConsumer      *StdoutLogConsumer
-	WebPort          int
 	NetworkName      string
-	Port             int
-	GossipPort       int
 	DogeTest         *dogetest.DogeTest
 	AddressBook      *dogetest.AddressBook
 	FeService        *service.TokenisationService
@@ -40,6 +37,11 @@ type TestGroup struct {
 	NodeKey          dnet.KeyPair
 	DogenetContainer testcontainers.Container
 	Running          bool
+	DogeCorePort     int
+	DnWebPort        int
+	DnPort           int
+	DnGossipPort     int
+	FeRpcPort        int
 }
 
 func (tg *TestGroup) Stop() {
@@ -64,7 +66,7 @@ func (tg *TestGroup) Stop() {
 	tg.Running = false
 }
 
-func NewTestGroup(name string, networkName string, instanceId int, webPort int, port int, gossipPort int) *TestGroup {
+func NewTestGroup(name string, networkName string, instanceId int, dogeCorePort int, feRpcPort int, dnWebPort int, dnPort int, dnGossipPort int) *TestGroup {
 	nodeKey, err := dnet.GenerateKeyPair()
 	if err != nil {
 		panic(err)
@@ -73,7 +75,7 @@ func NewTestGroup(name string, networkName string, instanceId int, webPort int, 
 	dogeTest, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
 		Host:          "localhost",
 		NetworkName:   networkName,
-		Port:          port,
+		Port:          dogeCorePort,
 		LogContainers: false,
 	})
 	if err != nil {
@@ -81,14 +83,16 @@ func NewTestGroup(name string, networkName string, instanceId int, webPort int, 
 	}
 
 	return &TestGroup{
-		InstanceId:  instanceId,
-		Name:        name,
-		NetworkName: networkName,
-		DogeTest:    dogeTest,
-		NodeKey:     nodeKey,
-		WebPort:     webPort,
-		Port:        port,
-		GossipPort:  gossipPort,
+		InstanceId:   instanceId,
+		Name:         name,
+		NetworkName:  networkName,
+		DogeTest:     dogeTest,
+		NodeKey:      nodeKey,
+		DogeCorePort: dogeCorePort,
+		DnWebPort:    dnWebPort,
+		DnPort:       dnPort,
+		DnGossipPort: dnGossipPort,
+		FeRpcPort:    feRpcPort,
 	}
 }
 
@@ -122,32 +126,44 @@ func (tg *TestGroup) Start() {
 		panic(err)
 	}
 
-	feService, feConfig := SetupFractalEngineTestInstance(tg.InstanceId, strconv.Itoa(tg.WebPort), tg.Port, tg.DogeTest)
+	dbUrl := "sqlite://test" + strconv.Itoa(tg.InstanceId) + ".db"
 
-	tg.FeService = feService
-	tg.FeConfig = feConfig
-
-	logConsumer := &StdoutLogConsumer{Name: tg.Name}
-	tg.LogConsumer = logConsumer
-
-	dogenetClient, dogenetContainer, err := StartDogenetInstance(ctx, feConfig.DogeNetKeyPair, "Dockerfile.dogenet", strconv.Itoa(tg.InstanceId), strconv.Itoa(tg.WebPort), strconv.Itoa(tg.Port), strconv.Itoa(tg.GossipPort), tg.NetworkName, logConsumer, feService.Store)
+	tokenStore, err := store.NewTokenisationStore(dbUrl, config.Config{
+		MigrationsPath: "../../db/migrations",
+	})
 	if err != nil {
 		panic(err)
 	}
 
-	tg.DogeNetClient = dogenetClient
-	tg.DogenetContainer = dogenetContainer
-}
-
-func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogePort int, dogeTestInstance *dogetest.DogeTest) (*service.TokenisationService, *config.Config) {
-	os.Remove("test" + strconv.Itoa(instanceId) + ".db")
-
-	mappedPort, err := dogeTestInstance.Container.MappedPort(context.Background(), nat.Port(strconv.Itoa(dogePort)+"/tcp"))
+	nodeKey, err := dnet.GenerateKeyPair()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	nodeKey, err := dnet.GenerateKeyPair()
+	logConsumer := &StdoutLogConsumer{Name: tg.Name}
+	tg.LogConsumer = logConsumer
+
+	dogenetClient, dogenetContainer, err := StartDogenetInstance(ctx, nodeKey, "Dockerfile.dogenet", strconv.Itoa(tg.InstanceId), strconv.Itoa(tg.DnWebPort), strconv.Itoa(tg.DnPort), strconv.Itoa(tg.DnGossipPort), tg.NetworkName, logConsumer, tokenStore)
+	if err != nil {
+		panic(err)
+	}
+
+	feService, feConfig := SetupFractalEngineTestInstance(tg.InstanceId, strconv.Itoa(tg.FeRpcPort), tg.DogeCorePort, dogenetClient, tg.DogeTest, tokenStore)
+	tg.FeService = feService
+	tg.FeConfig = feConfig
+
+	tg.DogeNetClient = dogenetClient
+	tg.DogenetContainer = dogenetContainer
+
+	go feService.Start()
+
+	feService.WaitForRunning()
+}
+
+func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogePort int, dogenetClient *dogenet.DogeNetClient, dogeTestInstance *dogetest.DogeTest, tokenStore *store.TokenisationStore) (*service.TokenisationService, *config.Config) {
+	os.Remove("test" + strconv.Itoa(instanceId) + ".db")
+
+	mappedPort, err := dogeTestInstance.Container.MappedPort(context.Background(), nat.Port(strconv.Itoa(dogePort)+"/tcp"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -158,15 +174,12 @@ func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogePo
 	feConfig.DogePort = mappedPort.Port()
 	feConfig.DogeUser = "test"
 	feConfig.DogePassword = "test"
-	feConfig.DogeNetKeyPair = nodeKey
 	feConfig.RpcServerPort = rpcServerPort
+
 	// feConfig.PersistFollower = false
 	feConfig.MigrationsPath = "../../db/migrations"
 
-	feService := service.NewTokenisationService(feConfig)
-	go feService.Start()
-
-	feService.WaitForRunning()
+	feService := service.NewTokenisationService(feConfig, dogenetClient, tokenStore)
 
 	return feService, feConfig
 }

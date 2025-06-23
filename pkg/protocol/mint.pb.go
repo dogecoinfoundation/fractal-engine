@@ -79,7 +79,7 @@ func (x *OnChainMintMessage) GetHash() string {
 // This is what gets gossiped + stored in the gossip mempool + confirmed_transactions
 type MintMessageEnvelope struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Type          int32                  `protobuf:"varint,1,opt,name=type,proto3" json:"type,omitempty"`
 	Version       int32                  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
 	Payload       *MintMessage           `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -116,11 +116,11 @@ func (*MintMessageEnvelope) Descriptor() ([]byte, []int) {
 	return file_pkg_protocol_mint_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *MintMessageEnvelope) GetType() string {
+func (x *MintMessageEnvelope) GetType() int32 {
 	if x != nil {
 		return x.Type
 	}
-	return ""
+	return 0
 }
 
 func (x *MintMessageEnvelope) GetVersion() int32 {
@@ -287,7 +287,7 @@ const file_pkg_protocol_mint_proto_rawDesc = "" +
 	"\aversion\x18\x01 \x01(\x05R\aversion\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\"y\n" +
 	"\x13MintMessageEnvelope\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12\x18\n" +
+	"\x04type\x18\x01 \x01(\x05R\x04type\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x05R\aversion\x124\n" +
 	"\apayload\x18\x03 \x01(\v2\x1a.fractalengine.MintMessageR\apayload\"\xfa\x03\n" +
 	"\vMintMessage\x12\x0e\n" +

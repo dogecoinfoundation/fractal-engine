@@ -70,12 +70,16 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 		CreatedAt:       timestamppb.New(record.CreatedAt),
 	}
 
-	data, err := proto.Marshal(&mintMessage)
+	envelope := protocol.MintMessageEnvelope{
+		Type:    protocol.ACTION_MINT,
+		Version: protocol.DEFAULT_VERSION,
+		Payload: &mintMessage,
+	}
+
+	data, err := proto.Marshal(&envelope)
 	if err != nil {
 		log.Fatalf("Failed to marshal: %v", err)
 	}
-
-	log.Printf("[FE] KEY: %v", c.feKey)
 
 	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagMint, c.feKey, data)
 
@@ -200,7 +204,9 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 	// go s.gossipMyIdentity(sock)
 	// go s.gossipRandomIdentities(sock)
 
-	statusChan <- "Running"
+	if statusChan != nil {
+		statusChan <- "Running"
+	}
 
 	for !c.Stopping {
 		msg, err := dnet.ReadMessage(reader)
@@ -212,12 +218,16 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 
 		log.Printf("[FE] received message: [%s][%s]", msg.Chan, msg.Tag)
 
-		c.Messages <- msg
+		// write to channel in a goroutine to avoid blocking
+		go func() {
+			c.Messages <- msg
+		}()
 
 		if msg.Chan != ChanFE {
 			log.Printf("[FE] ignored message: [%s][%s]", msg.Chan, msg.Tag)
 			continue
 		}
+
 		switch msg.Tag {
 		case TagMint:
 			c.recvMint(msg)
@@ -240,33 +250,22 @@ func (c *DogeNetClient) Stop() error {
 	return nil
 }
 
-func (c *DogeNetClient) Gossip() error {
-	return nil
-}
-
-func (c *DogeNetClient) Listen(topic string, listener GossipMessageListener) error {
-	return nil
-}
-
 func (c *DogeNetClient) recvMint(msg dnet.Message) {
-	envelope := protocol.MessageEnvelope{}
-	err := envelope.Deserialize(msg.Payload)
+	log.Printf("[FE] received mint message")
+
+	envelope := protocol.MintMessageEnvelope{}
+	err := proto.Unmarshal(msg.Payload, &envelope)
 	if err != nil {
 		log.Println("Error deserializing message envelope:", err)
 		return
 	}
 
-	if envelope.Action != protocol.ACTION_MINT {
-		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Action)
+	if envelope.Type != protocol.ACTION_MINT {
+		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Type)
 		return
 	}
 
-	mint := protocol.MintMessage{}
-	err = proto.Unmarshal(envelope.Data, &mint)
-	if err != nil {
-		log.Println("Error deserializing mint:", err)
-		return
-	}
+	mint := envelope.Payload
 
 	id, err := c.store.SaveUnconfirmedMint(&store.MintWithoutID{
 		Hash:            mint.Hash,

@@ -26,8 +26,8 @@ type MessageEnvelope struct {
 	Data             []byte
 }
 
-func NewMessageEnvelope(action uint8, version uint8, data []byte) *MessageEnvelope {
-	return &MessageEnvelope{
+func NewMessageEnvelope(action uint8, version uint8, data []byte) MessageEnvelope {
+	return MessageEnvelope{
 		EngineIdentifier: FRACTAL_ENGINE_IDENTIFIER,
 		Action:           action,
 		Version:          version,

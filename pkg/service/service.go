@@ -23,13 +23,7 @@ type TokenisationService struct {
 	Processor      *FractalEngineProcessor
 }
 
-func NewTokenisationService(cfg *config.Config) *TokenisationService {
-	tokenStore, err := store.NewTokenisationStore(cfg.DatabaseURL, *cfg)
-	if err != nil {
-		log.Fatalf("Failed to create tokenisation store: %v", err)
-	}
-
-	dogenetClient := dogenet.NewDogeNetClient(cfg, tokenStore)
+func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetClient, tokenStore *store.TokenisationStore) *TokenisationService {
 	follower := doge.NewFollower(cfg, tokenStore)
 	trimmerService := store.NewTrimmerService(tokenStore)
 	processor := NewFractalEngineProcessor(tokenStore)
@@ -51,6 +45,12 @@ func (s *TokenisationService) Start() {
 	if err != nil && err.Error() != migrate.ErrNoChange.Error() {
 		log.Fatalf("Failed to migrate tokenisation store: %v", err)
 	}
+
+	statusChan := make(chan string)
+
+	go s.DogeNetClient.Start(statusChan)
+
+	<-statusChan
 
 	go s.RpcServer.Start()
 	go s.Follower.Start()
