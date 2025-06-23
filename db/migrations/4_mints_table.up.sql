@@ -5,6 +5,7 @@ create table mints (
     fraction_count integer not null,
     tags TEXT,
     transaction_hash TEXT,
+    block_height INTEGER,
     output_address TEXT,
     metadata TEXT,
     hash TEXT,

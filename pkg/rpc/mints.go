@@ -1,22 +1,25 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 
+	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
 
 type MintRoutes struct {
-	store *store.TokenisationStore
+	store   *store.TokenisationStore
+	dogenet *dogenet.DogeNetClient
 }
 
-func HandleMintRoutes(store *store.TokenisationStore, mux *http.ServeMux) {
-	mr := &MintRoutes{store: store}
+func HandleMintRoutes(store *store.TokenisationStore, dogenet *dogenet.DogeNetClient, mux *http.ServeMux) {
+	mr := &MintRoutes{store: store, dogenet: dogenet}
 
 	mux.HandleFunc("/mints", mr.handleMints)
 }
@@ -100,31 +103,40 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := mr.store.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:            hash,
-		Title:           request.Title,
-		FractionCount:   request.FractionCount,
-		Description:     request.Description,
-		Tags:            request.Tags,
-		Metadata:        request.Metadata,
-		TransactionHash: request.TransactionHash,
-		Verified:        request.Verified,
-		CreatedAt:       time.Now(),
-		Requirements:    request.Requirements,
-		LockupOptions:   request.LockupOptions,
-		FeedURL:         request.FeedURL,
-	})
-
+	newMintWithoutId := &store.MintWithoutID{
+		Hash:          hash,
+		Title:         request.Title,
+		FractionCount: request.FractionCount,
+		Description:   request.Description,
+		Tags:          request.Tags,
+		Metadata:      request.Metadata,
+		CreatedAt:     time.Now(),
+		Requirements:  request.Requirements,
+		LockupOptions: request.LockupOptions,
+		FeedURL:       request.FeedURL,
+	}
+	id, err := mr.store.SaveUnconfirmedMint(newMintWithoutId)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	envelope := protocol.NewMintTransactionEnvelope(id)
+	newMint := &store.Mint{
+		MintWithoutID: *newMintWithoutId,
+		Id:            id,
+	}
+
+	err = mr.dogenet.GossipMint(*newMint)
+	if err != nil {
+		http.Error(w, "Unable to gossip", http.StatusInternalServerError)
+		return
+	}
+
+	envelope := protocol.NewMintTransactionEnvelope(hash)
 	encodedTransactionBody := envelope.Serialize()
 
 	response := CreateMintResponse{
-		EncodedTransactionBody: encodedTransactionBody,
+		EncodedTransactionBody: hex.EncodeToString(encodedTransactionBody),
 		Id:                     id,
 		TransactionHash:        hash,
 	}

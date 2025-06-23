@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -19,40 +20,42 @@ type TokenisationService struct {
 	DogeClient     *doge.RpcClient
 	Follower       *doge.DogeFollower
 	TrimmerService *store.TrimmerService
-	MatcherService *MatcherService
+	Processor      *FractalEngineProcessor
 }
 
-func NewTokenisationService(cfg *config.Config) *TokenisationService {
-	tokenStore, err := store.NewTokenisationStore(cfg.DatabaseURL, *cfg)
-	if err != nil {
-		log.Fatalf("Failed to create tokenisation store: %v", err)
-	}
-
-	dogenetClient := dogenet.NewDogeNetClient(cfg, tokenStore)
+func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetClient, tokenStore *store.TokenisationStore) *TokenisationService {
 	follower := doge.NewFollower(cfg, tokenStore)
 	trimmerService := store.NewTrimmerService(tokenStore)
+	processor := NewFractalEngineProcessor(tokenStore)
 
 	return &TokenisationService{
-		RpcServer:      rpc.NewRpcServer(cfg, tokenStore),
+		RpcServer:      rpc.NewRpcServer(cfg, tokenStore, dogenetClient),
 		Store:          tokenStore,
 		DogeNetClient:  dogenetClient,
 		DogeClient:     doge.NewRpcClient(cfg),
 		Follower:       follower,
 		TrimmerService: trimmerService,
-		MatcherService: NewMatcherService(tokenStore),
+		Processor:      processor,
 	}
 }
 
 func (s *TokenisationService) Start() {
 	err := s.Store.Migrate()
+
 	if err != nil && err.Error() != migrate.ErrNoChange.Error() {
 		log.Fatalf("Failed to migrate tokenisation store: %v", err)
 	}
 
+	statusChan := make(chan string)
+
+	go s.DogeNetClient.Start(statusChan)
+
+	<-statusChan
+
 	go s.RpcServer.Start()
 	go s.Follower.Start()
 	go s.TrimmerService.Start()
-	go s.MatcherService.Start()
+	go s.Processor.Start()
 }
 
 func (s *TokenisationService) waitForFollower() {
@@ -76,17 +79,17 @@ func (s *TokenisationService) waitForRpc() {
 }
 
 func (s *TokenisationService) WaitForRunning() {
+	fmt.Println("Waiting for follower")
 	s.waitForFollower()
+	fmt.Println("Waiting for rpc")
 	s.waitForRpc()
 }
 
 func (s *TokenisationService) Stop() {
-	err := s.Store.Close()
-	if err != nil {
-		log.Fatalf("Failed to close tokenisation store: %v", err)
-	}
+	s.Processor.Stop()
+	s.Follower.Stop()
+	s.Store.Close()
 	s.RpcServer.Stop()
 	s.TrimmerService.Stop()
 	s.DogeNetClient.Stop()
-	s.MatcherService.Stop()
 }

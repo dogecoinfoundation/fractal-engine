@@ -1,11 +1,12 @@
 package doge
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/protocol"
@@ -23,6 +24,9 @@ type DogeFollower struct {
 	store         *store.TokenisationStore
 	chainfollower *chainfollower.ChainFollower
 	Running       bool
+	msgChan       chan messages.Message
+	context       context.Context
+	cancel        context.CancelFunc
 }
 
 func NewFollower(cfg *fecfg.Config, store *store.TokenisationStore) *DogeFollower {
@@ -34,37 +38,31 @@ func NewFollower(cfg *fecfg.Config, store *store.TokenisationStore) *DogeFollowe
 
 	chainfollower := chainfollower.NewChainFollower(rpcClient)
 
-	return &DogeFollower{cfg: cfg, store: store, chainfollower: chainfollower, Running: false}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	return &DogeFollower{cfg: cfg, store: store, chainfollower: chainfollower, Running: false, context: ctx, cancel: cancel}
 }
 
 func (f *DogeFollower) Start() error {
+	f.Running = true
+
+	blockHeight, blockHash, _, err := f.store.GetChainPosition()
+	if err != nil {
+		return err
+	}
+
+	f.msgChan = f.chainfollower.Start(&state.ChainPos{
+		BlockHash:   blockHash,
+		BlockHeight: blockHeight,
+	})
 
 	for {
-		blockHeight, blockHash, err := f.store.GetChainPosition()
-		if err != nil {
-			return err
-		}
-
-		count, err := f.store.CountOnChainTransactions(blockHeight)
-		if err != nil {
-			return err
-		}
-
-		if count == 0 {
-			chainPos, err := f.chainfollower.FetchStartingPos(&state.ChainPos{
-				BlockHash:   blockHash,
-				BlockHeight: blockHeight,
-			})
-			if err != nil {
-				return err
-			}
-
-			message, err := f.chainfollower.GetNextMessage(chainPos)
-			if err != nil {
-				return err
-			}
-
-			switch msg := message.(type) {
+		select {
+		case <-f.context.Done():
+			fmt.Println("Exiting follower")
+			return nil
+		case msg := <-f.msgChan:
+			switch msg := msg.(type) {
 			case messages.BlockMessage:
 				for _, tx := range msg.Block.Tx {
 					fractalMessage, err := GetFractalMessageFromVout(tx.VOut)
@@ -74,12 +72,12 @@ func (f *DogeFollower) Start() error {
 
 					err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data)
 					if err != nil {
-						log.Println("Error matching unconfirmed mint:", err)
+						log.Println("Error saving on chain transaction:", err)
 					}
 				}
 
 				if f.cfg.PersistFollower {
-					err := f.store.UpsertChainPosition(msg.Block.Height, msg.Block.Hash)
+					err := f.store.UpsertChainPosition(msg.ChainPos.BlockHeight, msg.ChainPos.BlockHash, msg.ChainPos.WaitingForNextHash)
 					if err != nil {
 						log.Println("Error setting chain position:", err)
 					}
@@ -88,20 +86,16 @@ func (f *DogeFollower) Start() error {
 			case messages.RollbackMessage:
 				log.Println("Received rollback message from chainfollower:")
 				if f.cfg.PersistFollower {
-					err := f.store.UpsertChainPosition(msg.NewChainPos.BlockHeight, msg.NewChainPos.BlockHash)
+					err := f.store.UpsertChainPosition(msg.NewChainPos.BlockHeight, msg.NewChainPos.BlockHash, msg.NewChainPos.WaitingForNextHash)
 					if err != nil {
 						log.Println("Error setting chain position:", err)
 					}
 				}
 
 			default:
-				log.Println("Received unknown message from chainfollower:")
+				log.Printf("Received unknown message from chainfollower: %v\n", msg)
 			}
-		} else {
-			log.Println("Onchain transactions count:", count)
 		}
-
-		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -154,4 +148,14 @@ func ParseOpReturnData(vout types.RawTxnVOut) []byte {
 		}
 	}
 	return nil
+}
+
+func (f *DogeFollower) Stop() {
+	fmt.Println("Stopping follower")
+	if f.Running {
+		f.chainfollower.Stop()
+		f.cancel()
+		f.Running = false
+	}
+
 }

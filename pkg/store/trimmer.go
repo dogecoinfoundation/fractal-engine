@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"log"
 	"time"
 )
@@ -23,7 +24,7 @@ func (t *TrimmerService) Start() {
 			log.Println("Error trimming unconfirmed mints:", err)
 		}
 
-		time.Sleep(1 * time.Minute)
+		time.Sleep(10 * time.Second)
 
 		if !t.running {
 			break
@@ -32,5 +33,6 @@ func (t *TrimmerService) Start() {
 }
 
 func (t *TrimmerService) Stop() {
+	fmt.Println("Stopping trimmer service")
 	t.running = false
 }

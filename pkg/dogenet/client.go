@@ -16,6 +16,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/Dogebox-WG/gossip/dnet"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -45,6 +46,14 @@ type DogeNetClient struct {
 	Messages chan dnet.Message
 }
 
+func convertToStructPBMap(m map[string]interface{}) map[string]*structpb.Value {
+	fields := make(map[string]*structpb.Value)
+	for k, v := range m {
+		fields[k] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v.(string)}}
+	}
+	return fields
+}
+
 func (c *DogeNetClient) GossipMint(record store.Mint) error {
 	mintMessage := protocol.MintMessage{
 		Id:              record.Id,
@@ -53,15 +62,21 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 		FractionCount:   int32(record.FractionCount),
 		Tags:            record.Tags,
 		TransactionHash: record.TransactionHash.String,
-		// Metadata:        &structpb.Struct{Fields: record.Metadata},
-		Hash: record.Hash,
-		// Requirements:    &structpb.Struct{Fields: record.Requirements},
-		// LockupOptions:   &structpb.Struct{Fields: record.LockupOptions},
-		FeedUrl:   record.FeedURL,
-		CreatedAt: timestamppb.New(record.CreatedAt),
+		Metadata:        &structpb.Struct{Fields: convertToStructPBMap(record.Metadata)},
+		Hash:            record.Hash,
+		Requirements:    &structpb.Struct{Fields: convertToStructPBMap(record.Requirements)},
+		LockupOptions:   &structpb.Struct{Fields: convertToStructPBMap(record.LockupOptions)},
+		FeedUrl:         record.FeedURL,
+		CreatedAt:       timestamppb.New(record.CreatedAt),
 	}
 
-	data, err := proto.Marshal(&mintMessage)
+	envelope := protocol.MintMessageEnvelope{
+		Type:    protocol.ACTION_MINT,
+		Version: protocol.DEFAULT_VERSION,
+		Payload: &mintMessage,
+	}
+
+	data, err := proto.Marshal(&envelope)
 	if err != nil {
 		log.Fatalf("Failed to marshal: %v", err)
 	}
@@ -189,7 +204,9 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 	// go s.gossipMyIdentity(sock)
 	// go s.gossipRandomIdentities(sock)
 
-	statusChan <- "Running"
+	if statusChan != nil {
+		statusChan <- "Running"
+	}
 
 	for !c.Stopping {
 		msg, err := dnet.ReadMessage(reader)
@@ -199,12 +216,18 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 			return err
 		}
 
-		c.Messages <- msg
+		log.Printf("[FE] received message: [%s][%s]", msg.Chan, msg.Tag)
+
+		// write to channel in a goroutine to avoid blocking
+		go func() {
+			c.Messages <- msg
+		}()
 
 		if msg.Chan != ChanFE {
 			log.Printf("[FE] ignored message: [%s][%s]", msg.Chan, msg.Tag)
 			continue
 		}
+
 		switch msg.Tag {
 		case TagMint:
 			c.recvMint(msg)
@@ -217,37 +240,32 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 }
 
 func (c *DogeNetClient) Stop() error {
+	fmt.Println("Stopping dogenet client")
 	c.Stopping = true
-	return (*c.sock).Close()
-}
 
-func (c *DogeNetClient) Gossip() error {
-	return nil
-}
+	if c.sock != nil {
+		(*c.sock).Close()
+	}
 
-func (c *DogeNetClient) Listen(topic string, listener GossipMessageListener) error {
 	return nil
 }
 
 func (c *DogeNetClient) recvMint(msg dnet.Message) {
-	envelope := protocol.MessageEnvelope{}
-	err := envelope.Deserialize(msg.Payload)
+	log.Printf("[FE] received mint message")
+
+	envelope := protocol.MintMessageEnvelope{}
+	err := proto.Unmarshal(msg.Payload, &envelope)
 	if err != nil {
 		log.Println("Error deserializing message envelope:", err)
 		return
 	}
 
-	if envelope.Action != protocol.ACTION_MINT {
-		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Action)
+	if envelope.Type != protocol.ACTION_MINT {
+		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Type)
 		return
 	}
 
-	mint := protocol.MintMessage{}
-	err = proto.Unmarshal(envelope.Data, &mint)
-	if err != nil {
-		log.Println("Error deserializing mint:", err)
-		return
-	}
+	mint := envelope.Payload
 
 	id, err := c.store.SaveUnconfirmedMint(&store.MintWithoutID{
 		Hash:            mint.Hash,
@@ -255,11 +273,11 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 		FractionCount:   int(mint.FractionCount),
 		Description:     mint.Description,
 		Tags:            mint.Tags,
-		Metadata:        mint.Metadata,
+		Metadata:        mint.Metadata.AsMap(),
 		TransactionHash: sql.NullString{String: mint.TransactionHash, Valid: true},
 		CreatedAt:       mint.CreatedAt.AsTime(),
-		Requirements:    mint.Requirements,
-		LockupOptions:   mint.LockupOptions,
+		Requirements:    mint.Requirements.AsMap(),
+		LockupOptions:   mint.LockupOptions.AsMap(),
 	})
 
 	if err != nil {

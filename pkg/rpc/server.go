@@ -3,11 +3,13 @@ package rpc
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
 
@@ -16,14 +18,16 @@ type RpcServer struct {
 	quit    chan bool
 	server  *http.Server
 	Running bool
+	dogenet *dogenet.DogeNetClient
 }
 
-func NewRpcServer(cfg *config.Config, store *store.TokenisationStore) *RpcServer {
+func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, dogenet *dogenet.DogeNetClient) *RpcServer {
 	mux := http.NewServeMux()
 
 	handler := withCORS(mux)
 
-	HandleMintRoutes(store, mux)
+	HandleMintRoutes(store, dogenet, mux)
+	HandleStatRoutes(store, mux)
 
 	server := &http.Server{
 		Addr:    cfg.RpcServerHost + ":" + cfg.RpcServerPort,
@@ -58,10 +62,10 @@ func withCORS(next http.Handler) http.Handler {
 
 func (s *RpcServer) Start() {
 	go func() {
-		log.Println("Server is ready to handle requests at :8080")
+		log.Println("Server is ready to handle requests at " + s.server.Addr)
 		s.Running = true
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Could not listen on :8080: %v\n", err)
+			log.Fatalf("Could not listen on %s: %v\n", s.server.Addr, err)
 		}
 	}()
 
@@ -79,6 +83,7 @@ func (s *RpcServer) Start() {
 }
 
 func (s *RpcServer) Stop() {
+	fmt.Println("Stopping rpc server")
 	s.quit <- true
 }
 

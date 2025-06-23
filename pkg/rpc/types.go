@@ -42,3 +42,7 @@ type GetMintsResponse struct {
 	Page  int          `json:"page"`
 	Limit int          `json:"limit"`
 }
+
+type GetStatsResponse struct {
+	Stats map[string]int `json:"stats"`
+}
