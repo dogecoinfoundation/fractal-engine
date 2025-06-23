@@ -52,13 +52,12 @@ func TestMain(m *testing.M) {
 
 	fmt.Println("Test groups started")
 
-	// time.Sleep(40 * time.Second)
-
 	err = testsupport.ConnectDogeNetPeers(testGroups[0].DogeNetClient, testGroups[1].DogenetContainer, testGroups[1].DnGossipPort, testGroups[0].LogConsumer, testGroups[1].LogConsumer)
 	if err != nil {
 		panic(err)
 	}
 
+	// need to wait for the dogenet instance to let the peer be active
 	time.Sleep(20 * time.Second)
 
 	// Run all tests
@@ -82,6 +81,17 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+/*
+*
+TestFractal is a test that checks if the fractal engine is working correctly.
+
+1. Mint a token on the OG Node via HTTP API
+1a. Send the mint to the dogenet (OG Node) which in turn gossips to the 2nd Node
+2. Write the mint to the core (OG Node)
+3. Write the mint to the core (2nd Node)
+4. Check if the mint is in the store (OG Node)
+5. Check if the mint is in the store (2nd Node)
+*/
 func TestFractal(t *testing.T) {
 	feConfigA := testGroups[0].FeConfig
 	feClient := client.NewTokenisationClient("http://" + feConfigA.RpcServerHost + ":" + feConfigA.RpcServerPort)
@@ -101,10 +111,6 @@ func TestFractal(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	log.Println("Mint response", mintResponse)
-	log.Println("Address book", testGroups[0].AddressBook)
-	log.Println("Doge test", testGroups[0].DogeTest)
 
 	// Write mint to core (OG Node)
 	err = testsupport.WriteMintToCore(testGroups[0].DogeTest, testGroups[0].AddressBook, &mintResponse)
