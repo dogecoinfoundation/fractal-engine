@@ -13,8 +13,7 @@ const (
 	FRACTAL_ENGINE_IDENTIFIER = 0xFE0001FE
 	DEFAULT_VERSION           = 1
 	ACTION_MINT               = 0x01
-	ACTION_SELL_OFFER         = 0x02
-	ACTION_BUY_OFFER          = 0x03
+	ACTION_OFFER              = 0x02
 	ACTION_INVOICE            = 0x04
 	ACTION_RECEIPT            = 0x05
 )

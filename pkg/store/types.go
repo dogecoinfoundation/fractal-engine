@@ -96,3 +96,50 @@ type OnChainMint struct {
 	TransactionHash string `json:"transaction_hash"`
 	Address         string `json:"address"`
 }
+
+type OfferType int32
+
+const (
+	OfferTypeBuy  OfferType = 0
+	OfferTypeSell OfferType = 1
+)
+
+type OfferWithoutID struct {
+	Hash           string    `json:"hash"`
+	MintHash       string    `json:"mint_hash"`
+	Type           OfferType `json:"type"`
+	OffererAddress string    `json:"offerer_address"`
+	Quantity       int       `json:"quantity"`
+	Price          int       `json:"price"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type OfferHash struct {
+	Type     OfferType `json:"type"`
+	MintHash string    `json:"mint_hash"`
+	Quantity int       `json:"quantity"`
+	Price    int       `json:"price"`
+}
+
+func (o *OfferWithoutID) GenerateHash() (string, error) {
+	input := OfferHash{
+		Type:     o.Type,
+		MintHash: o.MintHash,
+		Quantity: o.Quantity,
+		Price:    o.Price,
+	}
+
+	jsonBytes, err := json.Marshal(input)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(jsonBytes)
+
+	return hex.EncodeToString(hash[:]), nil
+}
+
+type Offer struct {
+	OfferWithoutID
+	Id string `json:"id"`
+}

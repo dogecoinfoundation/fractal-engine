@@ -46,3 +46,43 @@ type GetMintsResponse struct {
 type GetStatsResponse struct {
 	Stats map[string]int `json:"stats"`
 }
+
+type CreateOfferRequest struct {
+	store.OfferWithoutID
+}
+
+func (req *CreateOfferRequest) Validate() error {
+	var missing []string
+
+	if req.Type == store.OfferType(0) {
+		missing = append(missing, "type")
+	}
+	if req.OffererAddress == "" {
+		missing = append(missing, "offerer_address")
+	}
+	if req.Hash == "" {
+		missing = append(missing, "hash")
+	}
+	if req.Quantity <= 0 {
+		missing = append(missing, "quantity (must be > 0)")
+	}
+	if req.Price <= 0 {
+		missing = append(missing, "price (must be > 0)")
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing or invalid fields: %s", strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+type CreateOfferResponse struct {
+	Id string `json:"id"`
+}
+
+type GetOffersResponse struct {
+	Offers []store.Offer `json:"offers"`
+	Total  int           `json:"total"`
+	Page   int           `json:"page"`
+	Limit  int           `json:"limit"`
+}

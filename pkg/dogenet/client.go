@@ -91,6 +91,38 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 	return nil
 }
 
+func (c *DogeNetClient) GossipOffer(record store.Offer) error {
+	offerMessage := protocol.OfferMessage{
+		Id:             record.Id,
+		OffererAddress: record.OffererAddress,
+		Type:           protocol.OfferType(record.Type),
+		Hash:           record.Hash,
+		CreatedAt:      timestamppb.New(record.CreatedAt),
+		Quantity:       int32(record.Quantity),
+		Price:          int32(record.Price),
+	}
+
+	envelope := protocol.OfferMessageEnvelope{
+		Type:    protocol.ACTION_OFFER,
+		Version: protocol.DEFAULT_VERSION,
+		Payload: &offerMessage,
+	}
+
+	data, err := proto.Marshal(&envelope)
+	if err != nil {
+		log.Fatalf("Failed to marshal: %v", err)
+	}
+
+	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagOffer, c.feKey, data)
+
+	err = encodedMsg.Send(*c.sock)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewDogeNetClient(cfg *config.Config, store *store.TokenisationStore) *DogeNetClient {
 	return &DogeNetClient{
 		cfg:      cfg,
@@ -231,6 +263,8 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 		switch msg.Tag {
 		case TagMint:
 			c.recvMint(msg)
+		case TagOffer:
+			c.recvOffer(msg)
 		default:
 			log.Printf("[FE] unknown message: [%s][%s]", msg.Chan, msg.Tag)
 		}
@@ -248,6 +282,43 @@ func (c *DogeNetClient) Stop() error {
 	}
 
 	return nil
+}
+
+func (c *DogeNetClient) recvOffer(msg dnet.Message) {
+	log.Printf("[FE] received offer message")
+
+	envelope := protocol.OfferMessageEnvelope{}
+	err := proto.Unmarshal(msg.Payload, &envelope)
+	if err != nil {
+		log.Println("Error deserializing message envelope:", err)
+		return
+	}
+
+	if envelope.Type != protocol.ACTION_OFFER {
+		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Type)
+		return
+	}
+
+	offer := envelope.Payload
+
+	offerWithoutID := store.OfferWithoutID{
+		OffererAddress: offer.OffererAddress,
+		Type:           store.OfferType(offer.Type),
+		Hash:           offer.Hash,
+		Quantity:       int(offer.Quantity),
+		Price:          int(offer.Price),
+		CreatedAt:      offer.CreatedAt.AsTime(),
+	}
+
+	// TODO: check if the offer is valid
+
+	id, err := c.store.SaveOffer(&offerWithoutID)
+	if err != nil {
+		log.Println("Error saving unconfirmed offer:", err)
+		return
+	}
+
+	log.Printf("[FE] unconfirmed offer saved: %v", id)
 }
 
 func (c *DogeNetClient) recvMint(msg dnet.Message) {
