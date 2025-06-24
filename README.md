@@ -50,3 +50,13 @@ Ensure docker is running.
 
 - Handle overflows of Mint API call (Current limit is 100, but we need to add logic incase an unmatched mint gets discarded because of the limit)
 - Handle overflows of Onchain Transactions from L1 (Similar issue, there is currently no limit, but in theory over time this could fill up with junk)
+
+## Docs
+
+```sh
+mmdc -i docs/minting.mmd -o docs/minting.svg
+mmdc -i docs/sell_offer.mmd -o docs/sell_offer.svg
+mmdc -i docs/buy_offer.mmd -o docs/buy_offer.svg
+mmdc -i docs/create_invoice.mmd -o docs/create_invoice.svg
+mmdc -i docs/pay_invoice.mmd -o docs/pay_invoice.svg
+```
