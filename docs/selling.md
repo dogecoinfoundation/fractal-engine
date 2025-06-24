@@ -18,7 +18,7 @@ sequenceDiagram
     Fractal API->>DogeNet: Gossip buy offer
 ```
 
-## Invoicing
+## Creating Invoice
 ```mermaid
 sequenceDiagram
     Bob->>Fractal API: View buy offers for mint
@@ -33,10 +33,16 @@ sequenceDiagram
     Fractal Follower->>Fractal Store: Validate and confirm Invoice
     Fractal Follower->>Fractal Store: Update Invoice so that pay too address is now visible
     Fractal Follower->>Fractal Store: Update Rollups
+```
+
+## Paying Invoice
+```mermaid
+sequenceDiagram
     Frank->>Fractal API: View invoices for mint
     Fractal API-->>Frank: Invoices for mint (confirmed will show payment address)
     Frank->>L1: Write Payment transaction with payment amount + reference to invoice
     L1->>Fractal Follower: On Payment FE Transaction
-    Fractal Follower->>Fractal Store: Mark invoice as paid
+    Fractal Follower->>Fractal Store: Valid invoice and mark as paid
+    Fractal Follower->>Fractal Store: Update Rollups
 ```
 
