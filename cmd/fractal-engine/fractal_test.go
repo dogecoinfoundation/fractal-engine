@@ -132,9 +132,15 @@ func TestFractal(t *testing.T) {
 		}
 
 		if len(mints) > 0 {
+			ownerAddress, err := testGroups[0].AddressBook.GetAddress("testA0")
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			assert.Equal(t, mints[0].Title, "Test Mint")
 			assert.Equal(t, mints[0].Description, "Test Description")
 			assert.Equal(t, mints[0].FractionCount, 100)
+			assert.Equal(t, mints[0].OwnerAddress, ownerAddress.Address)
 
 			break
 		} else {
@@ -152,9 +158,15 @@ func TestFractal(t *testing.T) {
 		}
 
 		if len(mints) > 0 {
+			ownerAddress, err := testGroups[1].AddressBook.GetAddress("testA1")
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			assert.Equal(t, mints[0].Title, "Test Mint")
 			assert.Equal(t, mints[0].Description, "Test Description")
 			assert.Equal(t, mints[0].FractionCount, 100)
+			assert.Equal(t, mints[0].OwnerAddress, ownerAddress.Address)
 
 			break
 		} else {

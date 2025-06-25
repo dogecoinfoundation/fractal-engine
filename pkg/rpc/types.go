@@ -86,3 +86,50 @@ type GetOffersResponse struct {
 	Page   int           `json:"page"`
 	Limit  int           `json:"limit"`
 }
+
+type CreateInvoiceRequest struct {
+	store.UnconfirmedInvoice
+}
+
+func (req *CreateInvoiceRequest) Validate() error {
+	var missing []string
+
+	if req.PaymentAddress == "" {
+		missing = append(missing, "payment_address")
+	}
+
+	if req.BuyOfferOffererAddress == "" {
+		missing = append(missing, "buy_offer_offerer_address")
+	}
+	if req.BuyOfferHash == "" {
+		missing = append(missing, "buy_offer_hash")
+	}
+	if req.BuyOfferMintHash == "" {
+		missing = append(missing, "buy_offer_mint_hash")
+	}
+	if req.BuyOfferQuantity <= 0 {
+		missing = append(missing, "buy_offer_quantity (must be > 0)")
+	}
+	if req.BuyOfferPrice <= 0 {
+		missing = append(missing, "buy_offer_price (must be > 0)")
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing or invalid fields: %s", strings.Join(missing, ", "))
+	}
+
+	return nil
+}
+
+type GetInvoicesResponse struct {
+	Invoices []store.Invoice `json:"invoices"`
+	Total    int             `json:"total"`
+	Page     int             `json:"page"`
+	Limit    int             `json:"limit"`
+}
+
+type CreateInvoiceResponse struct {
+	EncodedTransactionBody string `json:"encoded_transaction_body"`
+	TransactionHash        string `json:"transaction_hash"`
+	Id                     string `json:"id"`
+}

@@ -26,14 +26,22 @@ func (p *FractalEngineProcessor) Process() error {
 	for _, tx := range txs {
 		fmt.Println("Processing transaction:", tx.TxHash)
 
-		matched := p.store.MatchMint(tx)
-		if matched {
+		if p.store.MatchInvoice(tx) {
 			continue
 		}
 
+		if p.store.MatchMint(tx) {
+			continue
+		}
+
+		err = p.store.MatchUnconfirmedInvoice(tx)
+		if err == nil {
+			log.Println("Matched invoice:", tx.TxHash)
+		}
+
 		err = p.store.MatchUnconfirmedMint(tx)
-		if err != nil {
-			log.Println("Warning: matching unconfirmed mint:", err)
+		if err == nil {
+			log.Println("Matched mint:", tx.TxHash)
 		}
 	}
 

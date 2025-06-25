@@ -1,6 +1,7 @@
 package store
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 
@@ -10,7 +11,7 @@ import (
 )
 
 func (s *TokenisationStore) GetMints(offset int, limit int) ([]Mint, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url FROM mints LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address FROM mints LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +20,7 @@ func (s *TokenisationStore) GetMints(offset int, limit int) ([]Mint, error) {
 	var mints []Mint
 	for rows.Next() {
 		var m Mint
-		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL); err != nil {
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress); err != nil {
 			return nil, err
 		}
 		mints = append(mints, m)
@@ -31,7 +32,7 @@ func (s *TokenisationStore) GetMints(offset int, limit int) ([]Mint, error) {
 	return mints, nil
 }
 
-func (s *TokenisationStore) SaveMint(mint *MintWithoutID) (string, error) {
+func (s *TokenisationStore) SaveMint(mint *MintWithoutID, ownerAddress string) (string, error) {
 	fmt.Println("Saving mint:", mint.Hash)
 
 	id := uuid.New().String()
@@ -57,9 +58,9 @@ func (s *TokenisationStore) SaveMint(mint *MintWithoutID) (string, error) {
 	}
 
 	_, err = s.DB.Exec(`
-	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL)
+	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url, owner_address)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, ownerAddress)
 
 	return id, err
 }
@@ -177,19 +178,23 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 		Description:     unconfirmedMint.Description,
 		Tags:            unconfirmedMint.Tags,
 		Metadata:        unconfirmedMint.Metadata,
-		TransactionHash: unconfirmedMint.TransactionHash,
-		BlockHeight:     unconfirmedMint.BlockHeight,
+		TransactionHash: sql.NullString{String: onchainTransaction.TxHash, Valid: true},
+		BlockHeight:     onchainTransaction.Height,
 		CreatedAt:       unconfirmedMint.CreatedAt,
 		Requirements:    unconfirmedMint.Requirements,
 		LockupOptions:   unconfirmedMint.LockupOptions,
 		FeedURL:         unconfirmedMint.FeedURL,
-	})
+	}, onchainTransaction.Address)
 
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Saved mint:", id)
+	err = s.UpsertTokenBalance(onchainTransaction.Address, unconfirmedMint.Hash, unconfirmedMint.FractionCount)
+	if err != nil {
+		return err
+	}
 
 	_, err = s.DB.Exec("DELETE FROM unconfirmed_mints WHERE id = $1", unconfirmedMint.Id)
 	if err != nil {

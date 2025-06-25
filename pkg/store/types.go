@@ -51,6 +51,7 @@ type MintHash struct {
 	Metadata      StringInterfaceMap `json:"metadata"`
 	Requirements  StringInterfaceMap `json:"requirements"`
 	LockupOptions StringInterfaceMap `json:"lockup_options"`
+	OwnerAddress  string             `json:"owner_address"`
 }
 
 type OnChainTransaction struct {
@@ -60,6 +61,7 @@ type OnChainTransaction struct {
 	ActionType    uint8  `json:"action_type"`
 	ActionVersion uint8  `json:"action_version"`
 	ActionData    []byte `json:"action_data"`
+	Address       string `json:"address"`
 }
 
 func (m *MintWithoutID) GenerateHash() (string, error) {
@@ -88,7 +90,8 @@ func (m *MintWithoutID) GenerateHash() (string, error) {
 
 type Mint struct {
 	MintWithoutID
-	Id string `json:"id"`
+	Id           string `json:"id"`
+	OwnerAddress string `json:"owner_address"`
 }
 
 type OnChainMint struct {
@@ -153,6 +156,7 @@ type UnconfirmedInvoice struct {
 	BuyOfferQuantity       int       `json:"buy_offer_quantity"`
 	BuyOfferPrice          int       `json:"buy_offer_price"`
 	CreatedAt              time.Time `json:"created_at"`
+	PaymentAddress         string    `json:"payment_address"`
 }
 
 func (u *UnconfirmedInvoice) GenerateHash() (string, error) {
@@ -180,6 +184,7 @@ type UnconfirmedInvoiceHash struct {
 	BuyOfferQuantity       int    `json:"buy_offer_quantity"`
 	BuyOfferPrice          int    `json:"buy_offer_price"`
 	BuyOfferOffererAddress string `json:"buy_offer_offerer_address"`
+	PaymentAddress         string `json:"payment_address"`
 }
 
 type InvoiceHash struct {
@@ -222,8 +227,9 @@ func (i *Invoice) GenerateHash() (string, error) {
 }
 
 type TokenBalance struct {
-	TokenHash         string    `json:"token_hash"`
-	TokenOwnerAddress string    `json:"token_owner_address"`
-	TokenQuantity     int       `json:"token_quantity"`
-	CreatedAt         time.Time `json:"created_at"`
+	MintHash  string    `json:"mint_hash"`
+	Address   string    `json:"address"`
+	Quantity  int       `json:"quantity"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

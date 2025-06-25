@@ -123,6 +123,34 @@ func (c *DogeNetClient) GossipOffer(record store.Offer) error {
 	return nil
 }
 
+func (c *DogeNetClient) GossipUnconfirmedInvoice(record store.UnconfirmedInvoice) error {
+	invoiceMessage := protocol.InvoiceMessage{
+		Id:             record.Id,
+		PaymentAddress: record.PaymentAddress,
+		CreatedAt:      timestamppb.New(record.CreatedAt),
+	}
+
+	envelope := protocol.InvoiceMessageEnvelope{
+		Type:    protocol.ACTION_INVOICE,
+		Version: protocol.DEFAULT_VERSION,
+		Payload: &invoiceMessage,
+	}
+
+	data, err := proto.Marshal(&envelope)
+	if err != nil {
+		log.Fatalf("Failed to marshal: %v", err)
+	}
+
+	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagInvoice, c.feKey, data)
+
+	err = encodedMsg.Send(*c.sock)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewDogeNetClient(cfg *config.Config, store *store.TokenisationStore) *DogeNetClient {
 	return &DogeNetClient{
 		cfg:      cfg,
@@ -265,6 +293,8 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 			c.recvMint(msg)
 		case TagOffer:
 			c.recvOffer(msg)
+		case TagInvoice:
+			c.recvInvoice(msg)
 		default:
 			log.Printf("[FE] unknown message: [%s][%s]", msg.Chan, msg.Tag)
 		}
@@ -357,4 +387,42 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 	}
 
 	log.Printf("[FE] unconfirmed mint saved: %v", id)
+}
+
+func (c *DogeNetClient) recvInvoice(msg dnet.Message) {
+	log.Printf("[FE] received invoice message")
+
+	envelope := protocol.InvoiceMessageEnvelope{}
+	err := proto.Unmarshal(msg.Payload, &envelope)
+	if err != nil {
+		log.Println("Error deserializing message envelope:", err)
+		return
+	}
+
+	if envelope.Type != protocol.ACTION_INVOICE {
+		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Type)
+		return
+	}
+
+	invoice := envelope.Payload
+
+	invoiceWithoutID := store.UnconfirmedInvoice{
+		PaymentAddress:         invoice.PaymentAddress,
+		BuyOfferOffererAddress: invoice.BuyOfferOffererAddress,
+		BuyOfferHash:           invoice.BuyOfferHash,
+		BuyOfferMintHash:       invoice.BuyOfferMintHash,
+		BuyOfferQuantity:       int(invoice.BuyOfferQuantity),
+		BuyOfferPrice:          int(invoice.BuyOfferPrice),
+		CreatedAt:              invoice.CreatedAt.AsTime(),
+		Hash:                   invoice.Hash,
+		Id:                     invoice.Id,
+	}
+
+	id, err := c.store.SaveUnconfirmedInvoice(&invoiceWithoutID)
+	if err != nil {
+		log.Println("Error saving unconfirmed invoice:", err)
+		return
+	}
+
+	log.Printf("[FE] unconfirmed invoice saved: %v", id)
 }

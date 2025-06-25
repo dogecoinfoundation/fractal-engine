@@ -70,7 +70,12 @@ func (f *DogeFollower) Start() error {
 						continue
 					}
 
-					err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data)
+					address, err := GetAddressFromVout(tx.VOut)
+					if err != nil {
+						continue
+					}
+
+					err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data, address)
 					if err != nil {
 						log.Println("Error saving on chain transaction:", err)
 					}

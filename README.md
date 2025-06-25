@@ -37,6 +37,7 @@ Ensure docker is running.
 
 `protoc --proto_path=. --go_out=. .\pkg\protocol\mint.proto`
 `protoc --proto_path=. --go_out=. .\pkg\protocol\offers.proto`
+`protoc --proto_path=. --go_out=. .\pkg\protocol\invoices.proto`
 
 ## Flows
 
