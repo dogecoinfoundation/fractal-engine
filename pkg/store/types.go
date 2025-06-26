@@ -55,13 +55,14 @@ type MintHash struct {
 }
 
 type OnChainTransaction struct {
-	Id            string `json:"id"`
-	TxHash        string `json:"tx_hash"`
-	Height        int64  `json:"height"`
-	ActionType    uint8  `json:"action_type"`
-	ActionVersion uint8  `json:"action_version"`
-	ActionData    []byte `json:"action_data"`
-	Address       string `json:"address"`
+	Id            string  `json:"id"`
+	TxHash        string  `json:"tx_hash"`
+	Height        int64   `json:"height"`
+	ActionType    uint8   `json:"action_type"`
+	ActionVersion uint8   `json:"action_version"`
+	ActionData    []byte  `json:"action_data"`
+	Address       string  `json:"address"`
+	Value         float64 `json:"value"`
 }
 
 func (m *MintWithoutID) GenerateHash() (string, error) {
@@ -157,6 +158,8 @@ type UnconfirmedInvoice struct {
 	BuyOfferPrice          int       `json:"buy_offer_price"`
 	CreatedAt              time.Time `json:"created_at"`
 	PaymentAddress         string    `json:"payment_address"`
+	SellOfferAddress       string    `json:"sell_offer_address"`
+	BuyOfferValue          float64   `json:"buy_offer_value"`
 }
 
 func (u *UnconfirmedInvoice) GenerateHash() (string, error) {
@@ -166,6 +169,8 @@ func (u *UnconfirmedInvoice) GenerateHash() (string, error) {
 		BuyOfferQuantity:       u.BuyOfferQuantity,
 		BuyOfferPrice:          u.BuyOfferPrice,
 		BuyOfferOffererAddress: u.BuyOfferOffererAddress,
+		SellOfferAddress:       u.SellOfferAddress,
+		BuyOfferValue:          u.BuyOfferValue,
 	}
 
 	jsonBytes, err := json.Marshal(input)
@@ -179,20 +184,24 @@ func (u *UnconfirmedInvoice) GenerateHash() (string, error) {
 }
 
 type UnconfirmedInvoiceHash struct {
-	BuyOfferHash           string `json:"buy_offer_hash"`
-	BuyOfferMintHash       string `json:"buy_offer_mint_hash"`
-	BuyOfferQuantity       int    `json:"buy_offer_quantity"`
-	BuyOfferPrice          int    `json:"buy_offer_price"`
-	BuyOfferOffererAddress string `json:"buy_offer_offerer_address"`
-	PaymentAddress         string `json:"payment_address"`
+	BuyOfferHash           string  `json:"buy_offer_hash"`
+	BuyOfferMintHash       string  `json:"buy_offer_mint_hash"`
+	BuyOfferQuantity       int     `json:"buy_offer_quantity"`
+	BuyOfferPrice          int     `json:"buy_offer_price"`
+	BuyOfferOffererAddress string  `json:"buy_offer_offerer_address"`
+	PaymentAddress         string  `json:"payment_address"`
+	SellOfferAddress       string  `json:"sell_offer_address"`
+	BuyOfferValue          float64 `json:"buy_offer_value"`
 }
 
 type InvoiceHash struct {
-	BuyOfferHash     string `json:"buy_offer_hash"`
-	BuyOfferMintHash string `json:"buy_offer_mint_hash"`
-	BuyOfferQuantity int    `json:"buy_offer_quantity"`
-	BuyOfferPrice    int    `json:"buy_offer_price"`
-	PaymentAddress   string `json:"payment_address"`
+	BuyOfferHash     string  `json:"buy_offer_hash"`
+	BuyOfferMintHash string  `json:"buy_offer_mint_hash"`
+	BuyOfferQuantity int     `json:"buy_offer_quantity"`
+	BuyOfferPrice    int     `json:"buy_offer_price"`
+	PaymentAddress   string  `json:"payment_address"`
+	SellOfferAddress string  `json:"sell_offer_address"`
+	BuyOfferValue    float64 `json:"buy_offer_value"`
 }
 
 type Invoice struct {
@@ -205,6 +214,8 @@ type Invoice struct {
 	BuyOfferQuantity       int       `json:"buy_offer_quantity"`
 	BuyOfferPrice          int       `json:"buy_offer_price"`
 	CreatedAt              time.Time `json:"created_at"`
+	SellOfferAddress       string    `json:"sell_offer_address"`
+	BuyOfferValue          float64   `json:"buy_offer_value"`
 }
 
 func (i *Invoice) GenerateHash() (string, error) {
@@ -214,6 +225,8 @@ func (i *Invoice) GenerateHash() (string, error) {
 		BuyOfferQuantity: i.BuyOfferQuantity,
 		BuyOfferPrice:    i.BuyOfferPrice,
 		PaymentAddress:   i.PaymentAddress,
+		SellOfferAddress: i.SellOfferAddress,
+		BuyOfferValue:    i.BuyOfferValue,
 	}
 
 	jsonBytes, err := json.Marshal(input)

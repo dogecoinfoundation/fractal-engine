@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
 
@@ -26,23 +27,35 @@ func (p *FractalEngineProcessor) Process() error {
 	for _, tx := range txs {
 		fmt.Println("Processing transaction:", tx.TxHash)
 
-		if p.store.MatchInvoice(tx) {
-			continue
+		if tx.ActionType == protocol.ACTION_MINT {
+			if p.store.MatchMint(tx) {
+				continue
+			}
+			err = p.store.MatchUnconfirmedMint(tx)
+			if err == nil {
+				log.Println("Matched mint:", tx.TxHash)
+			}
 		}
 
-		if p.store.MatchMint(tx) {
-			continue
+		if tx.ActionType == protocol.ACTION_PAYMENT {
+			err = p.store.MatchPayment(tx)
+			if err == nil {
+				log.Println("Matched payment:", tx.TxHash)
+				continue
+			}
 		}
 
-		err = p.store.MatchUnconfirmedInvoice(tx)
-		if err == nil {
-			log.Println("Matched invoice:", tx.TxHash)
+		if tx.ActionType == protocol.ACTION_INVOICE {
+			if p.store.MatchInvoice(tx) {
+				continue
+			}
+
+			err = p.store.MatchUnconfirmedInvoice(tx)
+			if err == nil {
+				log.Println("Matched invoice:", tx.TxHash)
+			}
 		}
 
-		err = p.store.MatchUnconfirmedMint(tx)
-		if err == nil {
-			log.Println("Matched mint:", tx.TxHash)
-		}
 	}
 
 	return nil

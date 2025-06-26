@@ -29,5 +29,6 @@ message InvoiceMessage {
     int32 buy_offer_quantity = 7;
     int32 buy_offer_price = 8;
     google.protobuf.Timestamp created_at = 9;
+    string sell_offer_address = 10;
 }
 

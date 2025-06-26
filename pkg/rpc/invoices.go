@@ -114,6 +114,7 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		BuyOfferOffererAddress: request.BuyOfferOffererAddress,
 		PaymentAddress:         request.PaymentAddress,
 		CreatedAt:              request.CreatedAt,
+		SellOfferAddress:       request.SellOfferAddress,
 		Hash:                   hash,
 		Id:                     uuid.New().String(),
 	}

@@ -6,7 +6,8 @@ create table onchain_transactions (
     action_version integer not null,
     action_data blob not null,
     address text not null,
-    created_at datetime not null default current_timestamp
+    created_at datetime not null default current_timestamp,
+    value float not null
 );
 
 

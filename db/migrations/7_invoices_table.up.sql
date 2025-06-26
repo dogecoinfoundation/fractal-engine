@@ -6,7 +6,9 @@ create table unconfirmed_invoices (
     buy_offer_mint_hash text not null,
     buy_offer_quantity int not null,
     buy_offer_price int not null,
+    buy_offer_value float not null,
     payment_address text not null,
+    sell_offer_address text not null,
     created_at timestamp not null
 );
 
@@ -30,5 +32,8 @@ create table invoices (
     buy_offer_mint_hash text not null,
     buy_offer_quantity int not null,
     buy_offer_price int not null,
+    paid_at timestamp,
+    buy_offer_value float not null,
+    sell_offer_address text not null,
     created_at timestamp not null
 );

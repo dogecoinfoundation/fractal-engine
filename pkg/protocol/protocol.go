@@ -15,7 +15,7 @@ const (
 	ACTION_MINT               = 0x01
 	ACTION_OFFER              = 0x02
 	ACTION_INVOICE            = 0x04
-	ACTION_RECEIPT            = 0x05
+	ACTION_PAYMENT            = 0x05
 )
 
 type MessageEnvelope struct {

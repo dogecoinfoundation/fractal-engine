@@ -22,13 +22,13 @@ func getOnChainTransactionsCount(s *TokenisationStore) (int, error) {
 	return count, nil
 }
 
-func (s *TokenisationStore) SaveOnChainTransaction(tx_hash string, height int64, action_type uint8, action_version uint8, action_data []byte, address string) error {
+func (s *TokenisationStore) SaveOnChainTransaction(tx_hash string, height int64, action_type uint8, action_version uint8, action_data []byte, address string, value float64) error {
 	id := uuid.New().String()
 
 	_, err := s.DB.Exec(`
-	INSERT INTO onchain_transactions (id, tx_hash, block_height, action_type, action_version, action_data, address)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, id, tx_hash, height, action_type, action_version, action_data, address)
+	INSERT INTO onchain_transactions (id, tx_hash, block_height, action_type, action_version, action_data, address, value)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`, id, tx_hash, height, action_type, action_version, action_data, address, value)
 
 	return err
 }
@@ -44,7 +44,7 @@ func (s *TokenisationStore) CountOnChainTransactions(blockHeight int64) (int, er
 }
 
 func (s *TokenisationStore) GetOnChainTransactions(limit int) ([]OnChainTransaction, error) {
-	rows, err := s.DB.Query("SELECT id, tx_hash, block_height, action_type, action_version, action_data, address FROM onchain_transactions LIMIT $1", limit)
+	rows, err := s.DB.Query("SELECT id, tx_hash, block_height, action_type, action_version, action_data, address, value FROM onchain_transactions LIMIT $1", limit)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (s *TokenisationStore) GetOnChainTransactions(limit int) ([]OnChainTransact
 	var transactions []OnChainTransaction
 	for rows.Next() {
 		var transaction OnChainTransaction
-		if err := rows.Scan(&transaction.Id, &transaction.TxHash, &transaction.Height, &transaction.ActionType, &transaction.ActionVersion, &transaction.ActionData, &transaction.Address); err != nil {
+		if err := rows.Scan(&transaction.Id, &transaction.TxHash, &transaction.Height, &transaction.ActionType, &transaction.ActionVersion, &transaction.ActionData, &transaction.Address, &transaction.Value); err != nil {
 			return nil, err
 		}
 		transactions = append(transactions, transaction)

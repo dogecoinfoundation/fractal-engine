@@ -38,6 +38,7 @@ Ensure docker is running.
 `protoc --proto_path=. --go_out=. .\pkg\protocol\mint.proto`
 `protoc --proto_path=. --go_out=. .\pkg\protocol\offers.proto`
 `protoc --proto_path=. --go_out=. .\pkg\protocol\invoices.proto`
+`protoc --proto_path=. --go_out=. .\pkg\protocol\payment.proto`
 
 ## Flows
 
@@ -61,3 +62,10 @@ mmdc -i docs/buy_offer.mmd -o docs/buy_offer.svg
 mmdc -i docs/create_invoice.mmd -o docs/create_invoice.svg
 mmdc -i docs/pay_invoice.mmd -o docs/pay_invoice.svg
 ```
+
+### TODO 
+
+- Sign invoices from seller
+- Ensure we put in a transaction the confirming of a invoice
+- Have invoice limit (unconfirmed)
+
