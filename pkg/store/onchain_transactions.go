@@ -1,6 +1,10 @@
 package store
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 func getOnChainTransactionsCount(s *TokenisationStore) (int, error) {
 	rows, err := s.DB.Query("SELECT COUNT(*) FROM onchain_transactions")
@@ -31,6 +35,15 @@ func (s *TokenisationStore) SaveOnChainTransaction(tx_hash string, height int64,
 	`, id, tx_hash, height, action_type, action_version, action_data, address, value)
 
 	return err
+}
+
+func (s *TokenisationStore) TrimOldOnChainTransactions(blockHeightToKeep int) error {
+	sqlQuery := fmt.Sprintf("DELETE FROM onchain_transactions WHERE block_height < %d", blockHeightToKeep)
+	_, err := s.DB.Exec(sqlQuery)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *TokenisationStore) CountOnChainTransactions(blockHeight int64) (int, error) {

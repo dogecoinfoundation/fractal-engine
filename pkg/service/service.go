@@ -19,20 +19,22 @@ type TokenisationService struct {
 	DogeNetClient  *dogenet.DogeNetClient
 	DogeClient     *doge.RpcClient
 	Follower       *doge.DogeFollower
-	TrimmerService *store.TrimmerService
+	TrimmerService *TrimmerService
 	Processor      *FractalEngineProcessor
 }
 
 func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetClient, tokenStore *store.TokenisationStore) *TokenisationService {
+	dogeClient := doge.NewRpcClient(cfg)
 	follower := doge.NewFollower(cfg, tokenStore)
-	trimmerService := store.NewTrimmerService(tokenStore)
+
+	trimmerService := NewTrimmerService(100, tokenStore, dogeClient)
 	processor := NewFractalEngineProcessor(tokenStore)
 
 	return &TokenisationService{
 		RpcServer:      rpc.NewRpcServer(cfg, tokenStore, dogenetClient),
 		Store:          tokenStore,
 		DogeNetClient:  dogenetClient,
-		DogeClient:     doge.NewRpcClient(cfg),
+		DogeClient:     dogeClient,
 		Follower:       follower,
 		TrimmerService: trimmerService,
 		Processor:      processor,
