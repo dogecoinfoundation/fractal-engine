@@ -14,11 +14,10 @@ import (
 )
 
 type RpcServer struct {
-	config       *config.Config
-	quit         chan bool
-	server       *http.Server
-	Running      bool
-	gossipClient dogenet.GossipClient
+	config  *config.Config
+	quit    chan bool
+	server  *http.Server
+	Running bool
 }
 
 func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClient dogenet.GossipClient) *RpcServer {
@@ -27,6 +26,8 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClie
 	handler := withCORS(mux)
 
 	HandleMintRoutes(store, gossipClient, mux)
+	HandleOfferRoutes(store, gossipClient, mux)
+	HandleInvoiceRoutes(store, gossipClient, mux)
 	HandleStatRoutes(store, mux)
 
 	server := &http.Server{
