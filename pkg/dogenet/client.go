@@ -52,7 +52,7 @@ type DogeNetClient struct {
 	GossipClient
 	cfg      *config.Config
 	store    *store.TokenisationStore
-	sock     *net.Conn
+	sock     net.Conn
 	feKey    dnet.KeyPair
 	Stopping bool
 	Messages chan dnet.Message
@@ -95,7 +95,7 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 
 	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagMint, c.feKey, data)
 
-	err = encodedMsg.Send(*c.sock)
+	err = encodedMsg.Send(c.sock)
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func (c *DogeNetClient) GossipOffer(record store.Offer) error {
 
 	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagOffer, c.feKey, data)
 
-	err = encodedMsg.Send(*c.sock)
+	err = encodedMsg.Send(c.sock)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func (c *DogeNetClient) GossipUnconfirmedInvoice(record store.UnconfirmedInvoice
 
 	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagInvoice, c.feKey, data)
 
-	err = encodedMsg.Send(*c.sock)
+	err = encodedMsg.Send(c.sock)
 	if err != nil {
 		return err
 	}
@@ -234,33 +234,42 @@ func (c *DogeNetClient) CheckRunning() error {
 	return nil
 }
 
+func (c *DogeNetClient) StartWithConn(statusChan chan string, conn net.Conn) error {
+	c.sock = conn
+
+	return c.Start(statusChan)
+}
+
 func (c *DogeNetClient) Start(statusChan chan string) error {
-	sock, err := net.Dial(c.cfg.DogeNetNetwork, c.cfg.DogeNetAddress)
-	if err != nil {
-		log.Printf("[FE] cannot connect: %v", err)
-		return err
+	if c.sock == nil {
+		sock, err := net.Dial(c.cfg.DogeNetNetwork, c.cfg.DogeNetAddress)
+		if err != nil {
+			log.Printf("[FE] cannot connect: %v", err)
+			return err
+		}
+		c.sock = sock
 	}
-	c.sock = &sock
 
 	log.Printf("[FE] connected to dogenet.")
 	bind := dnet.BindMessage{Version: 1, Chan: ChanFE, PubKey: *c.feKey.Pub}
 
-	_, err = sock.Write(bind.Encode())
+	_, err := c.sock.Write(bind.Encode())
 	if err != nil {
 		log.Printf("[FE] cannot send BindMessage: %v", err)
-		sock.Close()
+		c.sock.Close()
 		return err
 	}
 
-	reader := bufio.NewReader(sock)
+	reader := bufio.NewReader(c.sock)
 
 	br_buf := [dnet.BindMessageSize]byte{}
 	_, err = io.ReadAtLeast(reader, br_buf[:], len(br_buf))
 	if err != nil {
 		log.Printf("[FE] reading BindMessage reply: %v", err)
-		sock.Close()
+		c.sock.Close()
 		return err
 	}
+
 	if _, ok := dnet.DecodeBindMessage(br_buf[:]); ok {
 		// send the node's pubkey to the announce service
 		// so it can include the node key in the identity announcement
@@ -268,7 +277,7 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 		log.Printf("[FE] Decoded BindMessage reply.")
 	} else {
 		log.Printf("[FE] invalid BindMessage reply: %v", err)
-		sock.Close()
+		c.sock.Close()
 		return err
 	}
 	log.Printf("[FE] completed handshake.")
@@ -284,7 +293,7 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 		msg, err := dnet.ReadMessage(reader)
 		if err != nil {
 			log.Printf("[FE] cannot receive from peer: %v", err)
-			sock.Close()
+			c.sock.Close()
 			return err
 		}
 
@@ -320,7 +329,7 @@ func (c *DogeNetClient) Stop() error {
 	c.Stopping = true
 
 	if c.sock != nil {
-		(*c.sock).Close()
+		c.sock.Close()
 	}
 
 	return nil
