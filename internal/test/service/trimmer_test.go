@@ -13,6 +13,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/service"
+	"dogecoin.org/fractal-engine/pkg/store"
 	"gotest.tools/assert"
 )
 
@@ -123,7 +124,26 @@ func TestTrimmerServiceForOnChainTransactions(t *testing.T) {
 
 	assert.Equal(t, 6, len(count))
 
-	trimmerService := service.NewTrimmerService(14, tokenisationStore, rpcClient)
+	tokenisationStore.SaveUnconfirmedMint(&store.MintWithoutID{
+		Hash: "0000000000000000000000000000000000000000000000000000000000000000",
+	})
+	tokenisationStore.SaveUnconfirmedMint(&store.MintWithoutID{
+		Hash: "0000000000000000000000000000000000000000000000000000000000000000",
+	})
+	tokenisationStore.SaveUnconfirmedMint(&store.MintWithoutID{
+		Hash: "0000000000000000000000000000000000000000000000000000000000000000",
+	})
+	tokenisationStore.SaveUnconfirmedMint(&store.MintWithoutID{
+		Hash: "0000000000000000000000000000000000000000000000000000000000000000",
+	})
+
+	mintCount, err := tokenisationStore.GetUnconfirmedMints(0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, 4, len(mintCount))
+
+	trimmerService := service.NewTrimmerService(14, 2, tokenisationStore, rpcClient)
 	go trimmerService.Start()
 
 	time.Sleep(2 * time.Second)
@@ -134,6 +154,12 @@ func TestTrimmerServiceForOnChainTransactions(t *testing.T) {
 	}
 
 	assert.Equal(t, 3, len(count))
+
+	mintCount, err = tokenisationStore.GetUnconfirmedMints(0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, 2, len(mintCount))
 
 	trimmerService.Stop()
 }

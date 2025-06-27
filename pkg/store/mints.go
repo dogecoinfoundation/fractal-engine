@@ -87,8 +87,8 @@ func (s *TokenisationStore) SaveMint(mint *MintWithoutID, ownerAddress string) (
 	return id, err
 }
 
-func (s *TokenisationStore) TrimOldUnconfirmedMints(blockHeightToKeep int) error {
-	sqlQuery := fmt.Sprintf("DELETE FROM unconfirmed_mints WHERE block_height < %d", blockHeightToKeep)
+func (s *TokenisationStore) TrimOldUnconfirmedMints(limit int) error {
+	sqlQuery := fmt.Sprintf("DELETE FROM unconfirmed_mints WHERE id NOT IN (SELECT id FROM unconfirmed_mints ORDER BY id DESC LIMIT %d)", limit)
 	_, err := s.DB.Exec(sqlQuery)
 	if err != nil {
 		return err

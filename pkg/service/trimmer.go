@@ -10,14 +10,15 @@ import (
 )
 
 type TrimmerService struct {
-	blocksToKeep int
-	store        *store.TokenisationStore
-	dogeClient   *doge.RpcClient
-	running      bool
+	blocksToKeep           int
+	unconfirmedMintsToKeep int
+	store                  *store.TokenisationStore
+	dogeClient             *doge.RpcClient
+	running                bool
 }
 
-func NewTrimmerService(blocksToKeep int, store *store.TokenisationStore, dogeClient *doge.RpcClient) *TrimmerService {
-	return &TrimmerService{blocksToKeep: blocksToKeep, store: store, dogeClient: dogeClient, running: false}
+func NewTrimmerService(blocksToKeep int, unconfirmedMintsToKeep int, store *store.TokenisationStore, dogeClient *doge.RpcClient) *TrimmerService {
+	return &TrimmerService{blocksToKeep: blocksToKeep, unconfirmedMintsToKeep: unconfirmedMintsToKeep, store: store, dogeClient: dogeClient, running: false}
 }
 
 func (t *TrimmerService) Start() {
@@ -41,7 +42,7 @@ func (t *TrimmerService) Start() {
 		latestBlockHeight := int(blockHeader.Height)
 		oldestBlockHeight := latestBlockHeight - t.blocksToKeep
 
-		err = t.store.TrimOldUnconfirmedMints(oldestBlockHeight)
+		err = t.store.TrimOldUnconfirmedMints(t.unconfirmedMintsToKeep)
 		if err != nil {
 			log.Println("Error trimming unconfirmed mints:", err)
 		}
