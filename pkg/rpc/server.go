@@ -14,19 +14,19 @@ import (
 )
 
 type RpcServer struct {
-	config  *config.Config
-	quit    chan bool
-	server  *http.Server
-	Running bool
-	dogenet *dogenet.DogeNetClient
+	config       *config.Config
+	quit         chan bool
+	server       *http.Server
+	Running      bool
+	gossipClient dogenet.GossipClient
 }
 
-func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, dogenet *dogenet.DogeNetClient) *RpcServer {
+func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClient dogenet.GossipClient) *RpcServer {
 	mux := http.NewServeMux()
 
 	handler := withCORS(mux)
 
-	HandleMintRoutes(store, dogenet, mux)
+	HandleMintRoutes(store, gossipClient, mux)
 	HandleStatRoutes(store, mux)
 
 	server := &http.Server{

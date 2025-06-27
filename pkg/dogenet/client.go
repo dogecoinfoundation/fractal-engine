@@ -37,10 +37,22 @@ type NodeInfo struct {
 
 type GetNodesResponse []NodeInfo
 
+type GossipClient interface {
+	GossipMint(record store.Mint) error
+	GossipOffer(record store.Offer) error
+	GossipUnconfirmedInvoice(record store.UnconfirmedInvoice) error
+	GetNodes() (GetNodesResponse, error)
+	AddPeer(addPeer AddPeer) error
+	CheckRunning() error
+	Start(statusChan chan string) error
+	Stop() error
+}
+
 type DogeNetClient struct {
+	GossipClient
 	cfg      *config.Config
 	store    *store.TokenisationStore
-	sock     *net.Conn
+	sock     net.Conn
 	feKey    dnet.KeyPair
 	Stopping bool
 	Messages chan dnet.Message
@@ -83,7 +95,67 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 
 	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagMint, c.feKey, data)
 
-	err = encodedMsg.Send(*c.sock)
+	err = encodedMsg.Send(c.sock)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *DogeNetClient) GossipOffer(record store.Offer) error {
+	offerMessage := protocol.OfferMessage{
+		Id:             record.Id,
+		OffererAddress: record.OffererAddress,
+		Type:           protocol.OfferType(record.Type),
+		Hash:           record.Hash,
+		CreatedAt:      timestamppb.New(record.CreatedAt),
+		Quantity:       int32(record.Quantity),
+		Price:          int32(record.Price),
+	}
+
+	envelope := protocol.OfferMessageEnvelope{
+		Type:    protocol.ACTION_OFFER,
+		Version: protocol.DEFAULT_VERSION,
+		Payload: &offerMessage,
+	}
+
+	data, err := proto.Marshal(&envelope)
+	if err != nil {
+		log.Fatalf("Failed to marshal: %v", err)
+	}
+
+	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagOffer, c.feKey, data)
+
+	err = encodedMsg.Send(c.sock)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *DogeNetClient) GossipUnconfirmedInvoice(record store.UnconfirmedInvoice) error {
+	invoiceMessage := protocol.InvoiceMessage{
+		Id:             record.Id,
+		PaymentAddress: record.PaymentAddress,
+		CreatedAt:      timestamppb.New(record.CreatedAt),
+	}
+
+	envelope := protocol.InvoiceMessageEnvelope{
+		Type:    protocol.ACTION_INVOICE,
+		Version: protocol.DEFAULT_VERSION,
+		Payload: &invoiceMessage,
+	}
+
+	data, err := proto.Marshal(&envelope)
+	if err != nil {
+		log.Fatalf("Failed to marshal: %v", err)
+	}
+
+	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagInvoice, c.feKey, data)
+
+	err = encodedMsg.Send(c.sock)
 	if err != nil {
 		return err
 	}
@@ -162,33 +234,42 @@ func (c *DogeNetClient) CheckRunning() error {
 	return nil
 }
 
+func (c *DogeNetClient) StartWithConn(statusChan chan string, conn net.Conn) error {
+	c.sock = conn
+
+	return c.Start(statusChan)
+}
+
 func (c *DogeNetClient) Start(statusChan chan string) error {
-	sock, err := net.Dial(c.cfg.DogeNetNetwork, c.cfg.DogeNetAddress)
-	if err != nil {
-		log.Printf("[FE] cannot connect: %v", err)
-		return err
+	if c.sock == nil {
+		sock, err := net.Dial(c.cfg.DogeNetNetwork, c.cfg.DogeNetAddress)
+		if err != nil {
+			log.Printf("[FE] cannot connect: %v", err)
+			return err
+		}
+		c.sock = sock
 	}
-	c.sock = &sock
 
 	log.Printf("[FE] connected to dogenet.")
 	bind := dnet.BindMessage{Version: 1, Chan: ChanFE, PubKey: *c.feKey.Pub}
 
-	_, err = sock.Write(bind.Encode())
+	_, err := c.sock.Write(bind.Encode())
 	if err != nil {
 		log.Printf("[FE] cannot send BindMessage: %v", err)
-		sock.Close()
+		c.sock.Close()
 		return err
 	}
 
-	reader := bufio.NewReader(sock)
+	reader := bufio.NewReader(c.sock)
 
 	br_buf := [dnet.BindMessageSize]byte{}
 	_, err = io.ReadAtLeast(reader, br_buf[:], len(br_buf))
 	if err != nil {
 		log.Printf("[FE] reading BindMessage reply: %v", err)
-		sock.Close()
+		c.sock.Close()
 		return err
 	}
+
 	if _, ok := dnet.DecodeBindMessage(br_buf[:]); ok {
 		// send the node's pubkey to the announce service
 		// so it can include the node key in the identity announcement
@@ -196,7 +277,7 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 		log.Printf("[FE] Decoded BindMessage reply.")
 	} else {
 		log.Printf("[FE] invalid BindMessage reply: %v", err)
-		sock.Close()
+		c.sock.Close()
 		return err
 	}
 	log.Printf("[FE] completed handshake.")
@@ -212,7 +293,7 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 		msg, err := dnet.ReadMessage(reader)
 		if err != nil {
 			log.Printf("[FE] cannot receive from peer: %v", err)
-			sock.Close()
+			c.sock.Close()
 			return err
 		}
 
@@ -231,6 +312,10 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 		switch msg.Tag {
 		case TagMint:
 			c.recvMint(msg)
+		case TagOffer:
+			c.recvOffer(msg)
+		case TagInvoice:
+			c.recvInvoice(msg)
 		default:
 			log.Printf("[FE] unknown message: [%s][%s]", msg.Chan, msg.Tag)
 		}
@@ -244,10 +329,47 @@ func (c *DogeNetClient) Stop() error {
 	c.Stopping = true
 
 	if c.sock != nil {
-		(*c.sock).Close()
+		c.sock.Close()
 	}
 
 	return nil
+}
+
+func (c *DogeNetClient) recvOffer(msg dnet.Message) {
+	log.Printf("[FE] received offer message")
+
+	envelope := protocol.OfferMessageEnvelope{}
+	err := proto.Unmarshal(msg.Payload, &envelope)
+	if err != nil {
+		log.Println("Error deserializing message envelope:", err)
+		return
+	}
+
+	if envelope.Type != protocol.ACTION_OFFER {
+		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Type)
+		return
+	}
+
+	offer := envelope.Payload
+
+	offerWithoutID := store.OfferWithoutID{
+		OffererAddress: offer.OffererAddress,
+		Type:           store.OfferType(offer.Type),
+		Hash:           offer.Hash,
+		Quantity:       int(offer.Quantity),
+		Price:          int(offer.Price),
+		CreatedAt:      offer.CreatedAt.AsTime(),
+	}
+
+	// TODO: check if the offer is valid
+
+	id, err := c.store.SaveOffer(&offerWithoutID)
+	if err != nil {
+		log.Println("Error saving unconfirmed offer:", err)
+		return
+	}
+
+	log.Printf("[FE] unconfirmed offer saved: %v", id)
 }
 
 func (c *DogeNetClient) recvMint(msg dnet.Message) {
@@ -286,4 +408,42 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 	}
 
 	log.Printf("[FE] unconfirmed mint saved: %v", id)
+}
+
+func (c *DogeNetClient) recvInvoice(msg dnet.Message) {
+	log.Printf("[FE] received invoice message")
+
+	envelope := protocol.InvoiceMessageEnvelope{}
+	err := proto.Unmarshal(msg.Payload, &envelope)
+	if err != nil {
+		log.Println("Error deserializing message envelope:", err)
+		return
+	}
+
+	if envelope.Type != protocol.ACTION_INVOICE {
+		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Type)
+		return
+	}
+
+	invoice := envelope.Payload
+
+	invoiceWithoutID := store.UnconfirmedInvoice{
+		PaymentAddress:         invoice.PaymentAddress,
+		BuyOfferOffererAddress: invoice.BuyOfferOffererAddress,
+		BuyOfferHash:           invoice.BuyOfferHash,
+		BuyOfferMintHash:       invoice.BuyOfferMintHash,
+		BuyOfferQuantity:       int(invoice.BuyOfferQuantity),
+		BuyOfferPrice:          int(invoice.BuyOfferPrice),
+		CreatedAt:              invoice.CreatedAt.AsTime(),
+		Hash:                   invoice.Hash,
+		Id:                     invoice.Id,
+	}
+
+	id, err := c.store.SaveUnconfirmedInvoice(&invoiceWithoutID)
+	if err != nil {
+		log.Println("Error saving unconfirmed invoice:", err)
+		return
+	}
+
+	log.Printf("[FE] unconfirmed invoice saved: %v", id)
 }

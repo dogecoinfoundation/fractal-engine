@@ -1,0 +1,29 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+package fractalengine;
+
+option go_package = "pkg/protocol";
+
+message OfferMessageEnvelope {
+    int32 type = 1;
+    int32 version = 2;
+    OfferMessage payload = 3;
+}
+
+enum OfferType {
+    SELL = 0;
+    BUY = 1;
+}
+
+message OfferMessage {
+    string id = 1;
+    OfferType type = 2;
+    string offerer_address = 3;
+    string hash = 4;
+    string mint_hash = 5;
+    int32 quantity = 6;
+    int32 price = 7;
+    google.protobuf.Timestamp created_at = 8;
+}
+

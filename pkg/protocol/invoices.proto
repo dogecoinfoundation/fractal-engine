@@ -1,0 +1,34 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+package fractalengine;
+
+option go_package = "pkg/protocol";
+
+// This is what gets written to the OP_RETURN on the L1
+message OnChainInvoiceMessage {
+    int32 version = 1;
+    string hash = 2;
+}
+
+// This is what gets gossiped + stored in the gossip mempool + confirmed_transactions
+message InvoiceMessageEnvelope {
+    int32 type = 1;
+    int32 version = 2;
+    InvoiceMessage payload = 3;
+}
+
+// Payload of an invoice
+message InvoiceMessage {
+    string id = 1;
+    string hash = 2;
+    string payment_address = 3;
+    string buy_offer_offerer_address = 4;
+    string buy_offer_hash = 5;
+    string buy_offer_mint_hash = 6;
+    int32 buy_offer_quantity = 7;
+    int32 buy_offer_price = 8;
+    google.protobuf.Timestamp created_at = 9;
+    string sell_offer_address = 10;
+}
+

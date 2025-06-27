@@ -26,8 +26,7 @@ const (
 // This is what gets written to the OP_RETURN on the L1
 type OnChainMintMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Version       int32                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
-	Hash          string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	Hash          string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -60,13 +59,6 @@ func (x *OnChainMintMessage) ProtoReflect() protoreflect.Message {
 // Deprecated: Use OnChainMintMessage.ProtoReflect.Descriptor instead.
 func (*OnChainMintMessage) Descriptor() ([]byte, []int) {
 	return file_pkg_protocol_mint_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *OnChainMintMessage) GetVersion() int32 {
-	if x != nil {
-		return x.Version
-	}
-	return 0
 }
 
 func (x *OnChainMintMessage) GetHash() string {
@@ -282,10 +274,9 @@ var File_pkg_protocol_mint_proto protoreflect.FileDescriptor
 
 const file_pkg_protocol_mint_proto_rawDesc = "" +
 	"\n" +
-	"\x17pkg/protocol/mint.proto\x12\rfractalengine\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"B\n" +
-	"\x12OnChainMintMessage\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\x05R\aversion\x12\x12\n" +
-	"\x04hash\x18\x02 \x01(\tR\x04hash\"y\n" +
+	"\x17pkg/protocol/mint.proto\x12\rfractalengine\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"(\n" +
+	"\x12OnChainMintMessage\x12\x12\n" +
+	"\x04hash\x18\x01 \x01(\tR\x04hash\"y\n" +
 	"\x13MintMessageEnvelope\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\x05R\x04type\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x05R\aversion\x124\n" +

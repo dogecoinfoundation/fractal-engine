@@ -49,6 +49,8 @@ github.com/dogecoinfoundation/chainfollower v0.0.0-20250606012650-62026c70b9cc h
 github.com/dogecoinfoundation/chainfollower v0.0.0-20250606012650-62026c70b9cc/go.mod h1:dd2AuK49uFB+OlXiUHGjCybGpqxikz2rUTcoWydLwJ8=
 github.com/dogecoinfoundation/chainfollower v0.0.0-20250620070824-3ad3b7383c81 h1:7NXeLDxTnL3wFkYaqwUKo3RVIa/L6WCAUw/k9x6xJzU=
 github.com/dogecoinfoundation/chainfollower v0.0.0-20250620070824-3ad3b7383c81/go.mod h1:dd2AuK49uFB+OlXiUHGjCybGpqxikz2rUTcoWydLwJ8=
+github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3 h1:jqM8gk0TPC5liYIZVZoqlBWd2m0AfcyvqPD8PSI8wWc=
+github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3/go.mod h1:dd2AuK49uFB+OlXiUHGjCybGpqxikz2rUTcoWydLwJ8=
 github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9 h1:soO8Di8P7Of1bTZN14fAnle56izyMx+rpp0Z/q3Zj0M=
 github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9/go.mod h1:YyB0wlJ7IGhr7j7jGlgjXZ7mtDnTGaCBkX4HePUORPo=
 github.com/dogeorg/doge v0.0.12 h1:Uj28ZL8wZxf7EiWyHu2czHzi6vWCzCCOdv75HTjbH2k=

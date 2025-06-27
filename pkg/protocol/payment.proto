@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package fractalengine;
+
+option go_package = "pkg/protocol";
+
+// This is what gets written to the OP_RETURN on the L1
+message OnChainPaymentMessage {
+    int32 version = 1;
+    string hash = 2;
+}
+
+// This is what gets gossiped + stored in the gossip mempool + confirmed_transactions
+message PaymentMessageEnvelope {
+    int32 type = 1;
+    int32 version = 2;
+    PaymentMessage payload = 3;
+}
+ 
+// Payload of an invoice
+message PaymentMessage {
+    string invoice_hash = 1;
+}
+

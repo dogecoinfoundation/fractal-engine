@@ -12,7 +12,6 @@ import (
 
 	"dogecoin.org/fractal-engine/pkg/client"
 	"dogecoin.org/fractal-engine/pkg/rpc"
-	"dogecoin.org/fractal-engine/pkg/store"
 	"dogecoin.org/fractal-engine/pkg/testsupport"
 	"github.com/testcontainers/testcontainers-go/network"
 	"gotest.tools/assert"
@@ -52,13 +51,12 @@ func TestMain(m *testing.M) {
 
 	fmt.Println("Test groups started")
 
-	// time.Sleep(40 * time.Second)
-
 	err = testsupport.ConnectDogeNetPeers(testGroups[0].DogeNetClient, testGroups[1].DogenetContainer, testGroups[1].DnGossipPort, testGroups[0].LogConsumer, testGroups[1].LogConsumer)
 	if err != nil {
 		panic(err)
 	}
 
+	// need to wait for the dogenet instance to let the peer be active
 	time.Sleep(20 * time.Second)
 
 	// Run all tests
@@ -82,29 +80,38 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+/*
+*
+TestFractal is a test that checks if the fractal engine is working correctly.
+
+1. Mint a token on the OG Node via HTTP API
+1a. Send the mint to the dogenet (OG Node) which in turn gossips to the 2nd Node
+2. Write the mint to the core (OG Node)
+3. Write the mint to the core (2nd Node)
+4. Check if the mint is in the store (OG Node)
+5. Check if the mint is in the store (2nd Node)
+*/
 func TestFractal(t *testing.T) {
 	feConfigA := testGroups[0].FeConfig
 	feClient := client.NewTokenisationClient("http://" + feConfigA.RpcServerHost + ":" + feConfigA.RpcServerPort)
 
 	mintResponse, err := feClient.Mint(&rpc.CreateMintRequest{
-		MintWithoutID: store.MintWithoutID{
-			Title:         "Test Mint",
-			FractionCount: 100,
-			Description:   "Test Description",
-			Tags:          []string{"test", "mint"},
-			Metadata: map[string]interface{}{
-				"test": "test",
-			},
+		Title:         "Test Mint",
+		FractionCount: 100,
+		Description:   "Test Description",
+		Tags:          []string{"test", "mint"},
+		Metadata: map[string]interface{}{
+			"test": "test",
 		},
+		Requirements:  map[string]interface{}{},
+		LockupOptions: map[string]interface{}{},
+		FeedURL:       "https://test.com",
+		OwnerAddress:  "testA0",
 	})
 
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	log.Println("Mint response", mintResponse)
-	log.Println("Address book", testGroups[0].AddressBook)
-	log.Println("Doge test", testGroups[0].DogeTest)
 
 	// Write mint to core (OG Node)
 	err = testsupport.WriteMintToCore(testGroups[0].DogeTest, testGroups[0].AddressBook, &mintResponse)
@@ -126,9 +133,15 @@ func TestFractal(t *testing.T) {
 		}
 
 		if len(mints) > 0 {
+			ownerAddress, err := testGroups[0].AddressBook.GetAddress("testA0")
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			assert.Equal(t, mints[0].Title, "Test Mint")
 			assert.Equal(t, mints[0].Description, "Test Description")
 			assert.Equal(t, mints[0].FractionCount, 100)
+			assert.Equal(t, mints[0].OwnerAddress, ownerAddress.Address)
 
 			break
 		} else {
@@ -146,9 +159,15 @@ func TestFractal(t *testing.T) {
 		}
 
 		if len(mints) > 0 {
+			ownerAddress, err := testGroups[1].AddressBook.GetAddress("testA1")
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			assert.Equal(t, mints[0].Title, "Test Mint")
 			assert.Equal(t, mints[0].Description, "Test Description")
 			assert.Equal(t, mints[0].FractionCount, 100)
+			assert.Equal(t, mints[0].OwnerAddress, ownerAddress.Address)
 
 			break
 		} else {
@@ -157,4 +176,5 @@ func TestFractal(t *testing.T) {
 
 		time.Sleep(1 * time.Second)
 	}
+
 }
