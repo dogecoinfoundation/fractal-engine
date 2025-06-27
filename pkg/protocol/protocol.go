@@ -45,6 +45,7 @@ func (m *MessageEnvelope) Serialize() []byte {
 	buf := new(bytes.Buffer)
 	buf.Write(bufIdentifier)
 	buf.WriteByte(m.Action)
+	buf.WriteByte(m.Version)
 	buf.Write(m.Data)
 
 	return buf.Bytes()
@@ -63,6 +64,13 @@ func (m *MessageEnvelope) Deserialize(data []byte) error {
 	}
 
 	m.Action = action
+
+	version, err := buf.ReadByte()
+	if err != nil {
+		return err
+	}
+
+	m.Version = version
 
 	m.Data = buf.Bytes()
 	return nil

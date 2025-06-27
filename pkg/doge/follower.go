@@ -22,7 +22,7 @@ import (
 type DogeFollower struct {
 	cfg           *fecfg.Config
 	store         *store.TokenisationStore
-	chainfollower *chainfollower.ChainFollower
+	chainfollower chainfollower.ChainFollowerInterface
 	Running       bool
 	msgChan       chan messages.Message
 	context       context.Context
@@ -40,6 +40,11 @@ func NewFollower(cfg *fecfg.Config, store *store.TokenisationStore) *DogeFollowe
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	return &DogeFollower{cfg: cfg, store: store, chainfollower: chainfollower, Running: false, context: ctx, cancel: cancel}
+}
+
+func NewFollowerWithCustomChainFollower(cfg *fecfg.Config, store *store.TokenisationStore, chainfollower chainfollower.ChainFollowerInterface) *DogeFollower {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &DogeFollower{cfg: cfg, store: store, chainfollower: chainfollower, Running: false, context: ctx, cancel: cancel}
 }
 

@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/Dogebox-WG/gossip v0.0.21-0.20250602032058-1408c427c179
 	github.com/docker/go-connections v0.5.0
-	github.com/dogecoinfoundation/chainfollower v0.0.0-20250620070824-3ad3b7383c81
+	github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3
 	github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9
 	github.com/golang-migrate/migrate v3.5.4+incompatible
 	github.com/golang-migrate/migrate/v4 v4.18.3

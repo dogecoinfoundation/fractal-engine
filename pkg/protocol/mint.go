@@ -12,8 +12,7 @@ type MintTransaction struct {
 
 func NewMintTransactionEnvelope(hash string, action uint8) MessageEnvelope {
 	message := &OnChainMintMessage{
-		Version: DEFAULT_VERSION,
-		Hash:    hash,
+		Hash: hash,
 	}
 
 	protoBytes, err := proto.Marshal(message)
