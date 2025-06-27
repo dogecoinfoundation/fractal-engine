@@ -32,6 +32,28 @@ func (s *TokenisationStore) GetMints(offset int, limit int) ([]Mint, error) {
 	return mints, nil
 }
 
+func (s *TokenisationStore) GetUnconfirmedMints(offset int, limit int) ([]Mint, error) {
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url FROM unconfirmed_mints LIMIT $1 OFFSET $2", limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mints []Mint
+	for rows.Next() {
+		var m Mint
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL); err != nil {
+			return nil, err
+		}
+		mints = append(mints, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return mints, nil
+}
+
 func (s *TokenisationStore) SaveMint(mint *MintWithoutID, ownerAddress string) (string, error) {
 	fmt.Println("Saving mint:", mint.Hash)
 

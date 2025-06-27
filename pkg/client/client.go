@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"dogecoin.org/fractal-engine/pkg/rpc"
+	"dogecoin.org/fractal-engine/pkg/store"
 )
 
 type TokenisationClient struct {
@@ -18,6 +19,57 @@ type TokenisationClient struct {
 func NewTokenisationClient(baseUrl string) *TokenisationClient {
 	httpClient := &http.Client{}
 	return &TokenisationClient{baseUrl: baseUrl, httpClient: httpClient}
+}
+
+func (c *TokenisationClient) Offer(offer *rpc.CreateOfferRequest) (rpc.CreateOfferResponse, error) {
+	jsonValue, err := json.Marshal(offer)
+	if err != nil {
+		return rpc.CreateOfferResponse{}, err
+	}
+
+	resp, err := c.httpClient.Post(c.baseUrl+"/offers", "application/json", bytes.NewBuffer(jsonValue))
+
+	if err != nil {
+		return rpc.CreateOfferResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return rpc.CreateOfferResponse{}, fmt.Errorf("failed to create offer: %s", string(body))
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.CreateOfferResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.CreateOfferResponse{}, err
+	}
+
+	return result, nil
+}
+
+func (c *TokenisationClient) GetOffers(page int, limit int, mintHash string, offerType store.OfferType) (rpc.GetOffersResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/offers?page=%d&limit=%d&mint_hash=%s&type=%d", page, limit, mintHash, offerType))
+	if err != nil {
+		return rpc.GetOffersResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rpc.GetOffersResponse{}, fmt.Errorf("failed to get offers: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.GetOffersResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.GetOffersResponse{}, err
+	}
+
+	return result, nil
 }
 
 func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintResponse, error) {

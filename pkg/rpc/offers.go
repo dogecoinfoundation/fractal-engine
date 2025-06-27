@@ -13,12 +13,12 @@ import (
 )
 
 type OfferRoutes struct {
-	store   *store.TokenisationStore
-	dogenet *dogenet.DogeNetClient
+	store        *store.TokenisationStore
+	gossipClient dogenet.GossipClient
 }
 
-func HandleOfferRoutes(store *store.TokenisationStore, dogenet *dogenet.DogeNetClient, mux *http.ServeMux) {
-	or := &OfferRoutes{store: store, dogenet: dogenet}
+func HandleOfferRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux) {
+	or := &OfferRoutes{store: store, gossipClient: gossipClient}
 
 	mux.HandleFunc("/offers", or.handleOffers)
 }
@@ -108,14 +108,7 @@ func (or *OfferRoutes) postOffer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := request.GenerateHash()
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
 	newOfferWithoutId := &store.OfferWithoutID{
-		Hash:           hash,
 		Type:           request.Type,
 		OffererAddress: request.OffererAddress,
 		MintHash:       request.MintHash,
@@ -123,9 +116,15 @@ func (or *OfferRoutes) postOffer(w http.ResponseWriter, r *http.Request) {
 		Price:          request.Price,
 		CreatedAt:      time.Now(),
 	}
+	newOfferWithoutId.Hash, err = newOfferWithoutId.GenerateHash()
+	if err != nil {
+		http.Error(w, "Failed to generate hash", http.StatusBadRequest)
+		return
+	}
+
 	id, err := or.store.SaveOffer(newOfferWithoutId)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "Failed to save offer", http.StatusBadRequest)
 		return
 	}
 
@@ -134,7 +133,7 @@ func (or *OfferRoutes) postOffer(w http.ResponseWriter, r *http.Request) {
 		Id:             id,
 	}
 
-	err = or.dogenet.GossipOffer(*newOffer)
+	err = or.gossipClient.GossipOffer(*newOffer)
 	if err != nil {
 		http.Error(w, "Unable to gossip", http.StatusInternalServerError)
 		return

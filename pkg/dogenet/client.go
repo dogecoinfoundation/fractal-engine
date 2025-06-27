@@ -37,7 +37,19 @@ type NodeInfo struct {
 
 type GetNodesResponse []NodeInfo
 
+type GossipClient interface {
+	GossipMint(record store.Mint) error
+	GossipOffer(record store.Offer) error
+	GossipUnconfirmedInvoice(record store.UnconfirmedInvoice) error
+	GetNodes() (GetNodesResponse, error)
+	AddPeer(addPeer AddPeer) error
+	CheckRunning() error
+	Start(statusChan chan string) error
+	Stop() error
+}
+
 type DogeNetClient struct {
+	GossipClient
 	cfg      *config.Config
 	store    *store.TokenisationStore
 	sock     *net.Conn

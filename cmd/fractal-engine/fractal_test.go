@@ -12,7 +12,6 @@ import (
 
 	"dogecoin.org/fractal-engine/pkg/client"
 	"dogecoin.org/fractal-engine/pkg/rpc"
-	"dogecoin.org/fractal-engine/pkg/store"
 	"dogecoin.org/fractal-engine/pkg/testsupport"
 	"github.com/testcontainers/testcontainers-go/network"
 	"gotest.tools/assert"
@@ -97,15 +96,17 @@ func TestFractal(t *testing.T) {
 	feClient := client.NewTokenisationClient("http://" + feConfigA.RpcServerHost + ":" + feConfigA.RpcServerPort)
 
 	mintResponse, err := feClient.Mint(&rpc.CreateMintRequest{
-		MintWithoutID: store.MintWithoutID{
-			Title:         "Test Mint",
-			FractionCount: 100,
-			Description:   "Test Description",
-			Tags:          []string{"test", "mint"},
-			Metadata: map[string]interface{}{
-				"test": "test",
-			},
+		Title:         "Test Mint",
+		FractionCount: 100,
+		Description:   "Test Description",
+		Tags:          []string{"test", "mint"},
+		Metadata: map[string]interface{}{
+			"test": "test",
 		},
+		Requirements:  map[string]interface{}{},
+		LockupOptions: map[string]interface{}{},
+		FeedURL:       "https://test.com",
+		OwnerAddress:  "testA0",
 	})
 
 	if err != nil {
@@ -175,4 +176,5 @@ func TestFractal(t *testing.T) {
 
 		time.Sleep(1 * time.Second)
 	}
+
 }

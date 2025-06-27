@@ -8,7 +8,15 @@ import (
 )
 
 type CreateMintRequest struct {
-	store.MintWithoutID
+	Title         string                   `json:"title"`
+	FractionCount int                      `json:"fraction_count"`
+	Description   string                   `json:"description"`
+	Tags          store.StringArray        `json:"tags"`
+	Metadata      store.StringInterfaceMap `json:"metadata"`
+	Requirements  store.StringInterfaceMap `json:"requirements"`
+	LockupOptions store.StringInterfaceMap `json:"lockup_options"`
+	FeedURL       string                   `json:"feed_url"`
+	OwnerAddress  string                   `json:"owner_address"`
 }
 
 func (req *CreateMintRequest) Validate() error {
@@ -48,7 +56,11 @@ type GetStatsResponse struct {
 }
 
 type CreateOfferRequest struct {
-	store.OfferWithoutID
+	Type           store.OfferType `json:"type"`
+	OffererAddress string          `json:"offerer_address"`
+	MintHash       string          `json:"mint_hash"`
+	Quantity       int             `json:"quantity"`
+	Price          int             `json:"price"`
 }
 
 func (req *CreateOfferRequest) Validate() error {
@@ -60,8 +72,8 @@ func (req *CreateOfferRequest) Validate() error {
 	if req.OffererAddress == "" {
 		missing = append(missing, "offerer_address")
 	}
-	if req.Hash == "" {
-		missing = append(missing, "hash")
+	if req.MintHash == "" {
+		missing = append(missing, "mint_hash")
 	}
 	if req.Quantity <= 0 {
 		missing = append(missing, "quantity (must be > 0)")

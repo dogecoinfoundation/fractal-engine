@@ -14,12 +14,12 @@ import (
 )
 
 type MintRoutes struct {
-	store   *store.TokenisationStore
-	dogenet *dogenet.DogeNetClient
+	store        *store.TokenisationStore
+	gossipClient dogenet.GossipClient
 }
 
-func HandleMintRoutes(store *store.TokenisationStore, dogenet *dogenet.DogeNetClient, mux *http.ServeMux) {
-	mr := &MintRoutes{store: store, dogenet: dogenet}
+func HandleMintRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux) {
+	mr := &MintRoutes{store: store, gossipClient: gossipClient}
 
 	mux.HandleFunc("/mints", mr.handleMints)
 }
@@ -97,14 +97,7 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := request.GenerateHash()
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
 	newMintWithoutId := &store.MintWithoutID{
-		Hash:          hash,
 		Title:         request.Title,
 		FractionCount: request.FractionCount,
 		Description:   request.Description,
@@ -115,6 +108,13 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		LockupOptions: request.LockupOptions,
 		FeedURL:       request.FeedURL,
 	}
+
+	newMintWithoutId.Hash, err = newMintWithoutId.GenerateHash()
+	if err != nil {
+		http.Error(w, "Failed to generate hash", http.StatusBadRequest)
+		return
+	}
+
 	id, err := mr.store.SaveUnconfirmedMint(newMintWithoutId)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -126,19 +126,19 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		Id:            id,
 	}
 
-	err = mr.dogenet.GossipMint(*newMint)
+	err = mr.gossipClient.GossipMint(*newMint)
 	if err != nil {
 		http.Error(w, "Unable to gossip", http.StatusInternalServerError)
 		return
 	}
 
-	envelope := protocol.NewMintTransactionEnvelope(hash, protocol.ACTION_MINT)
+	envelope := protocol.NewMintTransactionEnvelope(newMintWithoutId.Hash, protocol.ACTION_MINT)
 	encodedTransactionBody := envelope.Serialize()
 
 	response := CreateMintResponse{
 		EncodedTransactionBody: hex.EncodeToString(encodedTransactionBody),
 		Id:                     id,
-		TransactionHash:        hash,
+		TransactionHash:        newMintWithoutId.Hash,
 	}
 
 	respondJSON(w, http.StatusCreated, response)
