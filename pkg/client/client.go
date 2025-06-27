@@ -21,6 +21,34 @@ func NewTokenisationClient(baseUrl string) *TokenisationClient {
 	return &TokenisationClient{baseUrl: baseUrl, httpClient: httpClient}
 }
 
+func (c *TokenisationClient) CreateInvoice(invoice *rpc.CreateInvoiceRequest) (rpc.CreateInvoiceResponse, error) {
+	jsonValue, err := json.Marshal(invoice)
+	if err != nil {
+		return rpc.CreateInvoiceResponse{}, err
+	}
+
+	resp, err := c.httpClient.Post(c.baseUrl+"/invoices", "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return rpc.CreateInvoiceResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return rpc.CreateInvoiceResponse{}, fmt.Errorf("failed to create invoice: %s", string(body))
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.CreateInvoiceResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.CreateInvoiceResponse{}, err
+	}
+
+	return result, nil
+}
+
 func (c *TokenisationClient) Offer(offer *rpc.CreateOfferRequest) (rpc.CreateOfferResponse, error) {
 	jsonValue, err := json.Marshal(offer)
 	if err != nil {

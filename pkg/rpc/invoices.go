@@ -6,20 +6,20 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"github.com/google/uuid"
 )
 
 type InvoiceRoutes struct {
-	store   *store.TokenisationStore
-	dogenet *dogenet.DogeNetClient
+	store        *store.TokenisationStore
+	gossipClient dogenet.GossipClient
 }
 
-func HandleInvoiceRoutes(store *store.TokenisationStore, dogenet *dogenet.DogeNetClient, mux *http.ServeMux) {
-	ir := &InvoiceRoutes{store: store, dogenet: dogenet}
+func HandleInvoiceRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux) {
+	ir := &InvoiceRoutes{store: store, gossipClient: gossipClient}
 
 	mux.HandleFunc("/invoices", ir.handleInvoices)
 }
@@ -100,12 +100,6 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := request.GenerateHash()
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
 	newInvoiceWithoutId := &store.UnconfirmedInvoice{
 		BuyOfferHash:           request.BuyOfferHash,
 		BuyOfferMintHash:       request.BuyOfferMintHash,
@@ -113,10 +107,14 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		BuyOfferPrice:          request.BuyOfferPrice,
 		BuyOfferOffererAddress: request.BuyOfferOffererAddress,
 		PaymentAddress:         request.PaymentAddress,
-		CreatedAt:              request.CreatedAt,
+		CreatedAt:              time.Now(),
 		SellOfferAddress:       request.SellOfferAddress,
-		Hash:                   hash,
-		Id:                     uuid.New().String(),
+	}
+
+	newInvoiceWithoutId.Hash, err = newInvoiceWithoutId.GenerateHash()
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
 	}
 
 	id, err := ir.store.SaveUnconfirmedInvoice(newInvoiceWithoutId)
@@ -125,19 +123,21 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ir.dogenet.GossipUnconfirmedInvoice(*newInvoiceWithoutId)
+	newInvoiceWithoutId.Id = id
+
+	err = ir.gossipClient.GossipUnconfirmedInvoice(*newInvoiceWithoutId)
 	if err != nil {
 		http.Error(w, "Unable to gossip", http.StatusInternalServerError)
 		return
 	}
 
-	envelope := protocol.NewInvoiceTransactionEnvelope(hash, protocol.ACTION_INVOICE)
+	envelope := protocol.NewInvoiceTransactionEnvelope(newInvoiceWithoutId.Hash, protocol.ACTION_INVOICE)
 	encodedTransactionBody := envelope.Serialize()
 
 	response := CreateInvoiceResponse{
 		EncodedTransactionBody: hex.EncodeToString(encodedTransactionBody),
 		Id:                     id,
-		TransactionHash:        hash,
+		TransactionHash:        newInvoiceWithoutId.Hash,
 	}
 
 	respondJSON(w, http.StatusCreated, response)

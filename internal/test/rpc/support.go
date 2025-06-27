@@ -17,8 +17,9 @@ import (
 
 type FakeGossipClient struct {
 	dogenet.GossipClient
-	offers []store.Offer
-	mints  []store.Mint
+	offers   []store.Offer
+	mints    []store.Mint
+	invoices []store.UnconfirmedInvoice
 }
 
 func (g *FakeGossipClient) GossipOffer(offer store.Offer) error {
@@ -28,6 +29,11 @@ func (g *FakeGossipClient) GossipOffer(offer store.Offer) error {
 
 func (g *FakeGossipClient) GossipMint(mint store.Mint) error {
 	g.mints = append(g.mints, mint)
+	return nil
+}
+
+func (g *FakeGossipClient) GossipUnconfirmedInvoice(invoice store.UnconfirmedInvoice) error {
+	g.invoices = append(g.invoices, invoice)
 	return nil
 }
 

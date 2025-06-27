@@ -33,6 +33,31 @@ func (s *TokenisationStore) GetInvoices(offset int, limit int, mintHash string, 
 	return invoices, nil
 }
 
+func (s *TokenisationStore) GetUnconfirmedInvoices(offset int, limit int, mintHash string, offererAddress string) ([]UnconfirmedInvoice, error) {
+	rows, err := s.DB.Query("SELECT id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address FROM unconfirmed_invoices WHERE buy_offer_mint_hash = $1 AND buy_offer_offerer_address = $2 LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var invoices []UnconfirmedInvoice
+
+	for rows.Next() {
+		var invoice UnconfirmedInvoice
+		if err := rows.Scan(&invoice.Id, &invoice.Hash, &invoice.PaymentAddress, &invoice.BuyOfferOffererAddress, &invoice.BuyOfferHash, &invoice.BuyOfferMintHash, &invoice.BuyOfferQuantity, &invoice.BuyOfferPrice, &invoice.BuyOfferValue, &invoice.CreatedAt, &invoice.SellOfferAddress); err != nil {
+			return nil, err
+		}
+
+		invoices = append(invoices, invoice)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return invoices, nil
+}
+
 func (s *TokenisationStore) SaveUnconfirmedInvoice(invoice *UnconfirmedInvoice) (string, error) {
 	id := uuid.New().String()
 

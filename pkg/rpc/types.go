@@ -100,7 +100,13 @@ type GetOffersResponse struct {
 }
 
 type CreateInvoiceRequest struct {
-	store.UnconfirmedInvoice
+	PaymentAddress         string `json:"payment_address"`
+	BuyOfferOffererAddress string `json:"buy_offer_offerer_address"`
+	BuyOfferHash           string `json:"buy_offer_hash"`
+	BuyOfferMintHash       string `json:"buy_offer_mint_hash"`
+	BuyOfferQuantity       int    `json:"buy_offer_quantity"`
+	BuyOfferPrice          int    `json:"buy_offer_price"`
+	SellOfferAddress       string `json:"sell_offer_address"`
 }
 
 func (req *CreateInvoiceRequest) Validate() error {
@@ -118,6 +124,9 @@ func (req *CreateInvoiceRequest) Validate() error {
 	}
 	if req.BuyOfferMintHash == "" {
 		missing = append(missing, "buy_offer_mint_hash")
+	}
+	if req.SellOfferAddress == "" {
+		missing = append(missing, "sell_offer_address")
 	}
 	if req.BuyOfferQuantity <= 0 {
 		missing = append(missing, "buy_offer_quantity (must be > 0)")
