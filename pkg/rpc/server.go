@@ -13,6 +13,10 @@ import (
 	"dogecoin.org/fractal-engine/pkg/store"
 )
 
+//	@title			Fractal Engine API
+//	@version		1.0
+//	@description	API for managing mints and offers
+
 type RpcServer struct {
 	config  *config.Config
 	quit    chan bool

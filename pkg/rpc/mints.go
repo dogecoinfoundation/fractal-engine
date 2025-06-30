@@ -35,6 +35,17 @@ func (mr *MintRoutes) handleMints(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary		Get all mints
+// @Description	Returns a list of mints
+// @Tags			mints
+// @Accept			json
+// @Produce		json
+// @Param			limit	query		int	false	"Limit"
+// @Param			page	query		int	false	"Page"
+// @Success		200		{object}	GetMintsResponse
+// @Failure		400		{object}	string
+// @Failure		500		{object}	string
+// @Router			/mints [get]
 func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.URL.Query().Get("limit")
 	limit := 100
@@ -84,6 +95,16 @@ func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, response)
 }
 
+// @Summary		Create a mint
+// @Description	Creates a new mint
+// @Tags			mints
+// @Accept			json
+// @Produce		json
+// @Param			request	body		CreateMintRequest	true	"Mint request"
+// @Success		201		{object}	CreateMintResponse
+// @Failure		400		{object}	string
+// @Failure		500		{object}	string
+// @Router			/mints [post]
 func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 	var request CreateMintRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {

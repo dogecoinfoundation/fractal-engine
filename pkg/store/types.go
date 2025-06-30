@@ -39,7 +39,6 @@ type MintWithoutID struct {
 	CreatedAt       time.Time          `json:"created_at"`
 	Requirements    StringInterfaceMap `json:"requirements"`
 	LockupOptions   StringInterfaceMap `json:"lockup_options"`
-	Gossiped        bool               `json:"gossiped"`
 	FeedURL         string             `json:"feed_url"`
 }
 

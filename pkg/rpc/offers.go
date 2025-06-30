@@ -34,6 +34,20 @@ func (or *OfferRoutes) handleOffers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary		Get all offers
+// @Description	Returns a list of offers
+// @Tags			offers
+// @Accept			json
+// @Produce		json
+// @Param			limit	query		int	false	"Limit"
+// @Param			page	query		int	false	"Page"
+// @Param			mint_hash	query		string	false	"Mint hash"
+// @Param			type	query		int	false	"Type"
+// @Success		200		{object}	GetOffersResponse
+// @Failure		400		{object}	string
+// @Failure		500		{object}	string
+// @Router			/offers [get]
+
 func (or *OfferRoutes) getOffers(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.URL.Query().Get("limit")
 	limit := 100
@@ -95,6 +109,16 @@ func (or *OfferRoutes) getOffers(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, response)
 }
 
+// @Summary		Create an offer
+// @Description	Creates a new offer
+// @Tags			offers
+// @Accept			json
+// @Produce		json
+// @Param			request	body		CreateOfferRequest	true	"Offer request"
+// @Success		201		{object}	CreateOfferResponse
+// @Failure		400		{object}	string
+// @Failure		500		{object}	string
+// @Router			/offers [post]
 func (or *OfferRoutes) postOffer(w http.ResponseWriter, r *http.Request) {
 	var request CreateOfferRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {

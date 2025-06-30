@@ -63,6 +63,9 @@ mmdc -i docs/create_invoice.mmd -o docs/create_invoice.svg
 mmdc -i docs/pay_invoice.mmd -o docs/pay_invoice.svg
 ```
 
+## Generate Swagger Docs
+`swag init --parseDependency --parseInternal --parseDepth 1 -g pkg/rpc/server.go`
+
 ### TODO 
 
 - Sign invoices from seller

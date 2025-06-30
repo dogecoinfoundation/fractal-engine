@@ -1,0 +1,214 @@
+definitions:
+  dogecoin_org_fractal-engine_pkg_store.Mint:
+    properties:
+      block_height:
+        type: integer
+      created_at:
+        type: string
+      description:
+        type: string
+      feed_url:
+        type: string
+      fraction_count:
+        type: integer
+      hash:
+        type: string
+      id:
+        type: string
+      lockup_options:
+        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+      metadata:
+        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+      owner_address:
+        type: string
+      requirements:
+        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+      transaction_hash:
+        $ref: '#/definitions/sql.NullString'
+    type: object
+  dogecoin_org_fractal-engine_pkg_store.OfferType:
+    enum:
+    - 0
+    - 1
+    type: integer
+    x-enum-varnames:
+    - OfferTypeBuy
+    - OfferTypeSell
+  dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap:
+    additionalProperties: true
+    type: object
+  pkg_rpc.CreateMintRequest:
+    properties:
+      description:
+        type: string
+      feed_url:
+        type: string
+      fraction_count:
+        type: integer
+      lockup_options:
+        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+      metadata:
+        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+      owner_address:
+        type: string
+      requirements:
+        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+    type: object
+  pkg_rpc.CreateMintResponse:
+    properties:
+      encoded_transaction_body:
+        type: string
+      id:
+        type: string
+      transaction_hash:
+        type: string
+    type: object
+  pkg_rpc.CreateOfferRequest:
+    properties:
+      mint_hash:
+        type: string
+      offerer_address:
+        type: string
+      price:
+        type: integer
+      quantity:
+        type: integer
+      type:
+        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.OfferType'
+    type: object
+  pkg_rpc.CreateOfferResponse:
+    properties:
+      id:
+        type: string
+    type: object
+  pkg_rpc.GetMintsResponse:
+    properties:
+      limit:
+        type: integer
+      mints:
+        items:
+          $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.Mint'
+        type: array
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  sql.NullString:
+    properties:
+      string:
+        type: string
+      valid:
+        description: Valid is true if String is not NULL
+        type: boolean
+    type: object
+info:
+  contact: {}
+  description: API for managing mints and offers
+  title: Fractal Engine API
+  version: "1.0"
+paths:
+  /mints:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of mints
+      parameters:
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg_rpc.GetMintsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get all mints
+      tags:
+      - mints
+    post:
+      consumes:
+      - application/json
+      description: Creates a new mint
+      parameters:
+      - description: Mint request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_rpc.CreateMintRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg_rpc.CreateMintResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create a mint
+      tags:
+      - mints
+  /offers:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new offer
+      parameters:
+      - description: Offer request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_rpc.CreateOfferRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg_rpc.CreateOfferResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create an offer
+      tags:
+      - offers
+swagger: "2.0"
