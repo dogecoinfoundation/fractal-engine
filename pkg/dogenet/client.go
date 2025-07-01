@@ -56,6 +56,7 @@ type DogeNetClient struct {
 	feKey    dnet.KeyPair
 	Stopping bool
 	Messages chan dnet.Message
+	Running  bool
 }
 
 func convertToStructPBMap(m map[string]interface{}) map[string]*structpb.Value {
@@ -241,6 +242,14 @@ func (c *DogeNetClient) StartWithConn(statusChan chan string, conn net.Conn) err
 }
 
 func (c *DogeNetClient) Start(statusChan chan string) error {
+	if c.Running {
+		statusChan <- "Running"
+		log.Println("Dogenet client already running")
+		return nil
+	}
+
+	c.Running = true
+
 	if c.sock == nil {
 		sock, err := net.Dial(c.cfg.DogeNetNetwork, c.cfg.DogeNetAddress)
 		if err != nil {

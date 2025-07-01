@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/store"
 
 	"gotest.tools/assert"
 )
 
 func TestOfferSaveAndGet(t *testing.T) {
-	tokenisationStore, err := NewTokenisationStore("memory://test.db", config.Config{
-		MigrationsPath: "../../db/migrations",
+	tokenisationStore, err := store.NewTokenisationStore("memory://test.db", config.Config{
+		MigrationsPath: "../../../../db/migrations",
 	})
 	if err != nil {
 		panic(err)
@@ -22,9 +23,9 @@ func TestOfferSaveAndGet(t *testing.T) {
 		t.Fatalf("Failed to migrate: %v", err)
 	}
 
-	offer := OfferWithoutID{
+	offer := store.OfferWithoutID{
 		OffererAddress: "test",
-		Type:           OfferTypeBuy,
+		Type:           store.OfferTypeBuy,
 		Hash:           "test",
 		MintHash:       "myminthash",
 		Quantity:       10,
@@ -37,19 +38,19 @@ func TestOfferSaveAndGet(t *testing.T) {
 		t.Fatalf("Failed to save offer: %v", err)
 	}
 
-	offers, err := tokenisationStore.GetOffers(0, 10, "myminthashxxxx", int(OfferTypeBuy))
+	offers, err := tokenisationStore.GetOffers(0, 10, "myminthashxxxx", int(store.OfferTypeBuy))
 	if err != nil {
 		t.Fatalf("Failed to get offer: %v", err)
 	}
 	assert.Equal(t, len(offers), 0)
 
-	offers, err = tokenisationStore.GetOffers(0, 10, "myminthash", int(OfferTypeSell))
+	offers, err = tokenisationStore.GetOffers(0, 10, "myminthash", int(store.OfferTypeSell))
 	if err != nil {
 		t.Fatalf("Failed to get offer: %v", err)
 	}
 	assert.Equal(t, len(offers), 0)
 
-	offers, err = tokenisationStore.GetOffers(0, 10, "myminthash", int(OfferTypeBuy))
+	offers, err = tokenisationStore.GetOffers(0, 10, "myminthash", int(store.OfferTypeBuy))
 	if err != nil {
 		t.Fatalf("Failed to get offer: %v", err)
 	}

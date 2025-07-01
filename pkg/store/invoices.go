@@ -73,9 +73,9 @@ func (s *TokenisationStore) SaveInvoice(invoice *Invoice) (string, error) {
 	id := uuid.New().String()
 
 	_, err := s.DB.Exec(`
-	INSERT INTO invoices (id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`, id, invoice.Hash, invoice.PaymentAddress, invoice.BuyOfferOffererAddress, invoice.BuyOfferHash, invoice.BuyOfferMintHash, invoice.BuyOfferQuantity, invoice.BuyOfferPrice, invoice.BuyOfferValue, invoice.CreatedAt, invoice.SellOfferAddress)
+	INSERT INTO invoices (id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address, block_height, transaction_hash)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+	`, id, invoice.Hash, invoice.PaymentAddress, invoice.BuyOfferOffererAddress, invoice.BuyOfferHash, invoice.BuyOfferMintHash, invoice.BuyOfferQuantity, invoice.BuyOfferPrice, invoice.BuyOfferValue, invoice.CreatedAt, invoice.SellOfferAddress, invoice.BlockHeight, invoice.TransactionHash)
 
 	return id, err
 }

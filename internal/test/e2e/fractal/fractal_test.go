@@ -1,8 +1,7 @@
-package main
+package e2e
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -10,24 +9,24 @@ import (
 	"testing"
 	"time"
 
+	"dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/client"
 	"dogecoin.org/fractal-engine/pkg/rpc"
-	"dogecoin.org/fractal-engine/pkg/testsupport"
 	"github.com/testcontainers/testcontainers-go/network"
 	"gotest.tools/assert"
 )
 
-var testGroups []*testsupport.TestGroup
+var testGroups []*support.TestGroup
 
 func TestMain(m *testing.M) {
 	// 🚀 Global setup
-	fmt.Println(">>> SETUP: Init resources")
+	log.Println(">>> SETUP: Init resources")
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-signalChan
-		fmt.Println("Received signal, stopping test")
+		log.Println("Received signal, stopping test")
 		os.Exit(0)
 	}()
 
@@ -39,9 +38,9 @@ func TestMain(m *testing.M) {
 
 	networkName := net.Name
 
-	testGroups = []*testsupport.TestGroup{
-		testsupport.NewTestGroup("alpha", networkName, 0, 20000, 21000, 8086, 22555, 33070),
-		testsupport.NewTestGroup("beta", networkName, 1, 20001, 21001, 8087, 22556, 33071),
+	testGroups = []*support.TestGroup{
+		support.NewTestGroup("alpha", networkName, 0, 20000, 21000, 8086, 22555, 33070),
+		support.NewTestGroup("beta", networkName, 1, 20001, 21001, 8087, 22556, 33071),
 	}
 
 	for _, testGroup := range testGroups {
@@ -49,9 +48,9 @@ func TestMain(m *testing.M) {
 		testGroup.Start()
 	}
 
-	fmt.Println("Test groups started")
+	log.Println("Test groups started")
 
-	err = testsupport.ConnectDogeNetPeers(testGroups[0].DogeNetClient, testGroups[1].DogenetContainer, testGroups[1].DnGossipPort, testGroups[0].LogConsumer, testGroups[1].LogConsumer)
+	err = support.ConnectDogeNetPeers(testGroups[0].DogeNetClient, testGroups[1].DogenetContainer, testGroups[1].DnGossipPort, testGroups[0].LogConsumer, testGroups[1].LogConsumer)
 	if err != nil {
 		panic(err)
 	}
@@ -63,7 +62,7 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	// 🧹 Global teardown
-	fmt.Println("<<< TEARDOWN: Clean up resources")
+	log.Println("<<< TEARDOWN: Clean up resources")
 
 	for _, testGroup := range testGroups {
 		go testGroup.Stop()
@@ -72,7 +71,7 @@ func TestMain(m *testing.M) {
 	for _, testGroup := range testGroups {
 		for testGroup.Running {
 			time.Sleep(1 * time.Second)
-			fmt.Println("Waiting for test group", testGroup.Name, "to stop")
+			log.Println("Waiting for test group", testGroup.Name, "to stop")
 		}
 	}
 
@@ -114,13 +113,13 @@ func TestFractal(t *testing.T) {
 	}
 
 	// Write mint to core (OG Node)
-	err = testsupport.WriteMintToCore(testGroups[0].DogeTest, testGroups[0].AddressBook, &mintResponse)
+	err = support.WriteMintToCore(testGroups[0].DogeTest, testGroups[0].AddressBook, &mintResponse)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Write mint to core (2nd node)
-	err = testsupport.WriteMintToCore(testGroups[1].DogeTest, testGroups[1].AddressBook, &mintResponse)
+	err = support.WriteMintToCore(testGroups[1].DogeTest, testGroups[1].AddressBook, &mintResponse)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -145,7 +144,7 @@ func TestFractal(t *testing.T) {
 
 			break
 		} else {
-			fmt.Println("Waiting for mints to be found on OG Node")
+			log.Println("Waiting for mints to be found on OG Node")
 		}
 
 		time.Sleep(1 * time.Second)
@@ -171,7 +170,7 @@ func TestFractal(t *testing.T) {
 
 			break
 		} else {
-			fmt.Println("Waiting for mints to be found on 2nd Node")
+			log.Println("Waiting for mints to be found on 2nd Node")
 		}
 
 		time.Sleep(1 * time.Second)

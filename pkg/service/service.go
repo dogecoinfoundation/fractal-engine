@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -42,6 +41,8 @@ func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetCl
 }
 
 func (s *TokenisationService) Start() {
+	log.Println("Starting tokenisation service")
+
 	err := s.Store.Migrate()
 
 	if err != nil && err.Error() != migrate.ErrNoChange.Error() {
@@ -50,9 +51,11 @@ func (s *TokenisationService) Start() {
 
 	statusChan := make(chan string)
 
+	log.Println("Starting dogenet client")
 	go s.DogeNetClient.Start(statusChan)
 
 	<-statusChan
+	log.Println("Dogenet client started")
 
 	go s.RpcServer.Start()
 	go s.Follower.Start()
@@ -81,9 +84,9 @@ func (s *TokenisationService) waitForRpc() {
 }
 
 func (s *TokenisationService) WaitForRunning() {
-	fmt.Println("Waiting for follower")
+	log.Println("Waiting for follower")
 	s.waitForFollower()
-	fmt.Println("Waiting for rpc")
+	log.Println("Waiting for rpc")
 	s.waitForRpc()
 }
 

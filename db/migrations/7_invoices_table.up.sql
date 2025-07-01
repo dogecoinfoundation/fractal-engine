@@ -24,9 +24,9 @@ create table token_balances (
 create table invoices (
     id uuid primary key,
     hash text not null,
-    block_height int not null,
-    transaction_hash text not null,
-    payment_address text not null,
+    block_height int,
+    transaction_hash text,
+    payment_address text,
     buy_offer_offerer_address text not null,
     buy_offer_hash text not null,
     buy_offer_mint_hash text not null,

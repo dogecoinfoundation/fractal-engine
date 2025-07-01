@@ -215,6 +215,8 @@ type Invoice struct {
 	CreatedAt              time.Time `json:"created_at"`
 	SellOfferAddress       string    `json:"sell_offer_address"`
 	BuyOfferValue          float64   `json:"buy_offer_value"`
+	BlockHeight            int64     `json:"block_height"`
+	TransactionHash        string    `json:"transaction_hash"`
 }
 
 func (i *Invoice) GenerateHash() (string, error) {
