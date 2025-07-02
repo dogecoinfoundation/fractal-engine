@@ -91,11 +91,7 @@ func (s *TokenisationStore) MatchInvoice(onchainTransaction OnChainTransaction) 
 		return false
 	}
 
-	if onchainMessage.Hash != onchainTransaction.TxHash {
-		return false
-	}
-
-	rows, err := s.DB.Query("SELECT hash, transaction_hash FROM invoices WHERE transaction_hash = $1 and block_height = $2 and hash = $3", onchainTransaction.TxHash, onchainTransaction.Height, onchainMessage.Hash)
+	rows, err := s.DB.Query("SELECT hash, transaction_hash FROM invoices WHERE transaction_hash = $1 and block_height = $2 and hash = $3", onchainTransaction.TxHash, onchainTransaction.Height, onchainMessage.InvoiceHash)
 	if err != nil {
 		return false
 	}
@@ -124,7 +120,7 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 		return err
 	}
 
-	rows, err := s.DB.Query("SELECT id, hash, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address FROM unconfirmed_invoices WHERE hash = $1", onchainMessage.Hash)
+	rows, err := s.DB.Query("SELECT id, hash, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address FROM unconfirmed_invoices WHERE hash = $1", onchainMessage.InvoiceHash)
 	if err != nil {
 		return err
 	}
@@ -136,7 +132,7 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 			return err
 		}
 	} else {
-		return fmt.Errorf("no unconfirmed invoice found for hash: %s", onchainMessage.Hash)
+		return fmt.Errorf("no unconfirmed invoice found for hash: %s", onchainMessage.InvoiceHash)
 	}
 
 	// TODO : Validate that theres enough balance for the invoice

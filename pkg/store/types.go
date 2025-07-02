@@ -54,14 +54,15 @@ type MintHash struct {
 }
 
 type OnChainTransaction struct {
-	Id            string  `json:"id"`
-	TxHash        string  `json:"tx_hash"`
-	Height        int64   `json:"height"`
-	ActionType    uint8   `json:"action_type"`
-	ActionVersion uint8   `json:"action_version"`
-	ActionData    []byte  `json:"action_data"`
-	Address       string  `json:"address"`
-	Value         float64 `json:"value"`
+	Id                string  `json:"id"`
+	TxHash            string  `json:"tx_hash"`
+	Height            int64   `json:"height"`
+	ActionType        uint8   `json:"action_type"`
+	ActionVersion     uint8   `json:"action_version"`
+	ActionData        []byte  `json:"action_data"`
+	Address           string  `json:"address"`
+	Value             float64 `json:"value"`
+	TransactionNumber int     `json:"transaction_number"`
 }
 
 func (m *MintWithoutID) GenerateHash() (string, error) {
@@ -246,4 +247,15 @@ type TokenBalance struct {
 	Quantity  int       `json:"quantity"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type PendingTokenBalance struct {
+	Id           string    `json:"id"`
+	Hash         string    `json:"hash"`
+	InvoiceHash  string    `json:"invoice_hash"`
+	MintHash     string    `json:"mint_hash"`
+	Quantity     int       `json:"quantity"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	OwnerAddress string    `json:"owner_address"`
 }

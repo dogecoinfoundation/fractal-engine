@@ -18,7 +18,19 @@ create table token_balances (
     address text not null,
     quantity int not null,
     created_at timestamp not null,
-    updated_at timestamp not null
+    updated_at timestamp not null,
+    UNIQUE(address, mint_hash)
+);
+
+create table pending_token_balances (
+    id uuid primary key,
+    owner_address text not null,
+    invoice_hash text not null,
+    mint_hash text not null,
+    quantity int not null,
+    onchain_transaction_id text not null,
+    created_at timestamp not null,
+    UNIQUE(invoice_hash, mint_hash)
 );
  
 create table invoices (

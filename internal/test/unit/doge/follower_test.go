@@ -72,7 +72,7 @@ func TestDogeFollower(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	transactions, err := tokenisationStore.GetOnChainTransactions(1)
+	transactions, err := tokenisationStore.GetOnChainTransactions(0, 100)
 	if err != nil {
 		t.Fatalf("Failed to get on chain transactions: %v", err)
 	}

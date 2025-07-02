@@ -24,11 +24,14 @@ const (
 
 // This is what gets written to the OP_RETURN on the L1
 type OnChainInvoiceMessage struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Version       int32                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
-	Hash          string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Version          int32                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	SellOfferAddress string                 `protobuf:"bytes,2,opt,name=sell_offer_address,json=sellOfferAddress,proto3" json:"sell_offer_address,omitempty"`
+	InvoiceHash      string                 `protobuf:"bytes,3,opt,name=invoice_hash,json=invoiceHash,proto3" json:"invoice_hash,omitempty"`
+	MintHash         string                 `protobuf:"bytes,4,opt,name=mint_hash,json=mintHash,proto3" json:"mint_hash,omitempty"`
+	Quantity         int32                  `protobuf:"varint,5,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *OnChainInvoiceMessage) Reset() {
@@ -68,11 +71,32 @@ func (x *OnChainInvoiceMessage) GetVersion() int32 {
 	return 0
 }
 
-func (x *OnChainInvoiceMessage) GetHash() string {
+func (x *OnChainInvoiceMessage) GetSellOfferAddress() string {
 	if x != nil {
-		return x.Hash
+		return x.SellOfferAddress
 	}
 	return ""
+}
+
+func (x *OnChainInvoiceMessage) GetInvoiceHash() string {
+	if x != nil {
+		return x.InvoiceHash
+	}
+	return ""
+}
+
+func (x *OnChainInvoiceMessage) GetMintHash() string {
+	if x != nil {
+		return x.MintHash
+	}
+	return ""
+}
+
+func (x *OnChainInvoiceMessage) GetQuantity() int32 {
+	if x != nil {
+		return x.Quantity
+	}
+	return 0
 }
 
 // This is what gets gossiped + stored in the gossip mempool + confirmed_transactions
@@ -148,6 +172,7 @@ type InvoiceMessage struct {
 	BuyOfferQuantity       int32                  `protobuf:"varint,7,opt,name=buy_offer_quantity,json=buyOfferQuantity,proto3" json:"buy_offer_quantity,omitempty"`
 	BuyOfferPrice          int32                  `protobuf:"varint,8,opt,name=buy_offer_price,json=buyOfferPrice,proto3" json:"buy_offer_price,omitempty"`
 	CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	SellOfferAddress       string                 `protobuf:"bytes,10,opt,name=sell_offer_address,json=sellOfferAddress,proto3" json:"sell_offer_address,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -245,18 +270,28 @@ func (x *InvoiceMessage) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *InvoiceMessage) GetSellOfferAddress() string {
+	if x != nil {
+		return x.SellOfferAddress
+	}
+	return ""
+}
+
 var File_pkg_protocol_invoices_proto protoreflect.FileDescriptor
 
 const file_pkg_protocol_invoices_proto_rawDesc = "" +
 	"\n" +
-	"\x1bpkg/protocol/invoices.proto\x12\rfractalengine\x1a\x1fgoogle/protobuf/timestamp.proto\"E\n" +
+	"\x1bpkg/protocol/invoices.proto\x12\rfractalengine\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbb\x01\n" +
 	"\x15OnChainInvoiceMessage\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\x05R\aversion\x12\x12\n" +
-	"\x04hash\x18\x02 \x01(\tR\x04hash\"\x7f\n" +
+	"\aversion\x18\x01 \x01(\x05R\aversion\x12,\n" +
+	"\x12sell_offer_address\x18\x02 \x01(\tR\x10sellOfferAddress\x12!\n" +
+	"\finvoice_hash\x18\x03 \x01(\tR\vinvoiceHash\x12\x1b\n" +
+	"\tmint_hash\x18\x04 \x01(\tR\bmintHash\x12\x1a\n" +
+	"\bquantity\x18\x05 \x01(\x05R\bquantity\"\x7f\n" +
 	"\x16InvoiceMessageEnvelope\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\x05R\x04type\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x05R\aversion\x127\n" +
-	"\apayload\x18\x03 \x01(\v2\x1d.fractalengine.InvoiceMessageR\apayload\"\xfe\x02\n" +
+	"\apayload\x18\x03 \x01(\v2\x1d.fractalengine.InvoiceMessageR\apayload\"\xac\x03\n" +
 	"\x0eInvoiceMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\x12'\n" +
@@ -267,7 +302,9 @@ const file_pkg_protocol_invoices_proto_rawDesc = "" +
 	"\x12buy_offer_quantity\x18\a \x01(\x05R\x10buyOfferQuantity\x12&\n" +
 	"\x0fbuy_offer_price\x18\b \x01(\x05R\rbuyOfferPrice\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\x0eZ\fpkg/protocolb\x06proto3"
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12,\n" +
+	"\x12sell_offer_address\x18\n" +
+	" \x01(\tR\x10sellOfferAddressB\x0eZ\fpkg/protocolb\x06proto3"
 
 var (
 	file_pkg_protocol_invoices_proto_rawDescOnce sync.Once
