@@ -35,6 +35,20 @@ func (ir *InvoiceRoutes) handleInvoices(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// @Summary		Get all invoices
+// @Description	Returns a list of invoices
+// @Tags			invoices
+// @Accept			json
+// @Produce		json
+// @Param			limit	query		int	false	"Limit"
+// @Param			page	query		int	false	"Page"
+// @Param			mint_hash	query		string	false	"Mint hash"
+// @Param			offerer_address	query		string	false	"Offerer address"
+// @Success		200		{object}	GetInvoicesResponse
+// @Failure		400		{object}	string
+// @Failure		500		{object}	string
+// @Router			/invoices [get]
+
 func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.URL.Query().Get("limit")
 	limit := 100
@@ -87,6 +101,17 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, response)
 }
 
+// @Summary		Create an invoice
+// @Description	Creates a new invoice
+// @Tags			invoices
+// @Accept			json
+// @Produce		json
+// @Param			request	body		CreateInvoiceRequest	true	"Invoice request"
+// @Success		201		{object}	CreateInvoiceResponse
+// @Failure		400		{object}	string
+// @Failure		500		{object}	string
+// @Router			/invoices [post]
+
 func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 	var request CreateInvoiceRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -131,7 +156,7 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	envelope := protocol.NewInvoiceTransactionEnvelope(newInvoiceWithoutId.Hash, protocol.ACTION_INVOICE)
+	envelope := protocol.NewInvoiceTransactionEnvelope(newInvoiceWithoutId.Hash, newInvoiceWithoutId.SellOfferAddress, newInvoiceWithoutId.BuyOfferMintHash, int32(newInvoiceWithoutId.BuyOfferQuantity), protocol.ACTION_INVOICE)
 	encodedTransactionBody := envelope.Serialize()
 
 	response := CreateInvoiceResponse{

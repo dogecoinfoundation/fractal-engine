@@ -19,43 +19,47 @@ func NewFractalEngineProcessor(store *store.TokenisationStore) *FractalEnginePro
 }
 
 func (p *FractalEngineProcessor) Process() error {
-	txs, err := p.store.GetOnChainTransactions(10)
-	if err != nil {
-		return err
-	}
+	offset := 0
+	limit := 100
 
-	for _, tx := range txs {
-		fmt.Println("Processing transaction:", tx.TxHash)
+	for {
+		txs, err := p.store.GetOnChainTransactions(offset, limit)
+		if err != nil {
+			return err
+		}
 
-		if tx.ActionType == protocol.ACTION_MINT {
-			if p.store.MatchMint(tx) {
-				continue
-			}
-			err = p.store.MatchUnconfirmedMint(tx)
-			if err == nil {
-				log.Println("Matched mint:", tx.TxHash)
+		if len(txs) == 0 {
+			break
+		}
+
+		for _, tx := range txs {
+			fmt.Println("Processing transaction:", tx.TxHash)
+
+			if tx.ActionType == protocol.ACTION_MINT {
+				if p.store.MatchMint(tx) {
+					continue
+				}
+				err = p.store.MatchUnconfirmedMint(tx)
+				if err == nil {
+					log.Println("Matched mint:", tx.TxHash)
+				}
+			} else if tx.ActionType == protocol.ACTION_PAYMENT {
+				paymentProcessor := NewPaymentProcessor(p.store)
+				err = paymentProcessor.Process(tx)
+				if err != nil {
+					log.Println("Error processing payment:", err)
+				}
+			} else if tx.ActionType == protocol.ACTION_INVOICE {
+				invoiceProcessor := NewInvoiceProcessor(p.store)
+				err = invoiceProcessor.Process(tx)
+				if err != nil {
+					log.Println("Error processing invoice:", err)
+				}
+
 			}
 		}
 
-		if tx.ActionType == protocol.ACTION_PAYMENT {
-			err = p.store.MatchPayment(tx)
-			if err == nil {
-				log.Println("Matched payment:", tx.TxHash)
-				continue
-			}
-		}
-
-		if tx.ActionType == protocol.ACTION_INVOICE {
-			if p.store.MatchInvoice(tx) {
-				continue
-			}
-
-			err = p.store.MatchUnconfirmedInvoice(tx)
-			if err == nil {
-				log.Println("Matched invoice:", tx.TxHash)
-			}
-		}
-
+		offset += limit
 	}
 
 	return nil

@@ -14,24 +14,13 @@ This test does the following:
 - Sends the new mint hash to the Doge Core
 - Waits for a 'Mint' to be validated and confirmed
 
-#### Setup
-Copy `test.toml.example` to `test.toml` and update config to reflect your local environment.
+### Running Unit Tests
+`go test -v .\internal\test\unit\...`
 
-#### Running
-`go test -v  .\cmd\fractal-engine\fractal_test.go`
+### Running E2E Tests
+Ensure Docker is running (WSL2 active for windows).
 
-
-### DogeNet integration test
-This test does the following: 
-- Spins up a Two DogeNet instances in containers
-- Gossips a mint to Node A
-- Ensure Node B receieves the gossiped mint
-
-#### Setup
-Ensure docker is running.
-
-#### Running
-`go test -v  .\pkg\dogenet\dogenet_test.go`
+`go test -v -parallel=1 .\internal\test\e2e\...`
 
 ## Generate Protobuffers
 
@@ -63,9 +52,11 @@ mmdc -i docs/create_invoice.mmd -o docs/create_invoice.svg
 mmdc -i docs/pay_invoice.mmd -o docs/pay_invoice.svg
 ```
 
+## Generate Swagger Docs
+`swag init --parseDependency --parseInternal --parseDepth 1 -g pkg/rpc/server.go`
+
 ### TODO 
 
 - Sign invoices from seller
 - Ensure we put in a transaction the confirming of a invoice
 - Have invoice limit (unconfirmed)
-

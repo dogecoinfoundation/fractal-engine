@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"github.com/google/uuid"
@@ -212,8 +213,9 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 		return err
 	}
 
-	fmt.Println("Saved mint:", id)
+	log.Println("Saved mint:", id)
 	err = s.UpsertTokenBalance(onchainTransaction.Address, unconfirmedMint.Hash, unconfirmedMint.FractionCount)
+
 	if err != nil {
 		return err
 	}

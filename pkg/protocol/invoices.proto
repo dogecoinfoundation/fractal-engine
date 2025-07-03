@@ -8,7 +8,10 @@ option go_package = "pkg/protocol";
 // This is what gets written to the OP_RETURN on the L1
 message OnChainInvoiceMessage {
     int32 version = 1;
-    string hash = 2;
+    string sell_offer_address = 2;
+    string invoice_hash = 3;
+    string mint_hash = 4;
+    int32 quantity = 5;
 }
 
 // This is what gets gossiped + stored in the gossip mempool + confirmed_transactions

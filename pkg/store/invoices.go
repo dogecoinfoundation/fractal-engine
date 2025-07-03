@@ -73,9 +73,9 @@ func (s *TokenisationStore) SaveInvoice(invoice *Invoice) (string, error) {
 	id := uuid.New().String()
 
 	_, err := s.DB.Exec(`
-	INSERT INTO invoices (id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`, id, invoice.Hash, invoice.PaymentAddress, invoice.BuyOfferOffererAddress, invoice.BuyOfferHash, invoice.BuyOfferMintHash, invoice.BuyOfferQuantity, invoice.BuyOfferPrice, invoice.BuyOfferValue, invoice.CreatedAt, invoice.SellOfferAddress)
+	INSERT INTO invoices (id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address, block_height, transaction_hash)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+	`, id, invoice.Hash, invoice.PaymentAddress, invoice.BuyOfferOffererAddress, invoice.BuyOfferHash, invoice.BuyOfferMintHash, invoice.BuyOfferQuantity, invoice.BuyOfferPrice, invoice.BuyOfferValue, invoice.CreatedAt, invoice.SellOfferAddress, invoice.BlockHeight, invoice.TransactionHash)
 
 	return id, err
 }
@@ -91,11 +91,7 @@ func (s *TokenisationStore) MatchInvoice(onchainTransaction OnChainTransaction) 
 		return false
 	}
 
-	if onchainMessage.Hash != onchainTransaction.TxHash {
-		return false
-	}
-
-	rows, err := s.DB.Query("SELECT hash, transaction_hash FROM invoices WHERE transaction_hash = $1 and block_height = $2 and hash = $3", onchainTransaction.TxHash, onchainTransaction.Height, onchainMessage.Hash)
+	rows, err := s.DB.Query("SELECT hash, transaction_hash FROM invoices WHERE transaction_hash = $1 and block_height = $2 and hash = $3", onchainTransaction.TxHash, onchainTransaction.Height, onchainMessage.InvoiceHash)
 	if err != nil {
 		return false
 	}
@@ -124,7 +120,7 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 		return err
 	}
 
-	rows, err := s.DB.Query("SELECT id, hash, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address FROM unconfirmed_invoices WHERE hash = $1", onchainMessage.Hash)
+	rows, err := s.DB.Query("SELECT id, hash, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address FROM unconfirmed_invoices WHERE hash = $1", onchainMessage.InvoiceHash)
 	if err != nil {
 		return err
 	}
@@ -136,12 +132,20 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 			return err
 		}
 	} else {
-		return fmt.Errorf("no unconfirmed invoice found for hash: %s", onchainMessage.Hash)
+		rows.Close()
+		return fmt.Errorf("no unconfirmed invoice found for hash: %s", onchainMessage.InvoiceHash)
 	}
 
-	// TODO : Validate that theres enough balance for the invoice
-
 	rows.Close()
+
+	pendingTokenBalance, err := s.GetPendingTokenBalance(unconfirmedInvoice.Hash, unconfirmedInvoice.BuyOfferMintHash)
+	if err != nil {
+		return err
+	}
+
+	if pendingTokenBalance.Quantity < unconfirmedInvoice.BuyOfferQuantity {
+		return fmt.Errorf("pending token balance is less than the buy offer quantity: %d < %d", pendingTokenBalance.Quantity, unconfirmedInvoice.BuyOfferQuantity)
+	}
 
 	id, err := s.SaveInvoice(&Invoice{
 		Hash:                   unconfirmedInvoice.Hash,

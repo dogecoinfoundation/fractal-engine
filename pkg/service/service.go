@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -19,20 +18,22 @@ type TokenisationService struct {
 	DogeNetClient  *dogenet.DogeNetClient
 	DogeClient     *doge.RpcClient
 	Follower       *doge.DogeFollower
-	TrimmerService *store.TrimmerService
+	TrimmerService *TrimmerService
 	Processor      *FractalEngineProcessor
 }
 
 func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetClient, tokenStore *store.TokenisationStore) *TokenisationService {
+	dogeClient := doge.NewRpcClient(cfg)
 	follower := doge.NewFollower(cfg, tokenStore)
-	trimmerService := store.NewTrimmerService(tokenStore)
+
+	trimmerService := NewTrimmerService(20160, 100, tokenStore, dogeClient)
 	processor := NewFractalEngineProcessor(tokenStore)
 
 	return &TokenisationService{
 		RpcServer:      rpc.NewRpcServer(cfg, tokenStore, dogenetClient),
 		Store:          tokenStore,
 		DogeNetClient:  dogenetClient,
-		DogeClient:     doge.NewRpcClient(cfg),
+		DogeClient:     dogeClient,
 		Follower:       follower,
 		TrimmerService: trimmerService,
 		Processor:      processor,
@@ -40,6 +41,8 @@ func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetCl
 }
 
 func (s *TokenisationService) Start() {
+	log.Println("Starting tokenisation service")
+
 	err := s.Store.Migrate()
 
 	if err != nil && err.Error() != migrate.ErrNoChange.Error() {
@@ -48,9 +51,11 @@ func (s *TokenisationService) Start() {
 
 	statusChan := make(chan string)
 
+	log.Println("Starting dogenet client")
 	go s.DogeNetClient.Start(statusChan)
 
 	<-statusChan
+	log.Println("Dogenet client started")
 
 	go s.RpcServer.Start()
 	go s.Follower.Start()
@@ -79,9 +84,9 @@ func (s *TokenisationService) waitForRpc() {
 }
 
 func (s *TokenisationService) WaitForRunning() {
-	fmt.Println("Waiting for follower")
+	log.Println("Waiting for follower")
 	s.waitForFollower()
-	fmt.Println("Waiting for rpc")
+	log.Println("Waiting for rpc")
 	s.waitForRpc()
 }
 

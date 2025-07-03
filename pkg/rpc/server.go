@@ -13,12 +13,15 @@ import (
 	"dogecoin.org/fractal-engine/pkg/store"
 )
 
+//	@title			Fractal Engine API
+//	@version		1.0
+//	@description	API for managing mints and offers
+
 type RpcServer struct {
-	config       *config.Config
-	quit         chan bool
-	server       *http.Server
-	Running      bool
-	gossipClient dogenet.GossipClient
+	config  *config.Config
+	quit    chan bool
+	server  *http.Server
+	Running bool
 }
 
 func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClient dogenet.GossipClient) *RpcServer {
@@ -27,6 +30,8 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClie
 	handler := withCORS(mux)
 
 	HandleMintRoutes(store, gossipClient, mux)
+	HandleOfferRoutes(store, gossipClient, mux)
+	HandleInvoiceRoutes(store, gossipClient, mux)
 	HandleStatRoutes(store, mux)
 
 	server := &http.Server{

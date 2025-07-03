@@ -51,12 +51,16 @@ func (s *TokenisationStore) MatchPayment(onchainTransaction OnChainTransaction) 
 			return err
 		}
 
-		err = s.UpsertTokenBalanceWithTransaction(invoice.SellOfferAddress, invoice.BuyOfferMintHash, -invoice.BuyOfferQuantity, tx)
+		pendingTokenBalance, err := s.GetPendingTokenBalance(invoice.Hash, invoice.BuyOfferMintHash)
 		if err != nil {
 			return err
 		}
 
-		err = s.UpsertTokenBalanceWithTransaction(invoice.BuyOfferOffererAddress, invoice.BuyOfferMintHash, invoice.BuyOfferQuantity, tx)
+		if pendingTokenBalance.Quantity != invoice.BuyOfferQuantity {
+			return fmt.Errorf("pending token balance quantity is not equal to buy offer quantity: %d != %d", pendingTokenBalance.Quantity, invoice.BuyOfferQuantity)
+		}
+
+		err = s.MovePendingToTokenBalance(pendingTokenBalance, invoice.BuyOfferOffererAddress, tx)
 		if err != nil {
 			return err
 		}

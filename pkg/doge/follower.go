@@ -69,6 +69,7 @@ func (f *DogeFollower) Start() error {
 		case msg := <-f.msgChan:
 			switch msg := msg.(type) {
 			case messages.BlockMessage:
+				transactionNumber := 0
 				for _, tx := range msg.Block.Tx {
 					fractalMessage, err := GetFractalMessageFromVout(tx.VOut)
 					if err != nil {
@@ -82,10 +83,12 @@ func (f *DogeFollower) Start() error {
 
 					value := tx.VOut[0].Value.InexactFloat64()
 
-					err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data, address, value)
+					_, err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, transactionNumber, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data, address, value)
 					if err != nil {
 						log.Println("Error saving on chain transaction:", err)
 					}
+
+					transactionNumber++
 				}
 
 				if f.cfg.PersistFollower {

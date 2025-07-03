@@ -4,25 +4,15 @@ import (
 	"testing"
 	"time"
 
-	"dogecoin.org/fractal-engine/pkg/config"
-
+	"dogecoin.org/fractal-engine/internal/test/support"
+	"dogecoin.org/fractal-engine/pkg/store"
 	"gotest.tools/assert"
 )
 
 func TestSaveAndGetInvoices(t *testing.T) {
-	tokenisationStore, err := NewTokenisationStore("memory://invoices.db", config.Config{
-		MigrationsPath: "../../db/migrations",
-	})
-	if err != nil {
-		panic(err)
-	}
+	tokenisationStore := support.SetupTestDB(t)
 
-	err = tokenisationStore.Migrate()
-	if err != nil {
-		t.Fatalf("Failed to migrate: %v", err)
-	}
-
-	invoice := Invoice{
+	invoice := store.Invoice{
 		Id:                     "myId",
 		Hash:                   "myHash",
 		PaymentAddress:         "myPaymentAddress",

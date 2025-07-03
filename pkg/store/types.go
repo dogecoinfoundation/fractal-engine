@@ -39,7 +39,6 @@ type MintWithoutID struct {
 	CreatedAt       time.Time          `json:"created_at"`
 	Requirements    StringInterfaceMap `json:"requirements"`
 	LockupOptions   StringInterfaceMap `json:"lockup_options"`
-	Gossiped        bool               `json:"gossiped"`
 	FeedURL         string             `json:"feed_url"`
 }
 
@@ -55,14 +54,15 @@ type MintHash struct {
 }
 
 type OnChainTransaction struct {
-	Id            string  `json:"id"`
-	TxHash        string  `json:"tx_hash"`
-	Height        int64   `json:"height"`
-	ActionType    uint8   `json:"action_type"`
-	ActionVersion uint8   `json:"action_version"`
-	ActionData    []byte  `json:"action_data"`
-	Address       string  `json:"address"`
-	Value         float64 `json:"value"`
+	Id                string  `json:"id"`
+	TxHash            string  `json:"tx_hash"`
+	Height            int64   `json:"height"`
+	ActionType        uint8   `json:"action_type"`
+	ActionVersion     uint8   `json:"action_version"`
+	ActionData        []byte  `json:"action_data"`
+	Address           string  `json:"address"`
+	Value             float64 `json:"value"`
+	TransactionNumber int     `json:"transaction_number"`
 }
 
 func (m *MintWithoutID) GenerateHash() (string, error) {
@@ -216,6 +216,9 @@ type Invoice struct {
 	CreatedAt              time.Time `json:"created_at"`
 	SellOfferAddress       string    `json:"sell_offer_address"`
 	BuyOfferValue          float64   `json:"buy_offer_value"`
+	BlockHeight            int64     `json:"block_height"`
+	TransactionHash        string    `json:"transaction_hash"`
+	PendingTokenBalanceId  string    `json:"pending_token_balance_id"`
 }
 
 func (i *Invoice) GenerateHash() (string, error) {
@@ -245,4 +248,13 @@ type TokenBalance struct {
 	Quantity  int       `json:"quantity"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type PendingTokenBalance struct {
+	InvoiceHash  string    `json:"invoice_hash"`
+	MintHash     string    `json:"mint_hash"`
+	Quantity     int       `json:"quantity"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	OwnerAddress string    `json:"owner_address"`
 }
