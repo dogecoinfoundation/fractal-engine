@@ -218,6 +218,7 @@ type Invoice struct {
 	BuyOfferValue          float64   `json:"buy_offer_value"`
 	BlockHeight            int64     `json:"block_height"`
 	TransactionHash        string    `json:"transaction_hash"`
+	PendingTokenBalanceId  string    `json:"pending_token_balance_id"`
 }
 
 func (i *Invoice) GenerateHash() (string, error) {
@@ -250,8 +251,6 @@ type TokenBalance struct {
 }
 
 type PendingTokenBalance struct {
-	Id           string    `json:"id"`
-	Hash         string    `json:"hash"`
 	InvoiceHash  string    `json:"invoice_hash"`
 	MintHash     string    `json:"mint_hash"`
 	Quantity     int       `json:"quantity"`

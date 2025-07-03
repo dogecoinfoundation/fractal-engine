@@ -44,10 +44,10 @@ func (p *FractalEngineProcessor) Process() error {
 					log.Println("Matched mint:", tx.TxHash)
 				}
 			} else if tx.ActionType == protocol.ACTION_PAYMENT {
-				err = p.store.MatchPayment(tx)
-				if err == nil {
-					log.Println("Matched payment:", tx.TxHash)
-					continue
+				paymentProcessor := NewPaymentProcessor(p.store)
+				err = paymentProcessor.Process(tx)
+				if err != nil {
+					log.Println("Error processing payment:", err)
 				}
 			} else if tx.ActionType == protocol.ACTION_INVOICE {
 				invoiceProcessor := NewInvoiceProcessor(p.store)

@@ -10,36 +10,34 @@ import (
 func (s *TokenisationStore) UpsertTokenBalance(address, mintHash string, quantity int) error {
 	log.Println("Upserting token balance:", address, mintHash, quantity)
 
-	res, err := s.DB.Exec(`
+	_, err := s.DB.Exec(`
 	INSERT INTO token_balances (address, mint_hash, quantity, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5)		
 	ON CONFLICT (address, mint_hash)
-	DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = EXCLUDED.updated_at
+	DO UPDATE SET quantity = $3, updated_at = EXCLUDED.updated_at
 	`, address, mintHash, quantity, time.Now(), time.Now())
 
 	if err != nil {
 		return err
 	}
 
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return errors.New("no rows affected")
-	}
-
 	return nil
 }
 
-func (s *TokenisationStore) UpsertPendingTokenBalance(invoiceHash, mintHash string, quantity int, txHash string, ownerAddress string) error {
+func (s *TokenisationStore) UpsertPendingTokenBalance(invoiceHash, mintHash string, quantity int, onchainTransactionId string, ownerAddress string) error {
+	log.Println("Upserting pending token balance:", invoiceHash, mintHash, quantity, onchainTransactionId, ownerAddress)
+
 	_, err := s.DB.Exec(`
 	INSERT INTO pending_token_balances (invoice_hash, mint_hash, quantity, onchain_transaction_id, created_at, owner_address)
 	VALUES ($1, $2, $3, $4, $5, $6)
 	ON CONFLICT (invoice_hash, mint_hash)
-	DO UPDATE SET quantity = EXCLUDED.quantity + $3
-	`, invoiceHash, mintHash, quantity, txHash, time.Now(), ownerAddress)
+	DO UPDATE SET quantity = $3
+	`, invoiceHash, mintHash, quantity, onchainTransactionId, time.Now(), ownerAddress)
+
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -63,6 +61,29 @@ func (s *TokenisationStore) HasPendingTokenBalance(invoiceHash, mintHash string,
 	}
 
 	return count > 0, nil
+}
+
+func (s *TokenisationStore) GetPendingTokenBalance(invoiceHash, mintHash string) (PendingTokenBalance, error) {
+	rows, err := s.DB.Query(`
+		SELECT quantity, invoice_hash, mint_hash, owner_address FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2
+	`, invoiceHash, mintHash)
+	if err != nil {
+		return PendingTokenBalance{}, err
+	}
+
+	defer rows.Close()
+
+	if rows.Next() {
+		var pendingTokenBalance PendingTokenBalance
+		err := rows.Scan(&pendingTokenBalance.Quantity, &pendingTokenBalance.InvoiceHash, &pendingTokenBalance.MintHash, &pendingTokenBalance.OwnerAddress)
+		if err != nil {
+			return PendingTokenBalance{}, err
+		}
+
+		return pendingTokenBalance, nil
+	}
+
+	return PendingTokenBalance{}, errors.New("no pending token balance found")
 }
 
 func (s *TokenisationStore) GetTokenBalance(address, mintHash string) (int, error) {
@@ -99,6 +120,26 @@ func (s *TokenisationStore) UpsertTokenBalanceWithTransaction(address, mintHash 
 	ON CONFLICT (address, mint_hash)
 	DO UPDATE SET quantity = EXCLUDED.quantity + $3, updated_at = EXCLUDED.updated_at
 	`, address, mintHash, quantity, time.Now(), time.Now())
+
+	return err
+}
+
+func (s *TokenisationStore) MovePendingToTokenBalance(pendingTokenBalance PendingTokenBalance, buyerAddress string, tx *sql.Tx) error {
+	_, err := tx.Exec(`
+	INSERT INTO token_balances (address, mint_hash, quantity, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5)
+	`, buyerAddress, pendingTokenBalance.MintHash, pendingTokenBalance.Quantity, time.Now(), time.Now())
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+	DELETE FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2
+	`, pendingTokenBalance.InvoiceHash, pendingTokenBalance.MintHash)
+	if err != nil {
+		return err
+	}
 
 	return err
 }

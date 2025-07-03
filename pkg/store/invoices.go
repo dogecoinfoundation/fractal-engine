@@ -132,12 +132,20 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 			return err
 		}
 	} else {
+		rows.Close()
 		return fmt.Errorf("no unconfirmed invoice found for hash: %s", onchainMessage.InvoiceHash)
 	}
 
-	// TODO : Validate that theres enough balance for the invoice
-
 	rows.Close()
+
+	pendingTokenBalance, err := s.GetPendingTokenBalance(unconfirmedInvoice.Hash, unconfirmedInvoice.BuyOfferMintHash)
+	if err != nil {
+		return err
+	}
+
+	if pendingTokenBalance.Quantity < unconfirmedInvoice.BuyOfferQuantity {
+		return fmt.Errorf("pending token balance is less than the buy offer quantity: %d < %d", pendingTokenBalance.Quantity, unconfirmedInvoice.BuyOfferQuantity)
+	}
 
 	id, err := s.SaveInvoice(&Invoice{
 		Hash:                   unconfirmedInvoice.Hash,

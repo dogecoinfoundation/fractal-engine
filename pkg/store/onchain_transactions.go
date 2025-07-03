@@ -26,7 +26,7 @@ func getOnChainTransactionsCount(s *TokenisationStore) (int, error) {
 	return count, nil
 }
 
-func (s *TokenisationStore) SaveOnChainTransaction(tx_hash string, height int64, transaction_number int, action_type uint8, action_version uint8, action_data []byte, address string, value float64) error {
+func (s *TokenisationStore) SaveOnChainTransaction(tx_hash string, height int64, transaction_number int, action_type uint8, action_version uint8, action_data []byte, address string, value float64) (string, error) {
 	id := uuid.New().String()
 
 	_, err := s.DB.Exec(`
@@ -34,7 +34,7 @@ func (s *TokenisationStore) SaveOnChainTransaction(tx_hash string, height int64,
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`, id, tx_hash, height, transaction_number, action_type, action_version, action_data, address, value)
 
-	return err
+	return id, err
 }
 
 func (s *TokenisationStore) TrimOldOnChainTransactions(blockHeightToKeep int) error {

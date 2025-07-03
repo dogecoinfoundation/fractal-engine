@@ -3,6 +3,7 @@ package test_service
 import (
 	"database/sql"
 	"testing"
+	"time"
 
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/protocol"
@@ -17,13 +18,19 @@ func TestMintMatch(t *testing.T) {
 
 	hash := SetupUnconfirmedMint(t, tokenisationStore)
 
+	// tokenisationStore.DebugPrintStore()
+
 	processor := service.NewFractalEngineProcessor(tokenisationStore)
 	processor.Process()
+
+	// tokenisationStore.DebugPrintStore()
 
 	mints, err := tokenisationStore.GetMints(0, 100)
 	if err != nil {
 		t.Fatalf("Failed to get mints: %v", err)
 	}
+
+	// tokenisationStore.DebugPrintStore()
 
 	assert.Equal(t, 1, len(mints))
 	assert.Equal(t, "Test Mint", mints[0].Title)
@@ -63,7 +70,7 @@ func TestInvoiceMatch(t *testing.T) {
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	err = tokenisationStore.SaveOnChainTransaction("txHash002", 1, 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedMessage, "ownerAddress", 100)
+	_, err = tokenisationStore.SaveOnChainTransaction("txHash002", 1, 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedMessage, "ownerAddress", 100)
 	if err != nil {
 		t.Fatalf("Failed to save on chain transaction: %v", err)
 	}
@@ -89,14 +96,62 @@ func TestInvoiceMatch(t *testing.T) {
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	err = tokenisationStore.SaveOnChainTransaction("txHash003", 1, 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedMessage2, "ownerAddress", 100)
+	_, err = tokenisationStore.SaveOnChainTransaction("txHash003", 1, 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedMessage2, "ownerAddress", 100)
 	if err != nil {
 		t.Fatalf("Failed to save on chain transaction: %v", err)
 	}
 
 	processor.Process()
 
+	_, err = tokenisationStore.SaveUnconfirmedInvoice(&store.UnconfirmedInvoice{
+		Hash:                   "invoiceHash",
+		PaymentAddress:         "ownerAddress",
+		BuyOfferOffererAddress: "buyerAddress",
+		BuyOfferHash:           "buyOfferHash",
+		BuyOfferMintHash:       hash,
+		BuyOfferQuantity:       50,
+		BuyOfferPrice:          100,
+		BuyOfferValue:          100,
+		CreatedAt:              time.Now(),
+		SellOfferAddress:       "ownerAddress",
+	})
+
+	if err != nil {
+		t.Fatalf("Failed to save invoice: %v", err)
+	}
+
+	processor.Process()
+
 	tokenBalance, err = tokenisationStore.GetTokenBalance("ownerAddress", hash)
+	if err != nil {
+		t.Fatalf("Failed to get token balance: %v", err)
+	}
+
+	assert.Equal(t, 50, tokenBalance)
+
+	pendingTokenBalance, err := tokenisationStore.GetPendingTokenBalance("invoiceHash", hash)
+	if err != nil {
+		t.Fatalf("Failed to get pending token balance: %v", err)
+	}
+	assert.Equal(t, 50, pendingTokenBalance.Quantity)
+
+	message3 := protocol.OnChainPaymentMessage{
+		Hash: "invoiceHash",
+	}
+
+	encodedMessage3, err := proto.Marshal(&message3)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	_, err = tokenisationStore.SaveOnChainTransaction("txHash004", 1, 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedMessage3, "ownerAddress", 100)
+	if err != nil {
+		t.Fatalf("Failed to save on chain transaction: %v", err)
+	}
+
+	processor.Process()
+
+	tokenBalance, err = tokenisationStore.GetTokenBalance("buyerAddress", hash)
 	if err != nil {
 		t.Fatalf("Failed to get token balance: %v", err)
 	}
@@ -137,7 +192,7 @@ func SetupUnconfirmedMint(t *testing.T, tokenisationStore *store.TokenisationSto
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	err = tokenisationStore.SaveOnChainTransaction("txHash001", 1, 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMessage, "ownerAddress", 100)
+	_, err = tokenisationStore.SaveOnChainTransaction("txHash001", 1, 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMessage, "ownerAddress", 100)
 	if err != nil {
 		t.Fatalf("Failed to save on chain transaction: %v", err)
 	}

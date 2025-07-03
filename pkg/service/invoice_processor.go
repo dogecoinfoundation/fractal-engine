@@ -43,6 +43,8 @@ func (p *InvoiceProcessor) Process(tx store.OnChainTransaction) error {
 	err = p.store.MatchUnconfirmedInvoice(tx)
 	if err == nil {
 		log.Println("Matched invoice:", tx.TxHash)
+	} else {
+		log.Println("Error matching unconfirmed invoice:", err)
 	}
 
 	return nil
@@ -55,15 +57,9 @@ func (p *InvoiceProcessor) EnsurePendingTokenBalance(tx store.OnChainTransaction
 		log.Println("Error unmarshalling invoice:", err)
 	}
 
-	hasPendingTokenBalance, err := p.store.HasPendingTokenBalance(invoice.InvoiceHash, invoice.MintHash, tx.Id)
-	if err != nil {
-		log.Println("Error checking pending token balance:", err)
-		return false, err
-	}
-
-	log.Println("Has pending token balance:", hasPendingTokenBalance)
-
-	if hasPendingTokenBalance {
+	pendingTokenBalance, _ := p.store.GetPendingTokenBalance(invoice.InvoiceHash, invoice.MintHash)
+	if pendingTokenBalance.InvoiceHash != "" {
+		log.Println("Pending token balance already exists")
 		return true, nil
 	}
 
@@ -77,7 +73,7 @@ func (p *InvoiceProcessor) EnsurePendingTokenBalance(tx store.OnChainTransaction
 		log.Println("Token balance is enough")
 		err = p.store.UpsertPendingTokenBalance(invoice.InvoiceHash, invoice.MintHash, int(invoice.Quantity), tx.Id, invoice.SellOfferAddress)
 		if err != nil {
-			log.Println("Error upserting pending token balance:", err)
+			log.Println("Error inserting pending token balance:", err)
 		}
 
 		err = p.store.UpsertTokenBalance(invoice.SellOfferAddress, invoice.MintHash, tokenBalance-int(invoice.Quantity))

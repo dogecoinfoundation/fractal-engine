@@ -13,7 +13,6 @@ create table unconfirmed_invoices (
 );
 
 create table token_balances (
-    id uuid primary key,
     mint_hash text not null,
     address text not null,
     quantity int not null,
@@ -23,7 +22,6 @@ create table token_balances (
 );
 
 create table pending_token_balances (
-    id uuid primary key,
     owner_address text not null,
     invoice_hash text not null,
     mint_hash text not null,
