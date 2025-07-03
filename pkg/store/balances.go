@@ -86,6 +86,27 @@ func (s *TokenisationStore) GetPendingTokenBalance(invoiceHash, mintHash string)
 	return PendingTokenBalance{}, errors.New("no pending token balance found")
 }
 
+func (s *TokenisationStore) GetPendingTokenBalanceTotalForMintAndOwner(mintHash string, ownerAddress string) (int, error) {
+	rows, err := s.DB.Query(`
+		SELECT COALESCE(SUM(quantity), 0) FROM pending_token_balances WHERE mint_hash = $1 AND owner_address = $2
+	`, mintHash, ownerAddress)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		var quantity int
+		err := rows.Scan(&quantity)
+		if err != nil {
+			return 0, err
+		}
+		return quantity, nil
+	}
+
+	return 0, nil
+}
+
 func (s *TokenisationStore) GetTokenBalance(address, mintHash string) (int, error) {
 	log.Println("Getting token balance:", address, mintHash)
 
@@ -118,7 +139,7 @@ func (s *TokenisationStore) UpsertTokenBalanceWithTransaction(address, mintHash 
 	INSERT INTO token_balances (address, mint_hash, quantity, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5)		
 	ON CONFLICT (address, mint_hash)
-	DO UPDATE SET quantity = EXCLUDED.quantity + $3, updated_at = EXCLUDED.updated_at
+	DO UPDATE SET quantity = quantity + $3, updated_at = EXCLUDED.updated_at
 	`, address, mintHash, quantity, time.Now(), time.Now())
 
 	return err
@@ -130,6 +151,11 @@ func (s *TokenisationStore) MovePendingToTokenBalance(pendingTokenBalance Pendin
 	VALUES ($1, $2, $3, $4, $5)
 	`, buyerAddress, pendingTokenBalance.MintHash, pendingTokenBalance.Quantity, time.Now(), time.Now())
 
+	if err != nil {
+		return err
+	}
+
+	err = s.UpsertTokenBalanceWithTransaction(pendingTokenBalance.OwnerAddress, pendingTokenBalance.MintHash, -pendingTokenBalance.Quantity, tx)
 	if err != nil {
 		return err
 	}

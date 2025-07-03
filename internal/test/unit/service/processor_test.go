@@ -82,7 +82,7 @@ func TestInvoiceMatch(t *testing.T) {
 		t.Fatalf("Failed to get token balance: %v", err)
 	}
 
-	assert.Equal(t, 50, tokenBalance)
+	assert.Equal(t, 100, tokenBalance)
 
 	message2 := protocol.OnChainInvoiceMessage{
 		SellOfferAddress: "ownerAddress",
@@ -127,7 +127,7 @@ func TestInvoiceMatch(t *testing.T) {
 		t.Fatalf("Failed to get token balance: %v", err)
 	}
 
-	assert.Equal(t, 50, tokenBalance)
+	assert.Equal(t, 100, tokenBalance)
 
 	pendingTokenBalance, err := tokenisationStore.GetPendingTokenBalance("invoiceHash", hash)
 	if err != nil {
@@ -152,6 +152,13 @@ func TestInvoiceMatch(t *testing.T) {
 	processor.Process()
 
 	tokenBalance, err = tokenisationStore.GetTokenBalance("buyerAddress", hash)
+	if err != nil {
+		t.Fatalf("Failed to get token balance: %v", err)
+	}
+
+	assert.Equal(t, 50, tokenBalance)
+
+	tokenBalance, err = tokenisationStore.GetTokenBalance("ownerAddress", hash)
 	if err != nil {
 		t.Fatalf("Failed to get token balance: %v", err)
 	}

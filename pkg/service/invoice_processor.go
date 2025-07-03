@@ -69,17 +69,25 @@ func (p *InvoiceProcessor) EnsurePendingTokenBalance(tx store.OnChainTransaction
 		return false, err
 	}
 
-	if tokenBalance >= int(invoice.Quantity) {
+	pendingTokenBalanceTotal, err := p.store.GetPendingTokenBalanceTotalForMintAndOwner(invoice.MintHash, invoice.SellOfferAddress)
+	if err != nil {
+		log.Println("Error getting pending token balance total:", err)
+		return false, err
+	}
+
+	tokenBalanceAvailable := tokenBalance - pendingTokenBalanceTotal
+
+	if tokenBalanceAvailable >= int(invoice.Quantity) {
 		log.Println("Token balance is enough")
 		err = p.store.UpsertPendingTokenBalance(invoice.InvoiceHash, invoice.MintHash, int(invoice.Quantity), tx.Id, invoice.SellOfferAddress)
 		if err != nil {
 			log.Println("Error inserting pending token balance:", err)
 		}
 
-		err = p.store.UpsertTokenBalance(invoice.SellOfferAddress, invoice.MintHash, tokenBalance-int(invoice.Quantity))
-		if err != nil {
-			log.Println("Error upserting token balance:", err)
-		}
+		// err = p.store.UpsertTokenBalance(invoice.SellOfferAddress, invoice.MintHash, tokenBalance-int(invoice.Quantity))
+		// if err != nil {
+		// 	log.Println("Error upserting token balance:", err)
+		// }
 
 		return true, nil
 	} else {
