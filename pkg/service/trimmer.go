@@ -10,15 +10,16 @@ import (
 )
 
 type TrimmerService struct {
-	blocksToKeep           int
-	unconfirmedMintsToKeep int
-	store                  *store.TokenisationStore
-	dogeClient             *doge.RpcClient
-	running                bool
+	blocksToKeep            int
+	unconfirmedMintsToKeep  int
+	store                   *store.TokenisationStore
+	dogeClient              *doge.RpcClient
+	running                 bool
+	invoiceTimeoutProcessor *InvoiceTimeoutProcessor
 }
 
 func NewTrimmerService(blocksToKeep int, unconfirmedMintsToKeep int, store *store.TokenisationStore, dogeClient *doge.RpcClient) *TrimmerService {
-	return &TrimmerService{blocksToKeep: blocksToKeep, unconfirmedMintsToKeep: unconfirmedMintsToKeep, store: store, dogeClient: dogeClient, running: false}
+	return &TrimmerService{blocksToKeep: blocksToKeep, unconfirmedMintsToKeep: unconfirmedMintsToKeep, store: store, dogeClient: dogeClient, running: false, invoiceTimeoutProcessor: NewInvoiceTimeoutProcessor(store)}
 }
 
 func (t *TrimmerService) Start() {
@@ -41,6 +42,11 @@ func (t *TrimmerService) Start() {
 
 		latestBlockHeight := int(blockHeader.Height)
 		oldestBlockHeight := latestBlockHeight - t.blocksToKeep
+
+		err = t.invoiceTimeoutProcessor.Process(oldestBlockHeight)
+		if err != nil {
+			log.Println("Error processing invoice timeout:", err)
+		}
 
 		err = t.store.TrimOldUnconfirmedMints(t.unconfirmedMintsToKeep)
 		if err != nil {

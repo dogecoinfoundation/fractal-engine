@@ -63,6 +63,13 @@ func (s *TokenisationStore) HasPendingTokenBalance(invoiceHash, mintHash string,
 	return count > 0, nil
 }
 
+func (s *TokenisationStore) RemovePendingTokenBalance(invoiceHash, mintHash string) error {
+	_, err := s.DB.Exec(`
+		DELETE FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2
+	`, invoiceHash, mintHash)
+	return err
+}
+
 func (s *TokenisationStore) GetPendingTokenBalance(invoiceHash, mintHash string) (PendingTokenBalance, error) {
 	rows, err := s.DB.Query(`
 		SELECT quantity, invoice_hash, mint_hash, owner_address FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2

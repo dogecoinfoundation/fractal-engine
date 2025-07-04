@@ -37,6 +37,29 @@ func (s *TokenisationStore) SaveOnChainTransaction(tx_hash string, height int64,
 	return id, err
 }
 
+func (s *TokenisationStore) GetOldOnchainTransactions(blockHeight int) ([]OnChainTransaction, error) {
+	rows, err := s.DB.Query("SELECT id, tx_hash, block_height, transaction_number, action_type, action_version, action_data, address, value FROM onchain_transactions WHERE block_height < $1", blockHeight)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var transactions []OnChainTransaction
+	for rows.Next() {
+		var transaction OnChainTransaction
+		if err := rows.Scan(&transaction.Id, &transaction.TxHash, &transaction.Height, &transaction.TransactionNumber, &transaction.ActionType, &transaction.ActionVersion, &transaction.ActionData, &transaction.Address, &transaction.Value); err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, transaction)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return transactions, nil
+}
+
 func (s *TokenisationStore) TrimOldOnChainTransactions(blockHeightToKeep int) error {
 	sqlQuery := fmt.Sprintf("DELETE FROM onchain_transactions WHERE block_height < %d", blockHeightToKeep)
 	_, err := s.DB.Exec(sqlQuery)
