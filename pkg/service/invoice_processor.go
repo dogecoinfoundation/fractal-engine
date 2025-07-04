@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"log"
 
 	"dogecoin.org/fractal-engine/pkg/protocol"
@@ -25,6 +26,22 @@ func NewInvoiceProcessor(store *store.TokenisationStore) *InvoiceProcessor {
 * If not, remove onchain transaction (discard invoice)
  */
 func (p *InvoiceProcessor) Process(tx store.OnChainTransaction) error {
+	invoice := protocol.OnChainInvoiceMessage{}
+	err := proto.Unmarshal(tx.ActionData, &invoice)
+	if err != nil {
+		log.Println("Error unmarshalling invoice:", err)
+	}
+
+	if tx.Address != invoice.SellOfferAddress {
+		log.Println("Invoice not from seller, discarding")
+		err = p.store.RemoveOnChainTransaction(tx.Id)
+		if err != nil {
+			log.Println("Error removing onchain transaction:", err)
+		}
+
+		return errors.New("invoice not from seller")
+	}
+
 	hasPendingTokenBalance, err := p.EnsurePendingTokenBalance(tx)
 	if err != nil {
 		return err

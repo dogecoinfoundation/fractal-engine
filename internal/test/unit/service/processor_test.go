@@ -34,10 +34,10 @@ func TestInvoiceMatch(t *testing.T) {
 
 	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
 
-	CreateOnChainInvoiceMessage(t, "txHash002", 1, 1, "ownerAddress", "invoiceHash", hash, 50, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, "txHash002", 1, 1, "ownerAddress", "ownerAddress", "invoiceHash", hash, 50, tokenisationStore)
 	processor.Process()
 
-	CreateOnChainInvoiceMessage(t, "txHash003", 1, 1, "ownerAddress", "invoiceHash2", hash, 90, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, "txHash003", 1, 1, "ownerAddress", "ownerAddress", "invoiceHash2", hash, 90, tokenisationStore)
 	processor.Process()
 
 	SaveUnconfirmedInvoice(t, "ownerAddress", "buyerAddress", "invoiceHash", hash, 50, 100, tokenisationStore)
@@ -63,9 +63,9 @@ func TestInvoiceMatchEarlierBlockHeightAndTransactionNumber(t *testing.T) {
 
 	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
 
-	CreateOnChainInvoiceMessage(t, "txHash002", 3, 1, "ownerAddress", "invoiceHash", hash, 66, tokenisationStore)
-	CreateOnChainInvoiceMessage(t, "txHash003", 1, 2, "ownerAddress", "invoiceHash2", hash, 77, tokenisationStore)
-	CreateOnChainInvoiceMessage(t, "txHash004", 1, 1, "ownerAddress", "invoiceHash3", hash, 88, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, "txHash002", 3, 1, "ownerAddress", "ownerAddress", "invoiceHash", hash, 66, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, "txHash003", 1, 2, "ownerAddress", "ownerAddress", "invoiceHash2", hash, 77, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, "txHash004", 1, 1, "ownerAddress", "ownerAddress", "invoiceHash3", hash, 88, tokenisationStore)
 
 	processor.Process()
 
@@ -82,7 +82,7 @@ func TestPaymentIsLessThanExpected(t *testing.T) {
 
 	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
 
-	CreateOnChainInvoiceMessage(t, "txHash002", 3, 1, "ownerAddress", "invoiceHash", hash, 50, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, "txHash002", 3, 1, "ownerAddress", "ownerAddress", "invoiceHash", hash, 50, tokenisationStore)
 	SaveUnconfirmedInvoice(t, "ownerAddress", "buyerAddress", "invoiceHash", hash, 50, 75, tokenisationStore)
 
 	processor.Process()
@@ -107,12 +107,28 @@ func TestInvoiceTimesOutAfter14BlockDays(t *testing.T) {
 
 	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
 
-	CreateOnChainInvoiceMessage(t, "txHash002", 3, 1, "ownerAddress", "invoiceHash", hash, 50, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, "txHash002", 3, 1, "ownerAddress", "ownerAddress", "invoiceHash", hash, 50, tokenisationStore)
 	processor.Process()
 
 	AssertPendingTokenBalance(t, "invoiceHash", hash, 50, tokenisationStore)
 
 	invoiceTimeoutProcessor.Process(4)
+
+	AssertNoPendingTokenBalance(t, "invoiceHash", hash, tokenisationStore)
+}
+
+func TestInvoiceCreationNotFromSeller(t *testing.T) {
+	tokenisationStore := test_support.SetupTestDB(t)
+
+	hash := CreateUnconfirmedMint(t, "txHash001", tokenisationStore)
+
+	processor := service.NewFractalEngineProcessor(tokenisationStore)
+	processor.Process()
+
+	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
+
+	CreateOnChainInvoiceMessage(t, "txHash002", 3, 1, "ownerAddress", "NotOwnerAddress", "invoiceHash", hash, 50, tokenisationStore)
+	processor.Process()
 
 	AssertNoPendingTokenBalance(t, "invoiceHash", hash, tokenisationStore)
 }
@@ -178,9 +194,9 @@ func SaveUnconfirmedInvoice(t *testing.T, ownerAddress string, buyerAddress stri
 
 }
 
-func CreateOnChainInvoiceMessage(t *testing.T, trxnHash string, blockHeight int64, trxnNo int, ownerAddress string, invoiceHash string, mintHash string, quantity int, tokenisationStore *store.TokenisationStore) {
+func CreateOnChainInvoiceMessage(t *testing.T, trxnHash string, blockHeight int64, trxnNo int, ownerAddress string, sellOfferAddress string, invoiceHash string, mintHash string, quantity int, tokenisationStore *store.TokenisationStore) {
 	message := protocol.OnChainInvoiceMessage{
-		SellOfferAddress: ownerAddress,
+		SellOfferAddress: sellOfferAddress,
 		InvoiceHash:      invoiceHash,
 		MintHash:         mintHash,
 		Quantity:         int32(quantity),
