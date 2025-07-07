@@ -33,6 +33,7 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClie
 	HandleOfferRoutes(store, gossipClient, mux)
 	HandleInvoiceRoutes(store, gossipClient, mux)
 	HandleStatRoutes(store, mux)
+	HandleHealthRoutes(store, mux)
 
 	server := &http.Server{
 		Addr:    cfg.RpcServerHost + ":" + cfg.RpcServerPort,

@@ -7,6 +7,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+	"dogecoin.org/fractal-engine/pkg/health"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/golang-migrate/migrate"
@@ -20,6 +21,7 @@ type TokenisationService struct {
 	Follower       *doge.DogeFollower
 	TrimmerService *TrimmerService
 	Processor      *FractalEngineProcessor
+	HealthService  *health.HealthService
 }
 
 func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetClient, tokenStore *store.TokenisationStore) *TokenisationService {
@@ -28,6 +30,7 @@ func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetCl
 
 	trimmerService := NewTrimmerService(20160, 100, tokenStore, dogeClient)
 	processor := NewFractalEngineProcessor(tokenStore)
+	healthService := health.NewHealthService(dogeClient, tokenStore)
 
 	return &TokenisationService{
 		RpcServer:      rpc.NewRpcServer(cfg, tokenStore, dogenetClient),
@@ -37,6 +40,7 @@ func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetCl
 		Follower:       follower,
 		TrimmerService: trimmerService,
 		Processor:      processor,
+		HealthService:  healthService,
 	}
 }
 
@@ -57,6 +61,7 @@ func (s *TokenisationService) Start() {
 	<-statusChan
 	log.Println("Dogenet client started")
 
+	go s.HealthService.Start()
 	go s.RpcServer.Start()
 	go s.Follower.Start()
 	go s.TrimmerService.Start()
@@ -91,6 +96,7 @@ func (s *TokenisationService) WaitForRunning() {
 }
 
 func (s *TokenisationService) Stop() {
+	s.HealthService.Stop()
 	s.Processor.Stop()
 	s.Follower.Stop()
 	s.Store.Close()

@@ -93,6 +93,13 @@ definitions:
       id:
         type: string
     type: object
+  pkg_rpc.GetHealthResponse:
+    properties:
+      current_block_height:
+        type: integer
+      latest_block_height:
+        type: integer
+    type: object
   pkg_rpc.GetMintsResponse:
     properties:
       limit:
@@ -120,6 +127,25 @@ info:
   title: Fractal Engine API
   version: "1.0"
 paths:
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Returns the current and latest block height
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg_rpc.GetHealthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get health
+      tags:
+      - health
   /mints:
     get:
       consumes:

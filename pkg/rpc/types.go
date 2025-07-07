@@ -154,3 +154,8 @@ type CreateInvoiceResponse struct {
 	TransactionHash        string `json:"transaction_hash"`
 	Id                     string `json:"id"`
 }
+
+type GetHealthResponse struct {
+	CurrentBlockHeight int64 `json:"current_block_height"`
+	LatestBlockHeight  int64 `json:"latest_block_height"`
+}
