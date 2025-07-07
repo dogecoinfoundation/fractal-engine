@@ -20,4 +20,5 @@ func TestGetHealth(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, healthResponse.CurrentBlockHeight, int64(100))
 	assert.Equal(t, healthResponse.LatestBlockHeight, int64(200))
+	assert.Equal(t, healthResponse.UpdatedAt.IsZero(), false)
 }

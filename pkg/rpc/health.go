@@ -35,7 +35,7 @@ func (hr *HealthRoutes) handleHealth(w http.ResponseWriter, r *http.Request) {
 // @Failure		400		{object}	string
 // @Router			/health [get]
 func (hr *HealthRoutes) getHealth(w http.ResponseWriter, _ *http.Request) {
-	currentBlockHeight, latestBlockHeight, err := hr.store.GetHealth()
+	currentBlockHeight, latestBlockHeight, updatedAt, err := hr.store.GetHealth()
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "No health data found", http.StatusNotFound)
@@ -48,6 +48,7 @@ func (hr *HealthRoutes) getHealth(w http.ResponseWriter, _ *http.Request) {
 	response := GetHealthResponse{
 		CurrentBlockHeight: currentBlockHeight,
 		LatestBlockHeight:  latestBlockHeight,
+		UpdatedAt:          updatedAt,
 	}
 
 	respondJSON(w, http.StatusOK, response)

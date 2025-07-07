@@ -3,6 +3,7 @@ package rpc
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"dogecoin.org/fractal-engine/pkg/store"
 )
@@ -156,6 +157,7 @@ type CreateInvoiceResponse struct {
 }
 
 type GetHealthResponse struct {
-	CurrentBlockHeight int64 `json:"current_block_height"`
-	LatestBlockHeight  int64 `json:"latest_block_height"`
+	CurrentBlockHeight int64     `json:"current_block_height"`
+	LatestBlockHeight  int64     `json:"latest_block_height"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }

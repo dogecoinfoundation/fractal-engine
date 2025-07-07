@@ -109,11 +109,12 @@ func TestHealth(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	currentBlockHeight, latestBlockHeight, err := tokenisationStore.GetHealth()
+	currentBlockHeight, latestBlockHeight, updatedAt, err := tokenisationStore.GetHealth()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	assert.Equal(t, int64(50), currentBlockHeight)
 	assert.Equal(t, int64(100), latestBlockHeight)
+	assert.Equal(t, updatedAt.IsZero(), false)
 }
