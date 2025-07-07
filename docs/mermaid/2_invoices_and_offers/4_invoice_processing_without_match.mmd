@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant Processor as Fractal Engine Processor
+    participant Store as Fractal Store
+
+loop Every 5 seconds
+    Processor->>Store: Fetch Onchain transactions (Invoices)
+    Processor->>Store: Check if Invoice Quantity >= (Token Balance - SUM(Pending Token Balances))
+    alt Has Token Balance
+        Processor->>Store: Create Pending Token Balance
+    end
+end
+
+ 

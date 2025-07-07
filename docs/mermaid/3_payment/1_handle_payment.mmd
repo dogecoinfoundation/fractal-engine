@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant Processor as Fractal Engine Processor
+    participant Store as Fractal Store
+
+loop Every 5 seconds
+    Processor->>Store: Fetch Onchain transactions (Payments)
+    alt Onchain Transaction matches Unconfirmed Payment
+        Processor->>Store: Save Payment
+        Processor->>Store: Delete Onchain Transaction
+        Processor->>Store: Delete Unconfirmed Payment
+        Processor->>Store: Update Invoice Status (Paid)
+        Processor->>Store: Remove Token Balance from Seller
+        Processor->>Store: Add Token Balance to Buyer
+        Processor->>Store: Delete Pending Token Balance
+    end
+end

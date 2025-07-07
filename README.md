@@ -1,9 +1,6 @@
 # Fractal Engine (Tokenisation Engine)
 This engine runs alongside the DOGE Layer 1 and allows users to mint tokens, and buy and sell tokens between each other.
 
-## Architecture
-[See architecture docs here](ARCHITECTURE.md)
-
 ## Automated Testing
 
 ### Fractal Engine e2e test with 1 Node (no gossip)
@@ -45,11 +42,7 @@ Ensure Docker is running (WSL2 active for windows).
 ## Docs
 
 ```sh
-mmdc -i docs/minting.mmd -o docs/minting.svg
-mmdc -i docs/sell_offer.mmd -o docs/sell_offer.svg
-mmdc -i docs/buy_offer.mmd -o docs/buy_offer.svg
-mmdc -i docs/create_invoice.mmd -o docs/create_invoice.svg
-mmdc -i docs/pay_invoice.mmd -o docs/pay_invoice.svg
+scripts/generate_docs.sh
 ```
 
 ## Generate Swagger Docs

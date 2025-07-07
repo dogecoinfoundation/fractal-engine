@@ -1,0 +1,10 @@
+sequenceDiagram
+    participant User as Fractal Engine User
+    participant API as Fractal API
+    participant Store as Fractal Store
+    participant DogNetClient as DogeNet Client
+
+    User->>API: Create Sell Offer
+    API->>Store: Save Sell Offer
+    API->>DogNetClient: Gossip Sell Offer
+    API-->>User: Sell Offer Created

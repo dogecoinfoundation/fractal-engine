@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant DogNetClient as DogeNet Client
+    participant Store as Fractal Store
+
+    loop For Each New Gossiped Transaction
+        DogNetClient->>DogNetClient: Get Transaction
+        alt Is Mint Transaction
+            DogNetClient->>Store: Save Unconfirmed Mint
+        end
+        alt Is Invoice Transaction
+            DogNetClient->>Store: Save Unconfirmed Invoice
+        end
+        alt Is Sell Offer Transaction
+            DogNetClient->>Store: Save Sell Offer
+        end
+        alt Is Buy Offer Transaction
+            DogNetClient->>Store: Save Buy Offer
+        end
+    end
+ 

@@ -1,7 +1,0 @@
-sequenceDiagram
-    Frank->>Fractal API: View invoices for mint
-    Fractal API-->>Frank: Invoices for mint (confirmed will show payment address)
-    Frank->>L1: Write Payment transaction with payment amount + reference to invoice
-    L1->>Fractal Follower: On Payment FE Transaction
-    Fractal Follower->>Fractal Store: Valid invoice and mark as paid
-    Fractal Follower->>Fractal Store: Update Rollups
