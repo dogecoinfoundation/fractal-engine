@@ -27,6 +27,7 @@ type DogeFollower struct {
 	msgChan       chan messages.Message
 	context       context.Context
 	cancel        context.CancelFunc
+	rpcClient     rpc.RpcTransportInterface
 }
 
 func NewFollower(cfg *fecfg.Config, store *store.TokenisationStore) *DogeFollower {

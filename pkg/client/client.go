@@ -49,6 +49,28 @@ func (c *TokenisationClient) CreateInvoice(invoice *rpc.CreateInvoiceRequest) (r
 	return result, nil
 }
 
+func (c *TokenisationClient) GetHealth() (rpc.GetHealthResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + "/health")
+	if err != nil {
+		return rpc.GetHealthResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rpc.GetHealthResponse{}, fmt.Errorf("failed to get health: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.GetHealthResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.GetHealthResponse{}, err
+	}
+
+	return result, nil
+}
+
 func (c *TokenisationClient) Offer(offer *rpc.CreateOfferRequest) (rpc.CreateOfferResponse, error) {
 	jsonValue, err := json.Marshal(offer)
 	if err != nil {

@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS health (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    current_block_height INTEGER NOT NULL,
+    latest_block_height INTEGER NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
