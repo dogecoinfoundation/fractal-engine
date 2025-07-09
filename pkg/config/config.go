@@ -3,37 +3,45 @@ package config
 import "github.com/Dogebox-WG/gossip/dnet"
 
 type Config struct {
-	RpcServerHost     string
-	RpcServerPort     string
-	DogeNetNetwork    string
-	DogeNetAddress    string
-	DogeNetWebAddress string
-	DogeNetKeyPair    dnet.KeyPair
-	DogeHost          string
-	DogeScheme        string
-	DogePort          string
-	DogeUser          string
-	DogePassword      string
-	DatabaseURL       string
-	PersistFollower   bool
-	MigrationsPath    string
+	RpcServerHost      string
+	RpcServerPort      string
+	DogeNetNetwork     string
+	DogeNetAddress     string
+	DogeNetWebAddress  string
+	DogeNetKeyPair     dnet.KeyPair
+	DogeHost           string
+	DogeScheme         string
+	DogePort           string
+	DogeUser           string
+	DogePassword       string
+	DatabaseURL        string
+	PersistFollower    bool
+	MigrationsPath     string
+	RateLimitPerSecond int
+	InvoiceLimit       int
+	BuyOfferLimit      int
+	SellOfferLimit     int
 }
 
 func NewConfig() *Config {
 	return &Config{
-		RpcServerHost:     "0.0.0.0",
-		RpcServerPort:     "8891",
-		DogeNetNetwork:    "tcp",
-		DogeNetAddress:    "0.0.0.0:42069",
-		DogeNetWebAddress: "0.0.0.0:8085",
-		DogeNetKeyPair:    dnet.KeyPair{},
-		DogeScheme:        "http",
-		DogeHost:          "dogecoin",
-		DogePort:          "22555",
-		DogeUser:          "test",
-		DogePassword:      "test",
-		DatabaseURL:       "sqlite://fractal-engine.db",
-		PersistFollower:   true,
-		MigrationsPath:    "db/migrations",
+		RpcServerHost:      "0.0.0.0",
+		RpcServerPort:      "8891",
+		DogeNetNetwork:     "tcp",
+		DogeNetAddress:     "0.0.0.0:42069",
+		DogeNetWebAddress:  "0.0.0.0:8085",
+		DogeNetKeyPair:     dnet.KeyPair{},
+		DogeScheme:         "http",
+		DogeHost:           "dogecoin",
+		DogePort:           "22555",
+		DogeUser:           "test",
+		DogePassword:       "test",
+		DatabaseURL:        "sqlite://fractal-engine.db",
+		PersistFollower:    true,
+		MigrationsPath:     "db/migrations",
+		RateLimitPerSecond: 10,
+		InvoiceLimit:       10,
+		BuyOfferLimit:      10,
+		SellOfferLimit:     10,
 	}
 }

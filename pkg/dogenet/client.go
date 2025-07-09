@@ -39,7 +39,8 @@ type GetNodesResponse []NodeInfo
 
 type GossipClient interface {
 	GossipMint(record store.Mint) error
-	GossipOffer(record store.Offer) error
+	GossipBuyOffer(record store.BuyOffer) error
+	GossipSellOffer(record store.SellOffer) error
 	GossipUnconfirmedInvoice(record store.UnconfirmedInvoice) error
 	GetNodes() (GetNodesResponse, error)
 	AddPeer(addPeer AddPeer) error
@@ -104,19 +105,18 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 	return nil
 }
 
-func (c *DogeNetClient) GossipOffer(record store.Offer) error {
-	offerMessage := protocol.OfferMessage{
+func (c *DogeNetClient) GossipBuyOffer(record store.BuyOffer) error {
+	offerMessage := protocol.BuyOfferMessage{
 		Id:             record.Id,
 		OffererAddress: record.OffererAddress,
-		Type:           protocol.OfferType(record.Type),
+		SellerAddress:  record.SellerAddress,
 		Hash:           record.Hash,
 		CreatedAt:      timestamppb.New(record.CreatedAt),
 		Quantity:       int32(record.Quantity),
 		Price:          int32(record.Price),
 	}
 
-	envelope := protocol.OfferMessageEnvelope{
-		Type:    protocol.ACTION_OFFER,
+	envelope := protocol.BuyOfferMessageEnvelope{
 		Version: protocol.DEFAULT_VERSION,
 		Payload: &offerMessage,
 	}
@@ -126,7 +126,37 @@ func (c *DogeNetClient) GossipOffer(record store.Offer) error {
 		log.Fatalf("Failed to marshal: %v", err)
 	}
 
-	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagOffer, c.feKey, data)
+	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagBuyOffer, c.feKey, data)
+
+	err = encodedMsg.Send(c.sock)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *DogeNetClient) GossipSellOffer(record store.SellOffer) error {
+	offerMessage := protocol.SellOfferMessage{
+		Id:             record.Id,
+		OffererAddress: record.OffererAddress,
+		Hash:           record.Hash,
+		CreatedAt:      timestamppb.New(record.CreatedAt),
+		Quantity:       int32(record.Quantity),
+		Price:          int32(record.Price),
+	}
+
+	envelope := protocol.SellOfferMessageEnvelope{
+		Version: protocol.DEFAULT_VERSION,
+		Payload: &offerMessage,
+	}
+
+	data, err := proto.Marshal(&envelope)
+	if err != nil {
+		log.Fatalf("Failed to marshal: %v", err)
+	}
+
+	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagSellOffer, c.feKey, data)
 
 	err = encodedMsg.Send(c.sock)
 	if err != nil {
@@ -321,8 +351,10 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 		switch msg.Tag {
 		case TagMint:
 			c.recvMint(msg)
-		case TagOffer:
-			c.recvOffer(msg)
+		case TagBuyOffer:
+			c.recvBuyOffer(msg)
+		case TagSellOffer:
+			c.recvSellOffer(msg)
 		case TagInvoice:
 			c.recvInvoice(msg)
 		default:
@@ -344,26 +376,21 @@ func (c *DogeNetClient) Stop() error {
 	return nil
 }
 
-func (c *DogeNetClient) recvOffer(msg dnet.Message) {
-	log.Printf("[FE] received offer message")
+func (c *DogeNetClient) recvBuyOffer(msg dnet.Message) {
+	log.Printf("[FE] received buy offer message")
 
-	envelope := protocol.OfferMessageEnvelope{}
+	envelope := protocol.BuyOfferMessageEnvelope{}
 	err := proto.Unmarshal(msg.Payload, &envelope)
 	if err != nil {
 		log.Println("Error deserializing message envelope:", err)
 		return
 	}
 
-	if envelope.Type != protocol.ACTION_OFFER {
-		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Type)
-		return
-	}
-
 	offer := envelope.Payload
 
-	offerWithoutID := store.OfferWithoutID{
+	offerWithoutID := store.BuyOfferWithoutID{
 		OffererAddress: offer.OffererAddress,
-		Type:           store.OfferType(offer.Type),
+		SellerAddress:  offer.SellerAddress,
 		Hash:           offer.Hash,
 		Quantity:       int(offer.Quantity),
 		Price:          int(offer.Price),
@@ -372,13 +399,42 @@ func (c *DogeNetClient) recvOffer(msg dnet.Message) {
 
 	// TODO: check if the offer is valid
 
-	id, err := c.store.SaveOffer(&offerWithoutID)
+	id, err := c.store.SaveBuyOffer(&offerWithoutID)
 	if err != nil {
-		log.Println("Error saving unconfirmed offer:", err)
+		log.Println("Error saving buy offer:", err)
 		return
 	}
 
-	log.Printf("[FE] unconfirmed offer saved: %v", id)
+	log.Printf("[FE] buy offer saved: %v", id)
+}
+
+func (c *DogeNetClient) recvSellOffer(msg dnet.Message) {
+	log.Printf("[FE] received sell offer message")
+
+	envelope := protocol.SellOfferMessageEnvelope{}
+	err := proto.Unmarshal(msg.Payload, &envelope)
+	if err != nil {
+		log.Println("Error deserializing message envelope:", err)
+		return
+	}
+
+	offer := envelope.Payload
+
+	offerWithoutID := store.SellOfferWithoutID{
+		OffererAddress: offer.OffererAddress,
+		Hash:           offer.Hash,
+		Quantity:       int(offer.Quantity),
+		Price:          int(offer.Price),
+		CreatedAt:      offer.CreatedAt.AsTime(),
+	}
+
+	id, err := c.store.SaveSellOffer(&offerWithoutID)
+	if err != nil {
+		log.Println("Error saving sell offer:", err)
+		return
+	}
+
+	log.Printf("[FE] sell offer saved: %v", id)
 }
 
 func (c *DogeNetClient) recvMint(msg dnet.Message) {

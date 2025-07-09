@@ -11,12 +11,12 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"golang.org/x/time/rate"
 )
 
-//	@title			Fractal Engine API
-//	@version		1.0
-//	@description	API for managing mints and offers
-
+// @title			Fractal Engine API
+// @version		1.0
+// @description	API for managing mints and offers
 type RpcServer struct {
 	config  *config.Config
 	quit    chan bool
@@ -29,9 +29,12 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClie
 
 	handler := withCORS(mux)
 
-	HandleMintRoutes(store, gossipClient, mux)
-	HandleOfferRoutes(store, gossipClient, mux)
-	HandleInvoiceRoutes(store, gossipClient, mux)
+	limiter := rate.NewLimiter(rate.Limit(cfg.RateLimitPerSecond), cfg.RateLimitPerSecond*3)
+	handler = rateLimitMiddleware(limiter, handler)
+
+	HandleMintRoutes(store, gossipClient, mux, cfg)
+	HandleOfferRoutes(store, gossipClient, mux, cfg)
+	HandleInvoiceRoutes(store, gossipClient, mux, cfg)
 	HandleStatRoutes(store, mux)
 	HandleHealthRoutes(store, mux)
 
@@ -46,6 +49,16 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClie
 		quit:    make(chan bool),
 		Running: false,
 	}
+}
+
+func rateLimitMiddleware(limiter *rate.Limiter, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !limiter.Allow() {
+			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func withCORS(next http.Handler) http.Handler {

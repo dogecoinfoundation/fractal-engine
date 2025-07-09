@@ -53,3 +53,14 @@ scripts/generate_docs.sh
 - Sign invoices from seller
 - Ensure we put in a transaction the confirming of a invoice
 - Have invoice limit (unconfirmed)
+
+
+- Overall Rate Limit on API
+- Mints (rate limited) (do we have a hard cap? and just gossip them?)
+- Cap Offers per Seller/Buyer
+- Invoice validation logic
+- Gossip Random??
+- Endpoints for searching offers
+- Delete Offers (after invoice done)
+- Endpoints for deleting resources
+- Logic for deleting... (once invoice is confirmed, cant delete??)

@@ -3,6 +3,7 @@ package test_rpc
 import (
 	"testing"
 
+	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"gotest.tools/assert"
 )
@@ -10,7 +11,7 @@ import (
 func TestMints(t *testing.T) {
 	tokenisationStore, dogenetClient, mux, feClient := SetupRpcTest(t)
 
-	rpc.HandleMintRoutes(tokenisationStore, dogenetClient, mux)
+	rpc.HandleMintRoutes(tokenisationStore, dogenetClient, mux, &config.Config{})
 
 	offer := rpc.CreateMintRequest{
 		Title:         "Test Mint",

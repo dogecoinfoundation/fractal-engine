@@ -25,6 +25,10 @@ func main() {
 	var databaseURL string
 	var persistFollower bool
 	var migrationsPath string
+	var rateLimitPerSecond int
+	var invoiceLimit int
+	var buyOfferLimit int
+	var sellOfferLimit int
 
 	flag.StringVar(&rpcServerHost, "rpc-server-host", "0.0.0.0", "RPC Server Host")
 	flag.StringVar(&rpcServerPort, "rpc-server-port", "8080", "RPC Server Port")
@@ -38,22 +42,30 @@ func main() {
 	flag.StringVar(&databaseURL, "database-url", "sqlite://fractal-engine.db", "Database URL")
 	flag.StringVar(&migrationsPath, "migrations-path", "db/migrations", "Migrations Path")
 	flag.BoolVar(&persistFollower, "persist-follower", true, "Persist Follower")
+	flag.IntVar(&rateLimitPerSecond, "api-rate-limit-per-second", 10, "API Rate Limit Per Second")
+	flag.IntVar(&invoiceLimit, "invoice-limit", 100, "Invoice Limit (per mint)")
+	flag.IntVar(&buyOfferLimit, "buy-offer-limit", 3, "Buy Offer Limit (per buyer per mint)")
+	flag.IntVar(&sellOfferLimit, "sell-offer-limit", 3, "Sell Offer Limit (per seller per mint)")
 
 	flag.Parse()
 
 	cfg := &config.Config{
-		RpcServerHost:   rpcServerHost,
-		RpcServerPort:   rpcServerPort,
-		DogeNetNetwork:  dogeNetNetwork,
-		DogeNetAddress:  dogeNetAddress,
-		DogeScheme:      dogeScheme,
-		DogeHost:        dogeHost,
-		DogePort:        dogePort,
-		DogeUser:        dogeUser,
-		DogePassword:    dogePassword,
-		DatabaseURL:     databaseURL,
-		PersistFollower: persistFollower,
-		MigrationsPath:  migrationsPath,
+		RpcServerHost:      rpcServerHost,
+		RpcServerPort:      rpcServerPort,
+		DogeNetNetwork:     dogeNetNetwork,
+		DogeNetAddress:     dogeNetAddress,
+		DogeScheme:         dogeScheme,
+		DogeHost:           dogeHost,
+		DogePort:           dogePort,
+		DogeUser:           dogeUser,
+		DogePassword:       dogePassword,
+		DatabaseURL:        databaseURL,
+		PersistFollower:    persistFollower,
+		MigrationsPath:     migrationsPath,
+		RateLimitPerSecond: rateLimitPerSecond,
+		InvoiceLimit:       invoiceLimit,
+		BuyOfferLimit:      buyOfferLimit,
+		SellOfferLimit:     sellOfferLimit,
 	}
 
 	tokenStore, err := store.NewTokenisationStore(cfg.DatabaseURL, *cfg)

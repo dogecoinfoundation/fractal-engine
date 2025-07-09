@@ -3,13 +3,14 @@ package test_rpc
 import (
 	"testing"
 
+	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"gotest.tools/assert"
 )
 
 func TestInvoices(t *testing.T) {
 	tokenisationStore, dogenetClient, mux, feClient := SetupRpcTest(t)
-	rpc.HandleInvoiceRoutes(tokenisationStore, dogenetClient, mux)
+	rpc.HandleInvoiceRoutes(tokenisationStore, dogenetClient, mux, &config.Config{})
 
 	invoice := rpc.CreateInvoiceRequest{
 		PaymentAddress:         "0x122122121212121",

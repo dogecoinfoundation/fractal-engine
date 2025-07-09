@@ -13,13 +13,19 @@ import (
 
 type FakeGossipClient struct {
 	dogenet.GossipClient
-	offers   []store.Offer
-	mints    []store.Mint
-	invoices []store.UnconfirmedInvoice
+	buyOffers  []store.BuyOffer
+	sellOffers []store.SellOffer
+	mints      []store.Mint
+	invoices   []store.UnconfirmedInvoice
 }
 
-func (g *FakeGossipClient) GossipOffer(offer store.Offer) error {
-	g.offers = append(g.offers, offer)
+func (g *FakeGossipClient) GossipBuyOffer(offer store.BuyOffer) error {
+	g.buyOffers = append(g.buyOffers, offer)
+	return nil
+}
+
+func (g *FakeGossipClient) GossipSellOffer(offer store.SellOffer) error {
+	g.sellOffers = append(g.sellOffers, offer)
 	return nil
 }
 
@@ -38,8 +44,10 @@ func SetupRpcTest(t *testing.T) (*store.TokenisationStore, *FakeGossipClient, *h
 	server := httptest.NewServer(mux)
 
 	dogenetClient := &FakeGossipClient{
-		offers: []store.Offer{},
-		mints:  []store.Mint{},
+		buyOffers:  []store.BuyOffer{},
+		sellOffers: []store.SellOffer{},
+		mints:      []store.Mint{},
+		invoices:   []store.UnconfirmedInvoice{},
 	}
 
 	feClient := client.NewTokenisationClient(server.URL)

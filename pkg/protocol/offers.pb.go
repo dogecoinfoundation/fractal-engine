@@ -22,75 +22,28 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type OfferType int32
-
-const (
-	OfferType_SELL OfferType = 0
-	OfferType_BUY  OfferType = 1
-)
-
-// Enum value maps for OfferType.
-var (
-	OfferType_name = map[int32]string{
-		0: "SELL",
-		1: "BUY",
-	}
-	OfferType_value = map[string]int32{
-		"SELL": 0,
-		"BUY":  1,
-	}
-)
-
-func (x OfferType) Enum() *OfferType {
-	p := new(OfferType)
-	*p = x
-	return p
-}
-
-func (x OfferType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (OfferType) Descriptor() protoreflect.EnumDescriptor {
-	return file_pkg_protocol_offers_proto_enumTypes[0].Descriptor()
-}
-
-func (OfferType) Type() protoreflect.EnumType {
-	return &file_pkg_protocol_offers_proto_enumTypes[0]
-}
-
-func (x OfferType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use OfferType.Descriptor instead.
-func (OfferType) EnumDescriptor() ([]byte, []int) {
-	return file_pkg_protocol_offers_proto_rawDescGZIP(), []int{0}
-}
-
-type OfferMessageEnvelope struct {
+type BuyOfferMessageEnvelope struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          int32                  `protobuf:"varint,1,opt,name=type,proto3" json:"type,omitempty"`
-	Version       int32                  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
-	Payload       *OfferMessage          `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	Version       int32                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	Payload       *BuyOfferMessage       `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *OfferMessageEnvelope) Reset() {
-	*x = OfferMessageEnvelope{}
+func (x *BuyOfferMessageEnvelope) Reset() {
+	*x = BuyOfferMessageEnvelope{}
 	mi := &file_pkg_protocol_offers_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *OfferMessageEnvelope) String() string {
+func (x *BuyOfferMessageEnvelope) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*OfferMessageEnvelope) ProtoMessage() {}
+func (*BuyOfferMessageEnvelope) ProtoMessage() {}
 
-func (x *OfferMessageEnvelope) ProtoReflect() protoreflect.Message {
+func (x *BuyOfferMessageEnvelope) ProtoReflect() protoreflect.Message {
 	mi := &file_pkg_protocol_offers_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -102,60 +55,47 @@ func (x *OfferMessageEnvelope) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use OfferMessageEnvelope.ProtoReflect.Descriptor instead.
-func (*OfferMessageEnvelope) Descriptor() ([]byte, []int) {
+// Deprecated: Use BuyOfferMessageEnvelope.ProtoReflect.Descriptor instead.
+func (*BuyOfferMessageEnvelope) Descriptor() ([]byte, []int) {
 	return file_pkg_protocol_offers_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *OfferMessageEnvelope) GetType() int32 {
-	if x != nil {
-		return x.Type
-	}
-	return 0
-}
-
-func (x *OfferMessageEnvelope) GetVersion() int32 {
+func (x *BuyOfferMessageEnvelope) GetVersion() int32 {
 	if x != nil {
 		return x.Version
 	}
 	return 0
 }
 
-func (x *OfferMessageEnvelope) GetPayload() *OfferMessage {
+func (x *BuyOfferMessageEnvelope) GetPayload() *BuyOfferMessage {
 	if x != nil {
 		return x.Payload
 	}
 	return nil
 }
 
-type OfferMessage struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Type           OfferType              `protobuf:"varint,2,opt,name=type,proto3,enum=fractalengine.OfferType" json:"type,omitempty"`
-	OffererAddress string                 `protobuf:"bytes,3,opt,name=offerer_address,json=offererAddress,proto3" json:"offerer_address,omitempty"`
-	Hash           string                 `protobuf:"bytes,4,opt,name=hash,proto3" json:"hash,omitempty"`
-	Quantity       int32                  `protobuf:"varint,5,opt,name=quantity,proto3" json:"quantity,omitempty"`
-	Price          int32                  `protobuf:"varint,6,opt,name=price,proto3" json:"price,omitempty"`
-	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	BlockHeight    int32                  `protobuf:"varint,8,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+type SellOfferMessageEnvelope struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Version       int32                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	Payload       *SellOfferMessage      `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *OfferMessage) Reset() {
-	*x = OfferMessage{}
+func (x *SellOfferMessageEnvelope) Reset() {
+	*x = SellOfferMessageEnvelope{}
 	mi := &file_pkg_protocol_offers_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *OfferMessage) String() string {
+func (x *SellOfferMessageEnvelope) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*OfferMessage) ProtoMessage() {}
+func (*SellOfferMessageEnvelope) ProtoMessage() {}
 
-func (x *OfferMessage) ProtoReflect() protoreflect.Message {
+func (x *SellOfferMessageEnvelope) ProtoReflect() protoreflect.Message {
 	mi := &file_pkg_protocol_offers_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -167,89 +107,247 @@ func (x *OfferMessage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use OfferMessage.ProtoReflect.Descriptor instead.
-func (*OfferMessage) Descriptor() ([]byte, []int) {
+// Deprecated: Use SellOfferMessageEnvelope.ProtoReflect.Descriptor instead.
+func (*SellOfferMessageEnvelope) Descriptor() ([]byte, []int) {
 	return file_pkg_protocol_offers_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *OfferMessage) GetId() string {
+func (x *SellOfferMessageEnvelope) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *SellOfferMessageEnvelope) GetPayload() *SellOfferMessage {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+type BuyOfferMessage struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OffererAddress string                 `protobuf:"bytes,2,opt,name=offerer_address,json=offererAddress,proto3" json:"offerer_address,omitempty"`
+	SellerAddress  string                 `protobuf:"bytes,3,opt,name=seller_address,json=sellerAddress,proto3" json:"seller_address,omitempty"`
+	Hash           string                 `protobuf:"bytes,4,opt,name=hash,proto3" json:"hash,omitempty"`
+	MintHash       string                 `protobuf:"bytes,5,opt,name=mint_hash,json=mintHash,proto3" json:"mint_hash,omitempty"`
+	Quantity       int32                  `protobuf:"varint,6,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	Price          int32                  `protobuf:"varint,7,opt,name=price,proto3" json:"price,omitempty"`
+	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *BuyOfferMessage) Reset() {
+	*x = BuyOfferMessage{}
+	mi := &file_pkg_protocol_offers_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuyOfferMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuyOfferMessage) ProtoMessage() {}
+
+func (x *BuyOfferMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_protocol_offers_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuyOfferMessage.ProtoReflect.Descriptor instead.
+func (*BuyOfferMessage) Descriptor() ([]byte, []int) {
+	return file_pkg_protocol_offers_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BuyOfferMessage) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *OfferMessage) GetType() OfferType {
-	if x != nil {
-		return x.Type
-	}
-	return OfferType_SELL
-}
-
-func (x *OfferMessage) GetOffererAddress() string {
+func (x *BuyOfferMessage) GetOffererAddress() string {
 	if x != nil {
 		return x.OffererAddress
 	}
 	return ""
 }
 
-func (x *OfferMessage) GetHash() string {
+func (x *BuyOfferMessage) GetSellerAddress() string {
+	if x != nil {
+		return x.SellerAddress
+	}
+	return ""
+}
+
+func (x *BuyOfferMessage) GetHash() string {
 	if x != nil {
 		return x.Hash
 	}
 	return ""
 }
 
-func (x *OfferMessage) GetQuantity() int32 {
+func (x *BuyOfferMessage) GetMintHash() string {
+	if x != nil {
+		return x.MintHash
+	}
+	return ""
+}
+
+func (x *BuyOfferMessage) GetQuantity() int32 {
 	if x != nil {
 		return x.Quantity
 	}
 	return 0
 }
 
-func (x *OfferMessage) GetPrice() int32 {
+func (x *BuyOfferMessage) GetPrice() int32 {
 	if x != nil {
 		return x.Price
 	}
 	return 0
 }
 
-func (x *OfferMessage) GetCreatedAt() *timestamppb.Timestamp {
+func (x *BuyOfferMessage) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return nil
 }
 
-func (x *OfferMessage) GetBlockHeight() int32 {
+type SellOfferMessage struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OffererAddress string                 `protobuf:"bytes,2,opt,name=offerer_address,json=offererAddress,proto3" json:"offerer_address,omitempty"`
+	Hash           string                 `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
+	MintHash       string                 `protobuf:"bytes,4,opt,name=mint_hash,json=mintHash,proto3" json:"mint_hash,omitempty"`
+	Quantity       int32                  `protobuf:"varint,5,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	Price          int32                  `protobuf:"varint,6,opt,name=price,proto3" json:"price,omitempty"`
+	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SellOfferMessage) Reset() {
+	*x = SellOfferMessage{}
+	mi := &file_pkg_protocol_offers_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SellOfferMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SellOfferMessage) ProtoMessage() {}
+
+func (x *SellOfferMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_protocol_offers_proto_msgTypes[3]
 	if x != nil {
-		return x.BlockHeight
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SellOfferMessage.ProtoReflect.Descriptor instead.
+func (*SellOfferMessage) Descriptor() ([]byte, []int) {
+	return file_pkg_protocol_offers_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SellOfferMessage) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SellOfferMessage) GetOffererAddress() string {
+	if x != nil {
+		return x.OffererAddress
+	}
+	return ""
+}
+
+func (x *SellOfferMessage) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+func (x *SellOfferMessage) GetMintHash() string {
+	if x != nil {
+		return x.MintHash
+	}
+	return ""
+}
+
+func (x *SellOfferMessage) GetQuantity() int32 {
+	if x != nil {
+		return x.Quantity
 	}
 	return 0
+}
+
+func (x *SellOfferMessage) GetPrice() int32 {
+	if x != nil {
+		return x.Price
+	}
+	return 0
+}
+
+func (x *SellOfferMessage) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
 }
 
 var File_pkg_protocol_offers_proto protoreflect.FileDescriptor
 
 const file_pkg_protocol_offers_proto_rawDesc = "" +
 	"\n" +
-	"\x19pkg/protocol/offers.proto\x12\rfractalengine\x1a\x1fgoogle/protobuf/timestamp.proto\"{\n" +
-	"\x14OfferMessageEnvelope\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\x05R\x04type\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\x05R\aversion\x125\n" +
-	"\apayload\x18\x03 \x01(\v2\x1b.fractalengine.OfferMessageR\apayload\"\x99\x02\n" +
-	"\fOfferMessage\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12,\n" +
-	"\x04type\x18\x02 \x01(\x0e2\x18.fractalengine.OfferTypeR\x04type\x12'\n" +
-	"\x0fofferer_address\x18\x03 \x01(\tR\x0eoffererAddress\x12\x12\n" +
-	"\x04hash\x18\x04 \x01(\tR\x04hash\x12\x1a\n" +
+	"\x19pkg/protocol/offers.proto\x12\rfractalengine\x1a\x1fgoogle/protobuf/timestamp.proto\"m\n" +
+	"\x17BuyOfferMessageEnvelope\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\x05R\aversion\x128\n" +
+	"\apayload\x18\x02 \x01(\v2\x1e.fractalengine.BuyOfferMessageR\apayload\"o\n" +
+	"\x18SellOfferMessageEnvelope\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\x05R\aversion\x129\n" +
+	"\apayload\x18\x02 \x01(\v2\x1f.fractalengine.SellOfferMessageR\apayload\"\x8f\x02\n" +
+	"\x0fBuyOfferMessage\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
+	"\x0fofferer_address\x18\x02 \x01(\tR\x0eoffererAddress\x12%\n" +
+	"\x0eseller_address\x18\x03 \x01(\tR\rsellerAddress\x12\x12\n" +
+	"\x04hash\x18\x04 \x01(\tR\x04hash\x12\x1b\n" +
+	"\tmint_hash\x18\x05 \x01(\tR\bmintHash\x12\x1a\n" +
+	"\bquantity\x18\x06 \x01(\x05R\bquantity\x12\x14\n" +
+	"\x05price\x18\a \x01(\x05R\x05price\x129\n" +
+	"\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xe9\x01\n" +
+	"\x10SellOfferMessage\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
+	"\x0fofferer_address\x18\x02 \x01(\tR\x0eoffererAddress\x12\x12\n" +
+	"\x04hash\x18\x03 \x01(\tR\x04hash\x12\x1b\n" +
+	"\tmint_hash\x18\x04 \x01(\tR\bmintHash\x12\x1a\n" +
 	"\bquantity\x18\x05 \x01(\x05R\bquantity\x12\x14\n" +
 	"\x05price\x18\x06 \x01(\x05R\x05price\x129\n" +
 	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12!\n" +
-	"\fblock_height\x18\b \x01(\x05R\vblockHeight*\x1e\n" +
-	"\tOfferType\x12\b\n" +
-	"\x04SELL\x10\x00\x12\a\n" +
-	"\x03BUY\x10\x01B\x0eZ\fpkg/protocolb\x06proto3"
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\x0eZ\fpkg/protocolb\x06proto3"
 
 var (
 	file_pkg_protocol_offers_proto_rawDescOnce sync.Once
@@ -263,23 +361,24 @@ func file_pkg_protocol_offers_proto_rawDescGZIP() []byte {
 	return file_pkg_protocol_offers_proto_rawDescData
 }
 
-var file_pkg_protocol_offers_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_pkg_protocol_offers_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_pkg_protocol_offers_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_pkg_protocol_offers_proto_goTypes = []any{
-	(OfferType)(0),                // 0: fractalengine.OfferType
-	(*OfferMessageEnvelope)(nil),  // 1: fractalengine.OfferMessageEnvelope
-	(*OfferMessage)(nil),          // 2: fractalengine.OfferMessage
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(*BuyOfferMessageEnvelope)(nil),  // 0: fractalengine.BuyOfferMessageEnvelope
+	(*SellOfferMessageEnvelope)(nil), // 1: fractalengine.SellOfferMessageEnvelope
+	(*BuyOfferMessage)(nil),          // 2: fractalengine.BuyOfferMessage
+	(*SellOfferMessage)(nil),         // 3: fractalengine.SellOfferMessage
+	(*timestamppb.Timestamp)(nil),    // 4: google.protobuf.Timestamp
 }
 var file_pkg_protocol_offers_proto_depIdxs = []int32{
-	2, // 0: fractalengine.OfferMessageEnvelope.payload:type_name -> fractalengine.OfferMessage
-	0, // 1: fractalengine.OfferMessage.type:type_name -> fractalengine.OfferType
-	3, // 2: fractalengine.OfferMessage.created_at:type_name -> google.protobuf.Timestamp
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 0: fractalengine.BuyOfferMessageEnvelope.payload:type_name -> fractalengine.BuyOfferMessage
+	3, // 1: fractalengine.SellOfferMessageEnvelope.payload:type_name -> fractalengine.SellOfferMessage
+	4, // 2: fractalengine.BuyOfferMessage.created_at:type_name -> google.protobuf.Timestamp
+	4, // 3: fractalengine.SellOfferMessage.created_at:type_name -> google.protobuf.Timestamp
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_pkg_protocol_offers_proto_init() }
@@ -292,14 +391,13 @@ func file_pkg_protocol_offers_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_protocol_offers_proto_rawDesc), len(file_pkg_protocol_offers_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   2,
+			NumEnums:      0,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_pkg_protocol_offers_proto_goTypes,
 		DependencyIndexes: file_pkg_protocol_offers_proto_depIdxs,
-		EnumInfos:         file_pkg_protocol_offers_proto_enumTypes,
 		MessageInfos:      file_pkg_protocol_offers_proto_msgTypes,
 	}.Build()
 	File_pkg_protocol_offers_proto = out.File

@@ -4,7 +4,8 @@ import "github.com/Dogebox-WG/gossip/dnet"
 
 var ChanFE = dnet.NewTag("FractalEngine")
 var TagMint = dnet.NewTag("Mint")
-var TagOffer = dnet.NewTag("Offer")
+var TagBuyOffer = dnet.NewTag("BuyOffer")
+var TagSellOffer = dnet.NewTag("SellOffer")
 var TagInvoice = dnet.NewTag("Invoice")
 
 type GossipMessage struct {

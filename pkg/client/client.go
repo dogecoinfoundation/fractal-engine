@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"dogecoin.org/fractal-engine/pkg/rpc"
-	"dogecoin.org/fractal-engine/pkg/store"
 )
 
 type TokenisationClient struct {
@@ -71,13 +70,13 @@ func (c *TokenisationClient) GetHealth() (rpc.GetHealthResponse, error) {
 	return result, nil
 }
 
-func (c *TokenisationClient) Offer(offer *rpc.CreateOfferRequest) (rpc.CreateOfferResponse, error) {
+func (c *TokenisationClient) CreateBuyOffer(offer *rpc.CreateBuyOfferRequest) (rpc.CreateOfferResponse, error) {
 	jsonValue, err := json.Marshal(offer)
 	if err != nil {
 		return rpc.CreateOfferResponse{}, err
 	}
 
-	resp, err := c.httpClient.Post(c.baseUrl+"/offers", "application/json", bytes.NewBuffer(jsonValue))
+	resp, err := c.httpClient.Post(c.baseUrl+"/buy-offers", "application/json", bytes.NewBuffer(jsonValue))
 
 	if err != nil {
 		return rpc.CreateOfferResponse{}, err
@@ -87,7 +86,7 @@ func (c *TokenisationClient) Offer(offer *rpc.CreateOfferRequest) (rpc.CreateOff
 
 	if resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
-		return rpc.CreateOfferResponse{}, fmt.Errorf("failed to create offer: %s", string(body))
+		return rpc.CreateOfferResponse{}, fmt.Errorf("failed to create buy offer: %s", string(body))
 	}
 
 	body, _ := io.ReadAll(resp.Body)
@@ -100,23 +99,74 @@ func (c *TokenisationClient) Offer(offer *rpc.CreateOfferRequest) (rpc.CreateOff
 	return result, nil
 }
 
-func (c *TokenisationClient) GetOffers(page int, limit int, mintHash string, offerType store.OfferType) (rpc.GetOffersResponse, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/offers?page=%d&limit=%d&mint_hash=%s&type=%d", page, limit, mintHash, offerType))
+func (c *TokenisationClient) CreateSellOffer(offer *rpc.CreateSellOfferRequest) (rpc.CreateOfferResponse, error) {
+	jsonValue, err := json.Marshal(offer)
 	if err != nil {
-		return rpc.GetOffersResponse{}, err
+		return rpc.CreateOfferResponse{}, err
+	}
+
+	resp, err := c.httpClient.Post(c.baseUrl+"/sell-offers", "application/json", bytes.NewBuffer(jsonValue))
+
+	if err != nil {
+		return rpc.CreateOfferResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return rpc.CreateOfferResponse{}, fmt.Errorf("failed to create sell offer: %s", string(body))
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.CreateOfferResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.CreateOfferResponse{}, err
+	}
+
+	return result, nil
+}
+
+func (c *TokenisationClient) GetBuyOffersBySellerAddress(page int, limit int, mintHash string, sellerAddress string) (rpc.GetBuyOffersResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/buy-offers?page=%d&limit=%d&mint_hash=%s&seller_address=%s", page, limit, mintHash, sellerAddress))
+	if err != nil {
+		return rpc.GetBuyOffersResponse{}, err
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return rpc.GetOffersResponse{}, fmt.Errorf("failed to get offers: %s", resp.Status)
+		return rpc.GetBuyOffersResponse{}, fmt.Errorf("failed to get offers: %s", resp.Status)
 	}
 
 	body, _ := io.ReadAll(resp.Body)
-	var result rpc.GetOffersResponse
+	var result rpc.GetBuyOffersResponse
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		return rpc.GetOffersResponse{}, err
+		return rpc.GetBuyOffersResponse{}, err
+	}
+
+	return result, nil
+}
+
+func (c *TokenisationClient) GetBuyOffers(page int, limit int, mintHash string) (rpc.GetBuyOffersResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/buy-offers?page=%d&limit=%d&mint_hash=%s", page, limit, mintHash))
+	if err != nil {
+		return rpc.GetBuyOffersResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rpc.GetBuyOffersResponse{}, fmt.Errorf("failed to get offers: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.GetBuyOffersResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.GetBuyOffersResponse{}, err
 	}
 
 	return result, nil

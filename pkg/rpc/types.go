@@ -56,20 +56,49 @@ type GetStatsResponse struct {
 	Stats map[string]int `json:"stats"`
 }
 
-type CreateOfferRequest struct {
-	Type           store.OfferType `json:"type"`
-	OffererAddress string          `json:"offerer_address"`
-	MintHash       string          `json:"mint_hash"`
-	Quantity       int             `json:"quantity"`
-	Price          int             `json:"price"`
+type CreateBuyOfferRequest struct {
+	OffererAddress string `json:"offerer_address"`
+	SellerAddress  string `json:"seller_address"`
+	MintHash       string `json:"mint_hash"`
+	Quantity       int    `json:"quantity"`
+	Price          int    `json:"price"`
 }
 
-func (req *CreateOfferRequest) Validate() error {
+func (req *CreateBuyOfferRequest) Validate() error {
 	var missing []string
 
-	if req.Type == store.OfferType(0) {
-		missing = append(missing, "type")
+	if req.OffererAddress == "" {
+		missing = append(missing, "offerer_address")
 	}
+	if req.SellerAddress == "" {
+		missing = append(missing, "seller_address")
+	}
+	if req.MintHash == "" {
+		missing = append(missing, "mint_hash")
+	}
+	if req.Quantity <= 0 {
+		missing = append(missing, "quantity (must be > 0)")
+	}
+	if req.Price <= 0 {
+		missing = append(missing, "price (must be > 0)")
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing or invalid fields: %s", strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+type CreateSellOfferRequest struct {
+	OffererAddress string `json:"offerer_address"`
+	MintHash       string `json:"mint_hash"`
+	Quantity       int    `json:"quantity"`
+	Price          int    `json:"price"`
+}
+
+func (req *CreateSellOfferRequest) Validate() error {
+	var missing []string
+
 	if req.OffererAddress == "" {
 		missing = append(missing, "offerer_address")
 	}
@@ -93,11 +122,18 @@ type CreateOfferResponse struct {
 	Id string `json:"id"`
 }
 
-type GetOffersResponse struct {
-	Offers []store.Offer `json:"offers"`
-	Total  int           `json:"total"`
-	Page   int           `json:"page"`
-	Limit  int           `json:"limit"`
+type GetSellOffersResponse struct {
+	Offers []store.SellOffer `json:"offers"`
+	Total  int               `json:"total"`
+	Page   int               `json:"page"`
+	Limit  int               `json:"limit"`
+}
+
+type GetBuyOffersResponse struct {
+	Offers []store.BuyOffer `json:"offers"`
+	Total  int              `json:"total"`
+	Page   int              `json:"page"`
+	Limit  int              `json:"limit"`
 }
 
 type CreateInvoiceRequest struct {

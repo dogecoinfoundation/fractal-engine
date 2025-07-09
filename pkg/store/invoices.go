@@ -33,6 +33,13 @@ func (s *TokenisationStore) GetInvoices(offset int, limit int, mintHash string, 
 	return invoices, nil
 }
 
+func (s *TokenisationStore) CountUnconfirmedInvoices(mintHash string, offererAddress string) (int, error) {
+	row := s.DB.QueryRow("SELECT COUNT(*) FROM unconfirmed_invoices WHERE buy_offer_mint_hash = $1 AND buy_offer_offerer_address = $2", mintHash, offererAddress)
+	var count int
+	err := row.Scan(&count)
+	return count, err
+}
+
 func (s *TokenisationStore) GetUnconfirmedInvoices(offset int, limit int, mintHash string, offererAddress string) ([]UnconfirmedInvoice, error) {
 	rows, err := s.DB.Query("SELECT id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address FROM unconfirmed_invoices WHERE buy_offer_mint_hash = $1 AND buy_offer_offerer_address = $2 LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
 	if err != nil {

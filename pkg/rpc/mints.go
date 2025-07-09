@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
@@ -16,10 +17,11 @@ import (
 type MintRoutes struct {
 	store        *store.TokenisationStore
 	gossipClient dogenet.GossipClient
+	cfg          *config.Config
 }
 
-func HandleMintRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux) {
-	mr := &MintRoutes{store: store, gossipClient: gossipClient}
+func HandleMintRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux, cfg *config.Config) {
+	mr := &MintRoutes{store: store, gossipClient: gossipClient, cfg: cfg}
 
 	mux.HandleFunc("/mints", mr.handleMints)
 }
