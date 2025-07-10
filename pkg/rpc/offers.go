@@ -22,7 +22,9 @@ type OfferRoutes struct {
 func HandleOfferRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux, cfg *config.Config) {
 	or := &OfferRoutes{store: store, gossipClient: gossipClient, cfg: cfg}
 
+	mux.HandleFunc("/buy-offers/delete", or.handleDeleteBuyOffer)
 	mux.HandleFunc("/buy-offers", or.handleBuyOffers)
+	mux.HandleFunc("/sell-offers/delete", or.handleDeleteSellOffer)
 	mux.HandleFunc("/sell-offers", or.handleSellOffers)
 }
 
@@ -32,6 +34,8 @@ func (or *OfferRoutes) handleBuyOffers(w http.ResponseWriter, r *http.Request) {
 		or.getBuyOffers(w, r)
 	case http.MethodPost:
 		or.postBuyOffer(w, r)
+	case http.MethodDelete:
+		or.deleteBuyOffer(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -46,6 +50,80 @@ func (or *OfferRoutes) handleSellOffers(w http.ResponseWriter, r *http.Request) 
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func (or *OfferRoutes) handleDeleteBuyOffer(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		or.deleteBuyOffer(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (or *OfferRoutes) handleDeleteSellOffer(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		or.deleteSellOffer(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (or *OfferRoutes) deleteBuyOffer(w http.ResponseWriter, r *http.Request) {
+	var request DeleteBuyOfferRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	err := request.Validate()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = or.store.DeleteBuyOffer(request.Payload.OfferHash, request.PublicKey)
+	if err != nil {
+		http.Error(w, "Failed to delete buy offer", http.StatusBadRequest)
+		return
+	}
+
+	err = or.gossipClient.GossipDeleteBuyOffer(request.Payload.OfferHash, request.PublicKey, request.Signature)
+	if err != nil {
+		http.Error(w, "Unable to gossip", http.StatusInternalServerError)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, "Buy offer deleted")
+}
+
+func (or *OfferRoutes) deleteSellOffer(w http.ResponseWriter, r *http.Request) {
+	var request DeleteSellOfferRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	err := request.Validate()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = or.store.DeleteSellOffer(request.Payload.OfferHash, request.PublicKey)
+	if err != nil {
+		http.Error(w, "Failed to delete sell offer", http.StatusBadRequest)
+		return
+	}
+
+	err = or.gossipClient.GossipDeleteSellOffer(request.Payload.OfferHash, request.PublicKey, request.Signature)
+	if err != nil {
+		http.Error(w, "Unable to gossip", http.StatusInternalServerError)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, "Sell offer deleted")
 }
 
 func (or *OfferRoutes) getSellOffers(w http.ResponseWriter, r *http.Request) {
@@ -158,11 +236,11 @@ func (or *OfferRoutes) postSellOffer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := CreateOfferResponse{
-		Id: id,
+		Id:   id,
+		Hash: newOfferWithoutId.Hash,
 	}
 
 	respondJSON(w, http.StatusCreated, response)
-	return
 }
 
 // @Summary		Get all buy offers
@@ -301,7 +379,8 @@ func (or *OfferRoutes) postBuyOffer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := CreateOfferResponse{
-		Id: id,
+		Id:   id,
+		Hash: newOfferWithoutId.Hash,
 	}
 
 	respondJSON(w, http.StatusCreated, response)

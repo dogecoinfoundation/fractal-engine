@@ -21,6 +21,8 @@ definitions:
         $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
       owner_address:
         type: string
+      public_key:
+        type: string
       requirements:
         $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
       tags:
@@ -32,18 +34,41 @@ definitions:
       transaction_hash:
         $ref: '#/definitions/sql.NullString'
     type: object
-  dogecoin_org_fractal-engine_pkg_store.OfferType:
-    enum:
-    - 0
-    - 1
-    type: integer
-    x-enum-varnames:
-    - OfferTypeBuy
-    - OfferTypeSell
   dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap:
     additionalProperties: true
     type: object
+  pkg_rpc.CreateBuyOfferRequest:
+    properties:
+      payload:
+        $ref: '#/definitions/pkg_rpc.CreateBuyOfferRequestPayload'
+      public_key:
+        type: string
+      signature:
+        type: string
+    type: object
+  pkg_rpc.CreateBuyOfferRequestPayload:
+    properties:
+      mint_hash:
+        type: string
+      offerer_address:
+        type: string
+      price:
+        type: integer
+      quantity:
+        type: integer
+      seller_address:
+        type: string
+    type: object
   pkg_rpc.CreateMintRequest:
+    properties:
+      payload:
+        $ref: '#/definitions/pkg_rpc.CreateMintRequestPayload'
+      public_key:
+        type: string
+      signature:
+        type: string
+    type: object
+  pkg_rpc.CreateMintRequestPayload:
     properties:
       description:
         type: string
@@ -75,19 +100,6 @@ definitions:
       transaction_hash:
         type: string
     type: object
-  pkg_rpc.CreateOfferRequest:
-    properties:
-      mint_hash:
-        type: string
-      offerer_address:
-        type: string
-      price:
-        type: integer
-      quantity:
-        type: integer
-      type:
-        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.OfferType'
-    type: object
   pkg_rpc.CreateOfferResponse:
     properties:
       id:
@@ -99,6 +111,8 @@ definitions:
         type: integer
       latest_block_height:
         type: integer
+      updated_at:
+        type: string
     type: object
   pkg_rpc.GetMintsResponse:
     properties:
@@ -127,6 +141,36 @@ info:
   title: Fractal Engine API
   version: "1.0"
 paths:
+  /buy-offers:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new buy offer
+      parameters:
+      - description: Buy offer request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_rpc.CreateBuyOfferRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg_rpc.CreateOfferResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create a buy offer
+      tags:
+      - buy-offers
   /health:
     get:
       consumes:
@@ -207,34 +251,4 @@ paths:
       summary: Create a mint
       tags:
       - mints
-  /offers:
-    post:
-      consumes:
-      - application/json
-      description: Creates a new offer
-      parameters:
-      - description: Offer request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/pkg_rpc.CreateOfferRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg_rpc.CreateOfferResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Create an offer
-      tags:
-      - offers
 swagger: "2.0"

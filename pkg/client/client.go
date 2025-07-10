@@ -132,6 +132,78 @@ func (c *TokenisationClient) CreateBuyOffer(offer *rpc.CreateBuyOfferRequest) (r
 	return result, nil
 }
 
+func (c *TokenisationClient) DeleteBuyOffer(offer *rpc.DeleteBuyOfferRequest) (string, error) {
+	payloadBytes, err := json.Marshal(offer.Payload)
+	if err != nil {
+		return "", err
+	}
+
+	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	if err != nil {
+		return "", err
+	}
+
+	offer.SignedRequest = rpc.SignedRequest{
+		PublicKey: c.pubHex,
+		Signature: signature,
+	}
+
+	jsonValue, err := json.Marshal(offer)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := c.httpClient.Post(c.baseUrl+"/buy-offers/delete", "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("failed to delete buy offer: %s", string(body))
+	}
+
+	return "", nil
+}
+
+func (c *TokenisationClient) DeleteSellOffer(offer *rpc.DeleteSellOfferRequest) (string, error) {
+	payloadBytes, err := json.Marshal(offer.Payload)
+	if err != nil {
+		return "", err
+	}
+
+	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	if err != nil {
+		return "", err
+	}
+
+	offer.SignedRequest = rpc.SignedRequest{
+		PublicKey: c.pubHex,
+		Signature: signature,
+	}
+
+	jsonValue, err := json.Marshal(offer)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := c.httpClient.Post(c.baseUrl+"/sell-offers/delete", "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("failed to delete sell offer: %s", string(body))
+	}
+
+	return "", nil
+}
+
 func (c *TokenisationClient) CreateSellOffer(offer *rpc.CreateSellOfferRequest) (rpc.CreateOfferResponse, error) {
 	payloadBytes, err := json.Marshal(offer.Payload)
 	if err != nil {

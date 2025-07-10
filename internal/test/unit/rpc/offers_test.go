@@ -44,6 +44,25 @@ func TestSellOffers(t *testing.T) {
 	assert.Equal(t, dogenetClient.sellOffers[0].MintHash, offer.Payload.MintHash)
 	assert.Equal(t, dogenetClient.sellOffers[0].Quantity, offer.Payload.Quantity)
 	assert.Equal(t, dogenetClient.sellOffers[0].Price, offer.Payload.Price)
+
+	deleteOffer := rpc.DeleteSellOfferRequest{
+		Payload: rpc.DeleteSellOfferRequestPayload{
+			OfferHash: offerResponse.Hash,
+		},
+	}
+
+	_, err = feClient.DeleteSellOffer(&deleteOffer)
+	if err != nil {
+		t.Fatalf("Failed to delete offer: %v", err)
+	}
+
+	offers, err = tokenisationStore.GetSellOffers(0, 10, "myminthash", "0x122122121212121")
+	if err != nil {
+		t.Fatalf("Failed to get offers: %v", err)
+	}
+
+	assert.Equal(t, len(offers), 0)
+	assert.Equal(t, len(dogenetClient.sellOffers), 0)
 }
 
 func TestBuyOffers(t *testing.T) {
@@ -83,4 +102,23 @@ func TestBuyOffers(t *testing.T) {
 	assert.Equal(t, dogenetClient.buyOffers[0].SellerAddress, offer.Payload.SellerAddress)
 	assert.Equal(t, dogenetClient.buyOffers[0].MintHash, offer.Payload.MintHash)
 	assert.Equal(t, dogenetClient.buyOffers[0].Quantity, offer.Payload.Quantity)
+
+	deleteOffer := rpc.DeleteBuyOfferRequest{
+		Payload: rpc.DeleteBuyOfferRequestPayload{
+			OfferHash: offerResponse.Hash,
+		},
+	}
+
+	_, err = feClient.DeleteBuyOffer(&deleteOffer)
+	if err != nil {
+		t.Fatalf("Failed to delete offer: %v", err)
+	}
+
+	offers, err = tokenisationStore.GetBuyOffersByMintAndSellerAddress(0, 10, "myminthash", "0x122122121212121")
+	if err != nil {
+		t.Fatalf("Failed to get offers: %v", err)
+	}
+
+	assert.Equal(t, len(offers), 0)
+	assert.Equal(t, len(dogenetClient.buyOffers), 0)
 }

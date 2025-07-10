@@ -15,6 +15,52 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/buy-offers": {
+            "post": {
+                "description": "Creates a new buy offer",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "buy-offers"
+                ],
+                "summary": "Create a buy offer",
+                "parameters": [
+                    {
+                        "description": "Buy offer request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/pkg_rpc.CreateBuyOfferRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg_rpc.CreateOfferResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Returns the current and latest block height",
@@ -136,52 +182,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/offers": {
-            "post": {
-                "description": "Creates a new offer",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "offers"
-                ],
-                "summary": "Create an offer",
-                "parameters": [
-                    {
-                        "description": "Offer request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/pkg_rpc.CreateOfferRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pkg_rpc.CreateOfferResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -218,6 +218,9 @@ const docTemplate = `{
                 "owner_address": {
                     "type": "string"
                 },
+                "public_key": {
+                    "type": "string"
+                },
                 "requirements": {
                     "$ref": "#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap"
                 },
@@ -235,22 +238,59 @@ const docTemplate = `{
                 }
             }
         },
-        "dogecoin_org_fractal-engine_pkg_store.OfferType": {
-            "type": "integer",
-            "enum": [
-                0,
-                1
-            ],
-            "x-enum-varnames": [
-                "OfferTypeBuy",
-                "OfferTypeSell"
-            ]
-        },
         "dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap": {
             "type": "object",
             "additionalProperties": true
         },
+        "pkg_rpc.CreateBuyOfferRequest": {
+            "type": "object",
+            "properties": {
+                "payload": {
+                    "$ref": "#/definitions/pkg_rpc.CreateBuyOfferRequestPayload"
+                },
+                "public_key": {
+                    "type": "string"
+                },
+                "signature": {
+                    "type": "string"
+                }
+            }
+        },
+        "pkg_rpc.CreateBuyOfferRequestPayload": {
+            "type": "object",
+            "properties": {
+                "mint_hash": {
+                    "type": "string"
+                },
+                "offerer_address": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "seller_address": {
+                    "type": "string"
+                }
+            }
+        },
         "pkg_rpc.CreateMintRequest": {
+            "type": "object",
+            "properties": {
+                "payload": {
+                    "$ref": "#/definitions/pkg_rpc.CreateMintRequestPayload"
+                },
+                "public_key": {
+                    "type": "string"
+                },
+                "signature": {
+                    "type": "string"
+                }
+            }
+        },
+        "pkg_rpc.CreateMintRequestPayload": {
             "type": "object",
             "properties": {
                 "description": {
@@ -299,26 +339,6 @@ const docTemplate = `{
                 }
             }
         },
-        "pkg_rpc.CreateOfferRequest": {
-            "type": "object",
-            "properties": {
-                "mint_hash": {
-                    "type": "string"
-                },
-                "offerer_address": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "integer"
-                },
-                "quantity": {
-                    "type": "integer"
-                },
-                "type": {
-                    "$ref": "#/definitions/dogecoin_org_fractal-engine_pkg_store.OfferType"
-                }
-            }
-        },
         "pkg_rpc.CreateOfferResponse": {
             "type": "object",
             "properties": {
@@ -335,6 +355,9 @@ const docTemplate = `{
                 },
                 "latest_block_height": {
                     "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },

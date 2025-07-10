@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -57,8 +56,6 @@ func (req *SignedRequest) ValidateSignature(payloadBytes []byte) error {
 	if !signature.Verify(hash[:], pubKey) {
 		return errors.New("signature verification failed")
 	}
-
-	log.Println("signature", signature)
 
 	return nil
 }
@@ -143,6 +140,84 @@ type CreateBuyOfferRequestPayload struct {
 	MintHash       string `json:"mint_hash"`
 	Quantity       int    `json:"quantity"`
 	Price          int    `json:"price"`
+}
+
+type DeleteBuyOfferRequest struct {
+	SignedRequest
+	Payload DeleteBuyOfferRequestPayload `json:"payload"`
+}
+
+type DeleteBuyOfferRequestPayload struct {
+	OfferHash string `json:"offer_hash"`
+}
+
+type DeleteSellOfferRequest struct {
+	SignedRequest
+	Payload DeleteSellOfferRequestPayload `json:"payload"`
+}
+
+type DeleteSellOfferRequestPayload struct {
+	OfferHash string `json:"offer_hash"`
+}
+
+func (req *DeleteBuyOfferRequest) Validate() error {
+	var missing []string
+
+	if req.PublicKey == "" {
+		missing = append(missing, "public_key")
+	}
+	if req.Signature == "" {
+		missing = append(missing, "signature")
+	}
+
+	if req.Payload.OfferHash == "" {
+		missing = append(missing, "offer_hash")
+	}
+
+	payloadBytes, err := json.Marshal(req.Payload)
+	if err != nil {
+		return fmt.Errorf("invalid payload: %w", err)
+	}
+
+	if err := req.ValidateSignature(payloadBytes); err != nil {
+		return err
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing or invalid fields: %s", strings.Join(missing, ", "))
+	}
+
+	return nil
+}
+
+func (req *DeleteSellOfferRequest) Validate() error {
+	var missing []string
+
+	if req.PublicKey == "" {
+		missing = append(missing, "public_key")
+	}
+	if req.Signature == "" {
+		missing = append(missing, "signature")
+	}
+
+	if req.Payload.OfferHash == "" {
+		missing = append(missing, "offer_hash")
+	}
+
+	payloadBytes, err := json.Marshal(req.Payload)
+	if err != nil {
+		return fmt.Errorf("invalid payload: %w", err)
+	}
+
+	if err := req.ValidateSignature(payloadBytes); err != nil {
+		return err
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing or invalid fields: %s", strings.Join(missing, ", "))
+	}
+
+	return nil
 }
 
 func (req *CreateBuyOfferRequest) Validate() error {
@@ -235,7 +310,8 @@ func (req *CreateSellOfferRequest) Validate() error {
 }
 
 type CreateOfferResponse struct {
-	Id string `json:"id"`
+	Id   string `json:"id"`
+	Hash string `json:"hash"`
 }
 
 type GetSellOffersResponse struct {

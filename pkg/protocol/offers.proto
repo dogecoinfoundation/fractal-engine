@@ -24,6 +24,7 @@ message BuyOfferMessage {
     int32 quantity = 6;
     int32 price = 7;
     google.protobuf.Timestamp created_at = 8;
+    string public_key = 9;
 }
 
 message SellOfferMessage {
@@ -34,5 +35,27 @@ message SellOfferMessage {
     int32 quantity = 5;
     int32 price = 6;
     google.protobuf.Timestamp created_at = 7;
+    string public_key = 8;
 }
 
+message DeleteBuyOfferMessage {
+    string hash = 1;
+    string public_key = 2;
+    string signature = 3;
+}
+
+message DeleteBuyOfferMessageEnvelope {
+    int32 version = 1;
+    DeleteBuyOfferMessage payload = 2;
+}
+
+message DeleteSellOfferMessage {
+    string hash = 1;
+    string public_key = 2;
+    string signature = 3;
+}
+
+message DeleteSellOfferMessageEnvelope {
+    int32 version = 1;
+    DeleteSellOfferMessage payload = 2;
+}

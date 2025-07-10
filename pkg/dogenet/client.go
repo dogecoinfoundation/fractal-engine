@@ -12,7 +12,9 @@ import (
 	"net/http"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/protocol"
+
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/Dogebox-WG/gossip/dnet"
 	"google.golang.org/protobuf/proto"
@@ -41,6 +43,8 @@ type GossipClient interface {
 	GossipMint(record store.Mint) error
 	GossipBuyOffer(record store.BuyOffer) error
 	GossipSellOffer(record store.SellOffer) error
+	GossipDeleteBuyOffer(hash string, publicKey string, signature string) error
+	GossipDeleteSellOffer(hash string, publicKey string, signature string) error
 	GossipUnconfirmedInvoice(record store.UnconfirmedInvoice) error
 	GetNodes() (GetNodesResponse, error)
 	AddPeer(addPeer AddPeer) error
@@ -185,6 +189,60 @@ func (c *DogeNetClient) GossipUnconfirmedInvoice(record store.UnconfirmedInvoice
 	}
 
 	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagInvoice, c.feKey, data)
+
+	err = encodedMsg.Send(c.sock)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *DogeNetClient) GossipDeleteBuyOffer(hash string, publicKey string, signature string) error {
+	message := protocol.DeleteBuyOfferMessage{
+		Hash:      hash,
+		PublicKey: publicKey,
+		Signature: signature,
+	}
+
+	envelope := protocol.DeleteBuyOfferMessageEnvelope{
+		Version: protocol.DEFAULT_VERSION,
+		Payload: &message,
+	}
+
+	data, err := proto.Marshal(&envelope)
+	if err != nil {
+		log.Fatalf("Failed to marshal: %v", err)
+	}
+
+	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagDeleteBuyOffer, c.feKey, data)
+
+	err = encodedMsg.Send(c.sock)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *DogeNetClient) GossipDeleteSellOffer(hash string, publicKey string, signature string) error {
+	message := protocol.DeleteSellOfferMessage{
+		Hash:      hash,
+		PublicKey: publicKey,
+		Signature: signature,
+	}
+
+	envelope := protocol.DeleteSellOfferMessageEnvelope{
+		Version: protocol.DEFAULT_VERSION,
+		Payload: &message,
+	}
+
+	data, err := proto.Marshal(&envelope)
+	if err != nil {
+		log.Fatalf("Failed to marshal: %v", err)
+	}
+
+	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagDeleteSellOffer, c.feKey, data)
 
 	err = encodedMsg.Send(c.sock)
 	if err != nil {
@@ -357,6 +415,10 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 			c.recvSellOffer(msg)
 		case TagInvoice:
 			c.recvInvoice(msg)
+		case TagDeleteBuyOffer:
+			c.recvDeleteBuyOffer(msg)
+		case TagDeleteSellOffer:
+			c.recvDeleteSellOffer(msg)
 		default:
 			log.Printf("[FE] unknown message: [%s][%s]", msg.Chan, msg.Tag)
 		}
@@ -395,9 +457,8 @@ func (c *DogeNetClient) recvBuyOffer(msg dnet.Message) {
 		Quantity:       int(offer.Quantity),
 		Price:          int(offer.Price),
 		CreatedAt:      offer.CreatedAt.AsTime(),
+		PublicKey:      offer.PublicKey,
 	}
-
-	// TODO: check if the offer is valid
 
 	id, err := c.store.SaveBuyOffer(&offerWithoutID)
 	if err != nil {
@@ -426,6 +487,7 @@ func (c *DogeNetClient) recvSellOffer(msg dnet.Message) {
 		Quantity:       int(offer.Quantity),
 		Price:          int(offer.Price),
 		CreatedAt:      offer.CreatedAt.AsTime(),
+		PublicKey:      offer.PublicKey,
 	}
 
 	id, err := c.store.SaveSellOffer(&offerWithoutID)
@@ -511,4 +573,58 @@ func (c *DogeNetClient) recvInvoice(msg dnet.Message) {
 	}
 
 	log.Printf("[FE] unconfirmed invoice saved: %v", id)
+}
+
+func (c *DogeNetClient) recvDeleteBuyOffer(msg dnet.Message) {
+	log.Printf("[FE] received delete buy offer message")
+
+	envelope := protocol.DeleteBuyOfferMessageEnvelope{}
+	err := proto.Unmarshal(msg.Payload, &envelope)
+	if err != nil {
+		log.Println("Error deserializing message envelope:", err)
+		return
+	}
+
+	message := envelope.Payload
+
+	err = doge.ValidateSignature([]byte(message.Hash), message.PublicKey, message.Signature)
+	if err != nil {
+		log.Println("Error validating signature:", err)
+		return
+	}
+
+	err = c.store.DeleteBuyOffer(message.Hash, message.PublicKey)
+	if err != nil {
+		log.Println("Error deleting buy offer:", err)
+		return
+	}
+
+	log.Printf("[FE] buy offer deleted: %v", message.Hash)
+}
+
+func (c *DogeNetClient) recvDeleteSellOffer(msg dnet.Message) {
+	log.Printf("[FE] received delete sell offer message")
+
+	envelope := protocol.DeleteSellOfferMessageEnvelope{}
+	err := proto.Unmarshal(msg.Payload, &envelope)
+	if err != nil {
+		log.Println("Error deserializing message envelope:", err)
+		return
+	}
+
+	message := envelope.Payload
+
+	err = doge.ValidateSignature([]byte(message.Hash), message.PublicKey, message.Signature)
+	if err != nil {
+		log.Println("Error validating signature:", err)
+		return
+	}
+
+	err = c.store.DeleteSellOffer(message.Hash, message.PublicKey)
+	if err != nil {
+		log.Println("Error deleting sell offer:", err)
+		return
+	}
+
+	log.Printf("[FE] sell offer deleted: %v", message.Hash)
 }

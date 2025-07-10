@@ -1,6 +1,7 @@
 package test_rpc
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,6 +38,30 @@ func (g *FakeGossipClient) GossipMint(mint store.Mint) error {
 
 func (g *FakeGossipClient) GossipUnconfirmedInvoice(invoice store.UnconfirmedInvoice) error {
 	g.invoices = append(g.invoices, invoice)
+	return nil
+}
+
+func (g *FakeGossipClient) GossipDeleteBuyOffer(hash string, publicKey string, signature string) error {
+	for i, offer := range g.buyOffers {
+		if offer.Hash == hash {
+			log.Printf("Deleted buy offer: %v", offer)
+			g.buyOffers = append(g.buyOffers[:i], g.buyOffers[i+1:]...)
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func (g *FakeGossipClient) GossipDeleteSellOffer(hash string, publicKey string, signature string) error {
+	for i, offer := range g.sellOffers {
+		if offer.Hash == hash {
+			log.Printf("Deleted sell offer: %v", offer)
+			g.sellOffers = append(g.sellOffers[:i], g.sellOffers[i+1:]...)
+			return nil
+		}
+	}
+
 	return nil
 }
 

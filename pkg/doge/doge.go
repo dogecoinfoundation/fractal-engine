@@ -3,6 +3,7 @@ package doge
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
@@ -50,4 +51,38 @@ func SignPayload(payload []byte, privHex string) (string, error) {
 	sigHex := hex.EncodeToString(sigDER)
 
 	return sigHex, nil
+}
+
+func ValidateSignature(payload []byte, publicKey string, signature string) error {
+	// 2. Hash message
+	hash := sha256.Sum256(payload)
+
+	// 3. Decode public key
+	pubKeyBytes, err := hex.DecodeString(publicKey)
+	if err != nil {
+		return errors.New("invalid public key format")
+	}
+
+	pubKey, err := btcec.ParsePubKey(pubKeyBytes)
+	if err != nil {
+		return errors.New("failed to parse public key")
+	}
+
+	// 4. Decode signature
+	sigBytes, err := hex.DecodeString(signature)
+	if err != nil {
+		return errors.New("invalid signature encoding")
+	}
+
+	sig, err := ecdsa.ParseDERSignature(sigBytes)
+	if err != nil {
+		return errors.New("failed to parse DER signature")
+	}
+
+	// 5. Verify signature
+	if !sig.Verify(hash[:], pubKey) {
+		return errors.New("signature verification failed")
+	}
+
+	return nil
 }

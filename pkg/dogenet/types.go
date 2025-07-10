@@ -7,6 +7,8 @@ var TagMint = dnet.NewTag("Mint")
 var TagBuyOffer = dnet.NewTag("BuyOffer")
 var TagSellOffer = dnet.NewTag("SellOffer")
 var TagInvoice = dnet.NewTag("Invoice")
+var TagDeleteBuyOffer = dnet.NewTag("DeleteBuyOffer")
+var TagDeleteSellOffer = dnet.NewTag("DeleteSellOffer")
 
 type GossipMessage struct {
 	Topic string `json:"topic"`

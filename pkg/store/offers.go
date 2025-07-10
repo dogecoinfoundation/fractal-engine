@@ -99,3 +99,13 @@ func (s *TokenisationStore) SaveSellOffer(d *SellOfferWithoutID) (string, error)
 
 	return id, err
 }
+
+func (s *TokenisationStore) DeleteBuyOffer(hash string, publicKey string) error {
+	_, err := s.DB.Exec("DELETE FROM buy_offers WHERE hash = $1 AND public_key = $2", hash, publicKey)
+	return err
+}
+
+func (s *TokenisationStore) DeleteSellOffer(hash string, publicKey string) error {
+	_, err := s.DB.Exec("DELETE FROM sell_offers WHERE hash = $1 AND public_key = $2", hash, publicKey)
+	return err
+}
