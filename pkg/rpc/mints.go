@@ -121,15 +121,16 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newMintWithoutId := &store.MintWithoutID{
-		Title:         request.Title,
-		FractionCount: request.FractionCount,
-		Description:   request.Description,
-		Tags:          request.Tags,
-		Metadata:      request.Metadata,
+		Title:         request.Payload.Title,
+		FractionCount: request.Payload.FractionCount,
+		Description:   request.Payload.Description,
+		Tags:          request.Payload.Tags,
+		Metadata:      request.Payload.Metadata,
 		CreatedAt:     time.Now(),
-		Requirements:  request.Requirements,
-		LockupOptions: request.LockupOptions,
-		FeedURL:       request.FeedURL,
+		Requirements:  request.Payload.Requirements,
+		LockupOptions: request.Payload.LockupOptions,
+		FeedURL:       request.Payload.FeedURL,
+		PublicKey:     request.PublicKey,
 	}
 
 	newMintWithoutId.Hash, err = newMintWithoutId.GenerateHash()

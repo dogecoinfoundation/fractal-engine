@@ -5,7 +5,8 @@ create table sell_offers (
     mint_hash text not null,
     quantity int not null,
     price int not null,
-    created_at timestamp not null
+    created_at timestamp not null,
+    public_key text not null
 );
 
 create table buy_offers (
@@ -16,5 +17,6 @@ create table buy_offers (
     mint_hash text not null,
     quantity int not null,
     price int not null,
-    created_at timestamp not null
+    created_at timestamp not null,
+    public_key text not null
 );

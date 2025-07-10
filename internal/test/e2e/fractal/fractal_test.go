@@ -11,6 +11,7 @@ import (
 
 	"dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/client"
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"github.com/testcontainers/testcontainers-go/network"
 	"gotest.tools/assert"
@@ -92,20 +93,28 @@ TestFractal is a test that checks if the fractal engine is working correctly.
 */
 func TestFractal(t *testing.T) {
 	feConfigA := testGroups[0].FeConfig
-	feClient := client.NewTokenisationClient("http://" + feConfigA.RpcServerHost + ":" + feConfigA.RpcServerPort)
+
+	privHex, pubHex, _, err := doge.GenerateDogecoinKeypair()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	feClient := client.NewTokenisationClient("http://"+feConfigA.RpcServerHost+":"+feConfigA.RpcServerPort, privHex, pubHex)
 
 	mintResponse, err := feClient.Mint(&rpc.CreateMintRequest{
-		Title:         "Test Mint",
-		FractionCount: 100,
-		Description:   "Test Description",
-		Tags:          []string{"test", "mint"},
-		Metadata: map[string]interface{}{
-			"test": "test",
+		Payload: rpc.CreateMintRequestPayload{
+			Title:         "Test Mint",
+			FractionCount: 100,
+			Description:   "Test Description",
+			Tags:          []string{"test", "mint"},
+			Metadata: map[string]interface{}{
+				"test": "test",
+			},
+			Requirements:  map[string]interface{}{},
+			LockupOptions: map[string]interface{}{},
+			FeedURL:       "https://test.com",
+			OwnerAddress:  "testA0",
 		},
-		Requirements:  map[string]interface{}{},
-		LockupOptions: map[string]interface{}{},
-		FeedURL:       "https://test.com",
-		OwnerAddress:  "testA0",
 	})
 
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/client"
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
@@ -50,7 +51,12 @@ func SetupRpcTest(t *testing.T) (*store.TokenisationStore, *FakeGossipClient, *h
 		invoices:   []store.UnconfirmedInvoice{},
 	}
 
-	feClient := client.NewTokenisationClient(server.URL)
+	privHex, pubHex, _, err := doge.GenerateDogecoinKeypair()
+	if err != nil {
+		t.Fatalf("Failed to generate dogecoin keypair: %v", err)
+	}
+
+	feClient := client.NewTokenisationClient(server.URL, privHex, pubHex)
 
 	tokenisationStore := test_support.SetupTestDB(t)
 

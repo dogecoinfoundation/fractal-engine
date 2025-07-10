@@ -40,6 +40,7 @@ type MintWithoutID struct {
 	Requirements    StringInterfaceMap `json:"requirements"`
 	LockupOptions   StringInterfaceMap `json:"lockup_options"`
 	FeedURL         string             `json:"feed_url"`
+	PublicKey       string             `json:"public_key"`
 }
 
 type MintHash struct {
@@ -51,6 +52,7 @@ type MintHash struct {
 	Requirements  StringInterfaceMap `json:"requirements"`
 	LockupOptions StringInterfaceMap `json:"lockup_options"`
 	OwnerAddress  string             `json:"owner_address"`
+	PublicKey     string             `json:"public_key"`
 }
 
 type OnChainTransaction struct {
@@ -74,6 +76,7 @@ func (m *MintWithoutID) GenerateHash() (string, error) {
 		Metadata:      m.Metadata,
 		Requirements:  m.Requirements,
 		LockupOptions: m.LockupOptions,
+		PublicKey:     m.PublicKey,
 	}
 
 	// Serialize to JSON with sorted keys
@@ -109,6 +112,7 @@ type BuyOfferWithoutID struct {
 	Quantity       int       `json:"quantity"`
 	Price          int       `json:"price"`
 	CreatedAt      time.Time `json:"created_at"`
+	PublicKey      string    `json:"public_key"`
 }
 
 type SellOfferWithoutID struct {
@@ -118,6 +122,7 @@ type SellOfferWithoutID struct {
 	Quantity       int       `json:"quantity"`
 	Price          int       `json:"price"`
 	CreatedAt      time.Time `json:"created_at"`
+	PublicKey      string    `json:"public_key"`
 }
 
 type BuyOfferHash struct {
@@ -126,6 +131,7 @@ type BuyOfferHash struct {
 	SellerAddress  string `json:"seller_address"`
 	Quantity       int    `json:"quantity"`
 	Price          int    `json:"price"`
+	PublicKey      string `json:"public_key"`
 }
 
 func (o *BuyOfferWithoutID) GenerateHash() (string, error) {
@@ -135,6 +141,7 @@ func (o *BuyOfferWithoutID) GenerateHash() (string, error) {
 		SellerAddress:  o.SellerAddress,
 		Quantity:       o.Quantity,
 		Price:          o.Price,
+		PublicKey:      o.PublicKey,
 	}
 
 	jsonBytes, err := json.Marshal(input)
@@ -152,6 +159,7 @@ type SellOfferHash struct {
 	OffererAddress string `json:"offerer_address"`
 	Quantity       int    `json:"quantity"`
 	Price          int    `json:"price"`
+	PublicKey      string `json:"public_key"`
 }
 
 func (o *SellOfferWithoutID) GenerateHash() (string, error) {
@@ -160,6 +168,7 @@ func (o *SellOfferWithoutID) GenerateHash() (string, error) {
 		OffererAddress: o.OffererAddress,
 		Quantity:       o.Quantity,
 		Price:          o.Price,
+		PublicKey:      o.PublicKey,
 	}
 
 	jsonBytes, err := json.Marshal(input)
@@ -194,6 +203,7 @@ type UnconfirmedInvoice struct {
 	PaymentAddress         string    `json:"payment_address"`
 	SellOfferAddress       string    `json:"sell_offer_address"`
 	BuyOfferValue          float64   `json:"buy_offer_value"`
+	PublicKey              string    `json:"public_key"`
 }
 
 func (u *UnconfirmedInvoice) GenerateHash() (string, error) {
@@ -205,6 +215,7 @@ func (u *UnconfirmedInvoice) GenerateHash() (string, error) {
 		BuyOfferOffererAddress: u.BuyOfferOffererAddress,
 		SellOfferAddress:       u.SellOfferAddress,
 		BuyOfferValue:          u.BuyOfferValue,
+		PublicKey:              u.PublicKey,
 	}
 
 	jsonBytes, err := json.Marshal(input)
@@ -226,6 +237,7 @@ type UnconfirmedInvoiceHash struct {
 	PaymentAddress         string  `json:"payment_address"`
 	SellOfferAddress       string  `json:"sell_offer_address"`
 	BuyOfferValue          float64 `json:"buy_offer_value"`
+	PublicKey              string  `json:"public_key"`
 }
 
 type InvoiceHash struct {
@@ -236,6 +248,7 @@ type InvoiceHash struct {
 	PaymentAddress   string  `json:"payment_address"`
 	SellOfferAddress string  `json:"sell_offer_address"`
 	BuyOfferValue    float64 `json:"buy_offer_value"`
+	PublicKey        string  `json:"public_key"`
 }
 
 type Invoice struct {
@@ -253,6 +266,7 @@ type Invoice struct {
 	BlockHeight            int64     `json:"block_height"`
 	TransactionHash        string    `json:"transaction_hash"`
 	PendingTokenBalanceId  string    `json:"pending_token_balance_id"`
+	PublicKey              string    `json:"public_key"`
 }
 
 func (i *Invoice) GenerateHash() (string, error) {
@@ -264,6 +278,7 @@ func (i *Invoice) GenerateHash() (string, error) {
 		PaymentAddress:   i.PaymentAddress,
 		SellOfferAddress: i.SellOfferAddress,
 		BuyOfferValue:    i.BuyOfferValue,
+		PublicKey:        i.PublicKey,
 	}
 
 	jsonBytes, err := json.Marshal(input)

@@ -127,7 +127,7 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	count, err := ir.store.CountUnconfirmedInvoices(request.BuyOfferMintHash, request.BuyOfferOffererAddress)
+	count, err := ir.store.CountUnconfirmedInvoices(request.Payload.BuyOfferMintHash, request.Payload.BuyOfferOffererAddress)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -139,14 +139,15 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newInvoiceWithoutId := &store.UnconfirmedInvoice{
-		BuyOfferHash:           request.BuyOfferHash,
-		BuyOfferMintHash:       request.BuyOfferMintHash,
-		BuyOfferQuantity:       request.BuyOfferQuantity,
-		BuyOfferPrice:          request.BuyOfferPrice,
-		BuyOfferOffererAddress: request.BuyOfferOffererAddress,
-		PaymentAddress:         request.PaymentAddress,
+		BuyOfferHash:           request.Payload.BuyOfferHash,
+		BuyOfferMintHash:       request.Payload.BuyOfferMintHash,
+		BuyOfferQuantity:       request.Payload.BuyOfferQuantity,
+		BuyOfferPrice:          request.Payload.BuyOfferPrice,
+		BuyOfferOffererAddress: request.Payload.BuyOfferOffererAddress,
+		PaymentAddress:         request.Payload.PaymentAddress,
 		CreatedAt:              time.Now(),
-		SellOfferAddress:       request.SellOfferAddress,
+		SellOfferAddress:       request.Payload.SellOfferAddress,
+		PublicKey:              request.PublicKey,
 	}
 
 	newInvoiceWithoutId.Hash, err = newInvoiceWithoutId.GenerateHash()

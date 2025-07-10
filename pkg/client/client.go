@@ -7,20 +7,38 @@ import (
 	"io"
 	"net/http"
 
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 )
 
 type TokenisationClient struct {
 	baseUrl    string
 	httpClient *http.Client
+	privHex    string
+	pubHex     string
 }
 
-func NewTokenisationClient(baseUrl string) *TokenisationClient {
+func NewTokenisationClient(baseUrl string, privHex string, pubHex string) *TokenisationClient {
 	httpClient := &http.Client{}
-	return &TokenisationClient{baseUrl: baseUrl, httpClient: httpClient}
+	return &TokenisationClient{baseUrl: baseUrl, httpClient: httpClient, privHex: privHex, pubHex: pubHex}
 }
 
 func (c *TokenisationClient) CreateInvoice(invoice *rpc.CreateInvoiceRequest) (rpc.CreateInvoiceResponse, error) {
+	payloadBytes, err := json.Marshal(invoice.Payload)
+	if err != nil {
+		return rpc.CreateInvoiceResponse{}, err
+	}
+
+	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	if err != nil {
+		return rpc.CreateInvoiceResponse{}, err
+	}
+
+	invoice.SignedRequest = rpc.SignedRequest{
+		PublicKey: c.pubHex,
+		Signature: signature,
+	}
+
 	jsonValue, err := json.Marshal(invoice)
 	if err != nil {
 		return rpc.CreateInvoiceResponse{}, err
@@ -71,6 +89,21 @@ func (c *TokenisationClient) GetHealth() (rpc.GetHealthResponse, error) {
 }
 
 func (c *TokenisationClient) CreateBuyOffer(offer *rpc.CreateBuyOfferRequest) (rpc.CreateOfferResponse, error) {
+	payloadBytes, err := json.Marshal(offer.Payload)
+	if err != nil {
+		return rpc.CreateOfferResponse{}, err
+	}
+
+	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	if err != nil {
+		return rpc.CreateOfferResponse{}, err
+	}
+
+	offer.SignedRequest = rpc.SignedRequest{
+		PublicKey: c.pubHex,
+		Signature: signature,
+	}
+
 	jsonValue, err := json.Marshal(offer)
 	if err != nil {
 		return rpc.CreateOfferResponse{}, err
@@ -100,6 +133,21 @@ func (c *TokenisationClient) CreateBuyOffer(offer *rpc.CreateBuyOfferRequest) (r
 }
 
 func (c *TokenisationClient) CreateSellOffer(offer *rpc.CreateSellOfferRequest) (rpc.CreateOfferResponse, error) {
+	payloadBytes, err := json.Marshal(offer.Payload)
+	if err != nil {
+		return rpc.CreateOfferResponse{}, err
+	}
+
+	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	if err != nil {
+		return rpc.CreateOfferResponse{}, err
+	}
+
+	offer.SignedRequest = rpc.SignedRequest{
+		PublicKey: c.pubHex,
+		Signature: signature,
+	}
+
 	jsonValue, err := json.Marshal(offer)
 	if err != nil {
 		return rpc.CreateOfferResponse{}, err
@@ -173,6 +221,21 @@ func (c *TokenisationClient) GetBuyOffers(page int, limit int, mintHash string) 
 }
 
 func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintResponse, error) {
+	payloadBytes, err := json.Marshal(mint.Payload)
+	if err != nil {
+		return rpc.CreateMintResponse{}, err
+	}
+
+	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	if err != nil {
+		return rpc.CreateMintResponse{}, err
+	}
+
+	mint.SignedRequest = rpc.SignedRequest{
+		PublicKey: c.pubHex,
+		Signature: signature,
+	}
+
 	jsonValue, err := json.Marshal(mint)
 	if err != nil {
 		return rpc.CreateMintResponse{}, err

@@ -1,14 +1,74 @@
 package rpc
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"dogecoin.org/fractal-engine/pkg/store"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 )
 
+type SignedRequest struct {
+	PublicKey string `json:"public_key"`
+	Signature string `json:"signature"`
+}
+
+func (req *SignedRequest) ValidateSignature(payloadBytes []byte) error {
+	if req.PublicKey == "" {
+		return fmt.Errorf("public_key is required")
+	}
+	if req.Signature == "" {
+		return fmt.Errorf("signature is required")
+	}
+
+	// 2. Hash message
+	hash := sha256.Sum256(payloadBytes)
+
+	// 3. Decode public key
+	pubKeyBytes, err := hex.DecodeString(req.PublicKey)
+	if err != nil {
+		return errors.New("invalid public key format")
+	}
+
+	pubKey, err := btcec.ParsePubKey(pubKeyBytes)
+	if err != nil {
+		return errors.New("failed to parse public key")
+	}
+
+	// 4. Decode signature
+	sigBytes, err := hex.DecodeString(req.Signature)
+	if err != nil {
+		return errors.New("invalid signature encoding")
+	}
+
+	signature, err := ecdsa.ParseDERSignature(sigBytes)
+	if err != nil {
+		return errors.New("failed to parse DER signature")
+	}
+
+	// 5. Verify signature
+	if !signature.Verify(hash[:], pubKey) {
+		return errors.New("signature verification failed")
+	}
+
+	log.Println("signature", signature)
+
+	return nil
+}
+
 type CreateMintRequest struct {
+	SignedRequest
+	Payload CreateMintRequestPayload `json:"payload"`
+}
+
+type CreateMintRequestPayload struct {
 	Title         string                   `json:"title"`
 	FractionCount int                      `json:"fraction_count"`
 	Description   string                   `json:"description"`
@@ -23,14 +83,30 @@ type CreateMintRequest struct {
 func (req *CreateMintRequest) Validate() error {
 	var missing []string
 
-	if req.Title == "" {
+	if req.PublicKey == "" {
+		missing = append(missing, "public_key")
+	}
+	if req.Signature == "" {
+		missing = append(missing, "signature")
+	}
+
+	if req.Payload.Title == "" {
 		missing = append(missing, "title")
 	}
-	if req.FractionCount <= 0 {
+	if req.Payload.FractionCount <= 0 {
 		missing = append(missing, "fraction_count (must be > 0)")
 	}
-	if req.Description == "" {
+	if req.Payload.Description == "" {
 		missing = append(missing, "description")
+	}
+
+	payloadBytes, err := json.Marshal(req.Payload)
+	if err != nil {
+		return fmt.Errorf("invalid payload: %w", err)
+	}
+
+	if err := req.ValidateSignature(payloadBytes); err != nil {
+		return err
 	}
 
 	if len(missing) > 0 {
@@ -57,6 +133,11 @@ type GetStatsResponse struct {
 }
 
 type CreateBuyOfferRequest struct {
+	SignedRequest
+	Payload CreateBuyOfferRequestPayload `json:"payload"`
+}
+
+type CreateBuyOfferRequestPayload struct {
 	OffererAddress string `json:"offerer_address"`
 	SellerAddress  string `json:"seller_address"`
 	MintHash       string `json:"mint_hash"`
@@ -67,20 +148,35 @@ type CreateBuyOfferRequest struct {
 func (req *CreateBuyOfferRequest) Validate() error {
 	var missing []string
 
-	if req.OffererAddress == "" {
+	if req.PublicKey == "" {
+		missing = append(missing, "public_key")
+	}
+	if req.Signature == "" {
+		missing = append(missing, "signature")
+	}
+	if req.Payload.OffererAddress == "" {
 		missing = append(missing, "offerer_address")
 	}
-	if req.SellerAddress == "" {
+	if req.Payload.SellerAddress == "" {
 		missing = append(missing, "seller_address")
 	}
-	if req.MintHash == "" {
+	if req.Payload.MintHash == "" {
 		missing = append(missing, "mint_hash")
 	}
-	if req.Quantity <= 0 {
+	if req.Payload.Quantity <= 0 {
 		missing = append(missing, "quantity (must be > 0)")
 	}
-	if req.Price <= 0 {
+	if req.Payload.Price <= 0 {
 		missing = append(missing, "price (must be > 0)")
+	}
+
+	payloadBytes, err := json.Marshal(req.Payload)
+	if err != nil {
+		return fmt.Errorf("invalid payload: %w", err)
+	}
+
+	if err := req.ValidateSignature(payloadBytes); err != nil {
+		return err
 	}
 
 	if len(missing) > 0 {
@@ -90,6 +186,11 @@ func (req *CreateBuyOfferRequest) Validate() error {
 }
 
 type CreateSellOfferRequest struct {
+	SignedRequest
+	Payload CreateSellOfferRequestPayload `json:"payload"`
+}
+
+type CreateSellOfferRequestPayload struct {
 	OffererAddress string `json:"offerer_address"`
 	MintHash       string `json:"mint_hash"`
 	Quantity       int    `json:"quantity"`
@@ -99,17 +200,32 @@ type CreateSellOfferRequest struct {
 func (req *CreateSellOfferRequest) Validate() error {
 	var missing []string
 
-	if req.OffererAddress == "" {
+	if req.PublicKey == "" {
+		missing = append(missing, "public_key")
+	}
+	if req.Signature == "" {
+		missing = append(missing, "signature")
+	}
+	if req.Payload.OffererAddress == "" {
 		missing = append(missing, "offerer_address")
 	}
-	if req.MintHash == "" {
+	if req.Payload.MintHash == "" {
 		missing = append(missing, "mint_hash")
 	}
-	if req.Quantity <= 0 {
+	if req.Payload.Quantity <= 0 {
 		missing = append(missing, "quantity (must be > 0)")
 	}
-	if req.Price <= 0 {
+	if req.Payload.Price <= 0 {
 		missing = append(missing, "price (must be > 0)")
+	}
+
+	payloadBytes, err := json.Marshal(req.Payload)
+	if err != nil {
+		return fmt.Errorf("invalid payload: %w", err)
+	}
+
+	if err := req.ValidateSignature(payloadBytes); err != nil {
+		return err
 	}
 
 	if len(missing) > 0 {
@@ -137,6 +253,11 @@ type GetBuyOffersResponse struct {
 }
 
 type CreateInvoiceRequest struct {
+	SignedRequest
+	Payload CreateInvoiceRequestPayload `json:"payload"`
+}
+
+type CreateInvoiceRequestPayload struct {
 	PaymentAddress         string `json:"payment_address"`
 	BuyOfferOffererAddress string `json:"buy_offer_offerer_address"`
 	BuyOfferHash           string `json:"buy_offer_hash"`
@@ -149,27 +270,42 @@ type CreateInvoiceRequest struct {
 func (req *CreateInvoiceRequest) Validate() error {
 	var missing []string
 
-	if req.PaymentAddress == "" {
+	if req.PublicKey == "" {
+		missing = append(missing, "public_key")
+	}
+	if req.Signature == "" {
+		missing = append(missing, "signature")
+	}
+	if req.Payload.PaymentAddress == "" {
 		missing = append(missing, "payment_address")
 	}
 
-	if req.BuyOfferOffererAddress == "" {
+	if req.Payload.BuyOfferOffererAddress == "" {
 		missing = append(missing, "buy_offer_offerer_address")
 	}
-	if req.BuyOfferHash == "" {
+	if req.Payload.BuyOfferHash == "" {
 		missing = append(missing, "buy_offer_hash")
 	}
-	if req.BuyOfferMintHash == "" {
+	if req.Payload.BuyOfferMintHash == "" {
 		missing = append(missing, "buy_offer_mint_hash")
 	}
-	if req.SellOfferAddress == "" {
+	if req.Payload.SellOfferAddress == "" {
 		missing = append(missing, "sell_offer_address")
 	}
-	if req.BuyOfferQuantity <= 0 {
+	if req.Payload.BuyOfferQuantity <= 0 {
 		missing = append(missing, "buy_offer_quantity (must be > 0)")
 	}
-	if req.BuyOfferPrice <= 0 {
+	if req.Payload.BuyOfferPrice <= 0 {
 		missing = append(missing, "buy_offer_price (must be > 0)")
+	}
+
+	payloadBytes, err := json.Marshal(req.Payload)
+	if err != nil {
+		return fmt.Errorf("invalid payload: %w", err)
+	}
+
+	if err := req.ValidateSignature(payloadBytes); err != nil {
+		return err
 	}
 
 	if len(missing) > 0 {

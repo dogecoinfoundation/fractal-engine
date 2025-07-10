@@ -9,7 +9,8 @@ create table unconfirmed_invoices (
     buy_offer_value float not null,
     payment_address text not null,
     sell_offer_address text not null,
-    created_at timestamp not null
+    created_at timestamp not null,
+    public_key text not null
 );
 
 create table token_balances (
@@ -45,5 +46,6 @@ create table invoices (
     paid_at timestamp,
     buy_offer_value float not null,
     sell_offer_address text not null,
-    created_at timestamp not null
+    created_at timestamp not null,
+    public_key text not null
 );

@@ -11,9 +11,9 @@ func (s *TokenisationStore) GetBuyOffersByMintAndSellerAddress(offset int, limit
 	var err error
 
 	if sellerAddress == "" {
-		rows, err = s.DB.Query("SELECT id, created_at, offerer_address, seller_address, hash, mint_hash, quantity, price FROM buy_offers WHERE mint_hash = $1 LIMIT $2 OFFSET $3", mintHash, limit, offset)
+		rows, err = s.DB.Query("SELECT id, created_at, offerer_address, seller_address, hash, mint_hash, quantity, price, public_key FROM buy_offers WHERE mint_hash = $1 LIMIT $2 OFFSET $3", mintHash, limit, offset)
 	} else {
-		rows, err = s.DB.Query("SELECT id, created_at, offerer_address, seller_address, hash, mint_hash, quantity, price FROM buy_offers WHERE mint_hash = $1 AND seller_address = $2 LIMIT $3 OFFSET $4", mintHash, sellerAddress, limit, offset)
+		rows, err = s.DB.Query("SELECT id, created_at, offerer_address, seller_address, hash, mint_hash, quantity, price, public_key FROM buy_offers WHERE mint_hash = $1 AND seller_address = $2 LIMIT $3 OFFSET $4", mintHash, sellerAddress, limit, offset)
 	}
 
 	if err != nil {
@@ -25,7 +25,7 @@ func (s *TokenisationStore) GetBuyOffersByMintAndSellerAddress(offset int, limit
 
 	for rows.Next() {
 		var offer BuyOffer
-		if err := rows.Scan(&offer.Id, &offer.CreatedAt, &offer.OffererAddress, &offer.SellerAddress, &offer.Hash, &offer.MintHash, &offer.Quantity, &offer.Price); err != nil {
+		if err := rows.Scan(&offer.Id, &offer.CreatedAt, &offer.OffererAddress, &offer.SellerAddress, &offer.Hash, &offer.MintHash, &offer.Quantity, &offer.Price, &offer.PublicKey); err != nil {
 			return nil, err
 		}
 
@@ -40,7 +40,7 @@ func (s *TokenisationStore) GetBuyOffersByMintAndSellerAddress(offset int, limit
 }
 
 func (s *TokenisationStore) GetSellOffers(offset int, limit int, mintHash string, offererAddress string) ([]SellOffer, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, offerer_address, hash, mint_hash, quantity, price FROM sell_offers WHERE mint_hash = $1 AND offerer_address = $2 LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
+	rows, err := s.DB.Query("SELECT id, created_at, offerer_address, hash, mint_hash, quantity, price, public_key FROM sell_offers WHERE mint_hash = $1 AND offerer_address = $2 LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (s *TokenisationStore) GetSellOffers(offset int, limit int, mintHash string
 
 	for rows.Next() {
 		var offer SellOffer
-		if err := rows.Scan(&offer.Id, &offer.CreatedAt, &offer.OffererAddress, &offer.Hash, &offer.MintHash, &offer.Quantity, &offer.Price); err != nil {
+		if err := rows.Scan(&offer.Id, &offer.CreatedAt, &offer.OffererAddress, &offer.Hash, &offer.MintHash, &offer.Quantity, &offer.Price, &offer.PublicKey); err != nil {
 			return nil, err
 		}
 
@@ -82,9 +82,9 @@ func (s *TokenisationStore) SaveBuyOffer(d *BuyOfferWithoutID) (string, error) {
 	id := uuid.New().String()
 
 	_, err := s.DB.Exec(`
-	INSERT INTO buy_offers (id, offerer_address, seller_address, hash, mint_hash, quantity, price, created_at)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`, id, d.OffererAddress, d.SellerAddress, d.Hash, d.MintHash, d.Quantity, d.Price, d.CreatedAt)
+	INSERT INTO buy_offers (id, offerer_address, seller_address, hash, mint_hash, quantity, price, created_at, public_key)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`, id, d.OffererAddress, d.SellerAddress, d.Hash, d.MintHash, d.Quantity, d.Price, d.CreatedAt, d.PublicKey)
 
 	return id, err
 }
@@ -93,9 +93,9 @@ func (s *TokenisationStore) SaveSellOffer(d *SellOfferWithoutID) (string, error)
 	id := uuid.New().String()
 
 	_, err := s.DB.Exec(`
-	INSERT INTO sell_offers (id, offerer_address, hash, mint_hash, quantity, price, created_at)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, id, d.OffererAddress, d.Hash, d.MintHash, d.Quantity, d.Price, d.CreatedAt)
+	INSERT INTO sell_offers (id, offerer_address, hash, mint_hash, quantity, price, created_at, public_key)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`, id, d.OffererAddress, d.Hash, d.MintHash, d.Quantity, d.Price, d.CreatedAt, d.PublicKey)
 
 	return id, err
 }

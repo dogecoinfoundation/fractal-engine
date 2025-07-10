@@ -115,7 +115,7 @@ func (or *OfferRoutes) postSellOffer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	count, err := or.store.CountSellOffers(request.MintHash, request.OffererAddress)
+	count, err := or.store.CountSellOffers(request.Payload.MintHash, request.Payload.OffererAddress)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -127,11 +127,12 @@ func (or *OfferRoutes) postSellOffer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newOfferWithoutId := &store.SellOfferWithoutID{
-		OffererAddress: request.OffererAddress,
-		MintHash:       request.MintHash,
-		Quantity:       request.Quantity,
-		Price:          request.Price,
+		OffererAddress: request.Payload.OffererAddress,
+		MintHash:       request.Payload.MintHash,
+		Quantity:       request.Payload.Quantity,
+		Price:          request.Payload.Price,
 		CreatedAt:      time.Now(),
+		PublicKey:      request.PublicKey,
 	}
 	newOfferWithoutId.Hash, err = newOfferWithoutId.GenerateHash()
 	if err != nil {
@@ -256,7 +257,7 @@ func (or *OfferRoutes) postBuyOffer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	count, err := or.store.CountBuyOffers(request.MintHash, request.OffererAddress, request.SellerAddress)
+	count, err := or.store.CountBuyOffers(request.Payload.MintHash, request.Payload.OffererAddress, request.Payload.SellerAddress)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -268,12 +269,13 @@ func (or *OfferRoutes) postBuyOffer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newOfferWithoutId := &store.BuyOfferWithoutID{
-		OffererAddress: request.OffererAddress,
-		MintHash:       request.MintHash,
-		SellerAddress:  request.SellerAddress,
-		Quantity:       request.Quantity,
-		Price:          request.Price,
+		OffererAddress: request.Payload.OffererAddress,
+		MintHash:       request.Payload.MintHash,
+		SellerAddress:  request.Payload.SellerAddress,
+		Quantity:       request.Payload.Quantity,
+		Price:          request.Payload.Price,
 		CreatedAt:      time.Now(),
+		PublicKey:      request.PublicKey,
 	}
 	newOfferWithoutId.Hash, err = newOfferWithoutId.GenerateHash()
 	if err != nil {
