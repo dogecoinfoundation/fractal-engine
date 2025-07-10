@@ -19,6 +19,8 @@ message InvoiceMessageEnvelope {
     int32 type = 1;
     int32 version = 2;
     InvoiceMessage payload = 3;
+    string public_key = 4;
+    string signature = 5;
 }
 
 // Payload of an invoice

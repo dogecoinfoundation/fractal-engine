@@ -105,6 +105,8 @@ type InvoiceMessageEnvelope struct {
 	Type          int32                  `protobuf:"varint,1,opt,name=type,proto3" json:"type,omitempty"`
 	Version       int32                  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
 	Payload       *InvoiceMessage        `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	PublicKey     string                 `protobuf:"bytes,4,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	Signature     string                 `protobuf:"bytes,5,opt,name=signature,proto3" json:"signature,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -158,6 +160,20 @@ func (x *InvoiceMessageEnvelope) GetPayload() *InvoiceMessage {
 		return x.Payload
 	}
 	return nil
+}
+
+func (x *InvoiceMessageEnvelope) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *InvoiceMessageEnvelope) GetSignature() string {
+	if x != nil {
+		return x.Signature
+	}
+	return ""
 }
 
 // Payload of an invoice
@@ -287,11 +303,14 @@ const file_pkg_protocol_invoices_proto_rawDesc = "" +
 	"\x12sell_offer_address\x18\x02 \x01(\tR\x10sellOfferAddress\x12!\n" +
 	"\finvoice_hash\x18\x03 \x01(\tR\vinvoiceHash\x12\x1b\n" +
 	"\tmint_hash\x18\x04 \x01(\tR\bmintHash\x12\x1a\n" +
-	"\bquantity\x18\x05 \x01(\x05R\bquantity\"\x7f\n" +
+	"\bquantity\x18\x05 \x01(\x05R\bquantity\"\xbc\x01\n" +
 	"\x16InvoiceMessageEnvelope\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\x05R\x04type\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x05R\aversion\x127\n" +
-	"\apayload\x18\x03 \x01(\v2\x1d.fractalengine.InvoiceMessageR\apayload\"\xac\x03\n" +
+	"\apayload\x18\x03 \x01(\v2\x1d.fractalengine.InvoiceMessageR\apayload\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x04 \x01(\tR\tpublicKey\x12\x1c\n" +
+	"\tsignature\x18\x05 \x01(\tR\tsignature\"\xac\x03\n" +
 	"\x0eInvoiceMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\x12'\n" +

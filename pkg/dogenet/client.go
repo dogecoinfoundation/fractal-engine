@@ -200,14 +200,14 @@ func (c *DogeNetClient) GossipUnconfirmedInvoice(record store.UnconfirmedInvoice
 
 func (c *DogeNetClient) GossipDeleteBuyOffer(hash string, publicKey string, signature string) error {
 	message := protocol.DeleteBuyOfferMessage{
-		Hash:      hash,
-		PublicKey: publicKey,
-		Signature: signature,
+		Hash: hash,
 	}
 
 	envelope := protocol.DeleteBuyOfferMessageEnvelope{
-		Version: protocol.DEFAULT_VERSION,
-		Payload: &message,
+		Version:   protocol.DEFAULT_VERSION,
+		Payload:   &message,
+		PublicKey: publicKey,
+		Signature: signature,
 	}
 
 	data, err := proto.Marshal(&envelope)
@@ -227,14 +227,14 @@ func (c *DogeNetClient) GossipDeleteBuyOffer(hash string, publicKey string, sign
 
 func (c *DogeNetClient) GossipDeleteSellOffer(hash string, publicKey string, signature string) error {
 	message := protocol.DeleteSellOfferMessage{
-		Hash:      hash,
-		PublicKey: publicKey,
-		Signature: signature,
+		Hash: hash,
 	}
 
 	envelope := protocol.DeleteSellOfferMessageEnvelope{
-		Version: protocol.DEFAULT_VERSION,
-		Payload: &message,
+		Version:   protocol.DEFAULT_VERSION,
+		Payload:   &message,
+		PublicKey: publicKey,
+		Signature: signature,
 	}
 
 	data, err := proto.Marshal(&envelope)
@@ -450,6 +450,18 @@ func (c *DogeNetClient) recvBuyOffer(msg dnet.Message) {
 
 	offer := envelope.Payload
 
+	offerPayload, err := json.Marshal(offer)
+	if err != nil {
+		log.Println("Error marshalling offer:", err)
+		return
+	}
+
+	err = doge.ValidateSignature(offerPayload, envelope.PublicKey, envelope.Signature)
+	if err != nil {
+		log.Println("Error validating signature:", err)
+		return
+	}
+
 	offerWithoutID := store.BuyOfferWithoutID{
 		OffererAddress: offer.OffererAddress,
 		SellerAddress:  offer.SellerAddress,
@@ -457,7 +469,7 @@ func (c *DogeNetClient) recvBuyOffer(msg dnet.Message) {
 		Quantity:       int(offer.Quantity),
 		Price:          int(offer.Price),
 		CreatedAt:      offer.CreatedAt.AsTime(),
-		PublicKey:      offer.PublicKey,
+		PublicKey:      envelope.PublicKey,
 	}
 
 	id, err := c.store.SaveBuyOffer(&offerWithoutID)
@@ -481,13 +493,25 @@ func (c *DogeNetClient) recvSellOffer(msg dnet.Message) {
 
 	offer := envelope.Payload
 
+	offerPayload, err := json.Marshal(offer)
+	if err != nil {
+		log.Println("Error marshalling offer:", err)
+		return
+	}
+
+	err = doge.ValidateSignature(offerPayload, envelope.PublicKey, envelope.Signature)
+	if err != nil {
+		log.Println("Error validating signature:", err)
+		return
+	}
+
 	offerWithoutID := store.SellOfferWithoutID{
 		OffererAddress: offer.OffererAddress,
 		Hash:           offer.Hash,
 		Quantity:       int(offer.Quantity),
 		Price:          int(offer.Price),
 		CreatedAt:      offer.CreatedAt.AsTime(),
-		PublicKey:      offer.PublicKey,
+		PublicKey:      envelope.PublicKey,
 	}
 
 	id, err := c.store.SaveSellOffer(&offerWithoutID)
@@ -554,6 +578,18 @@ func (c *DogeNetClient) recvInvoice(msg dnet.Message) {
 
 	invoice := envelope.Payload
 
+	invoicePayload, err := json.Marshal(invoice)
+	if err != nil {
+		log.Println("Error marshalling invoice:", err)
+		return
+	}
+
+	err = doge.ValidateSignature(invoicePayload, envelope.PublicKey, envelope.Signature)
+	if err != nil {
+		log.Println("Error validating signature:", err)
+		return
+	}
+
 	invoiceWithoutID := store.UnconfirmedInvoice{
 		PaymentAddress:         invoice.PaymentAddress,
 		BuyOfferOffererAddress: invoice.BuyOfferOffererAddress,
@@ -564,6 +600,7 @@ func (c *DogeNetClient) recvInvoice(msg dnet.Message) {
 		CreatedAt:              invoice.CreatedAt.AsTime(),
 		Hash:                   invoice.Hash,
 		Id:                     invoice.Id,
+		PublicKey:              envelope.PublicKey,
 	}
 
 	id, err := c.store.SaveUnconfirmedInvoice(&invoiceWithoutID)
@@ -587,13 +624,13 @@ func (c *DogeNetClient) recvDeleteBuyOffer(msg dnet.Message) {
 
 	message := envelope.Payload
 
-	err = doge.ValidateSignature([]byte(message.Hash), message.PublicKey, message.Signature)
+	err = doge.ValidateSignature([]byte(message.Hash), envelope.PublicKey, envelope.Signature)
 	if err != nil {
 		log.Println("Error validating signature:", err)
 		return
 	}
 
-	err = c.store.DeleteBuyOffer(message.Hash, message.PublicKey)
+	err = c.store.DeleteBuyOffer(message.Hash, envelope.PublicKey)
 	if err != nil {
 		log.Println("Error deleting buy offer:", err)
 		return
@@ -614,13 +651,13 @@ func (c *DogeNetClient) recvDeleteSellOffer(msg dnet.Message) {
 
 	message := envelope.Payload
 
-	err = doge.ValidateSignature([]byte(message.Hash), message.PublicKey, message.Signature)
+	err = doge.ValidateSignature([]byte(message.Hash), envelope.PublicKey, envelope.Signature)
 	if err != nil {
 		log.Println("Error validating signature:", err)
 		return
 	}
 
-	err = c.store.DeleteSellOffer(message.Hash, message.PublicKey)
+	err = c.store.DeleteSellOffer(message.Hash, envelope.PublicKey)
 	if err != nil {
 		log.Println("Error deleting sell offer:", err)
 		return

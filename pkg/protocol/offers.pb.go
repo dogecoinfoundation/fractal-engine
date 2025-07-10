@@ -26,6 +26,8 @@ type BuyOfferMessageEnvelope struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Version       int32                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
 	Payload       *BuyOfferMessage       `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	PublicKey     string                 `protobuf:"bytes,3,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	Signature     string                 `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -74,10 +76,26 @@ func (x *BuyOfferMessageEnvelope) GetPayload() *BuyOfferMessage {
 	return nil
 }
 
+func (x *BuyOfferMessageEnvelope) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *BuyOfferMessageEnvelope) GetSignature() string {
+	if x != nil {
+		return x.Signature
+	}
+	return ""
+}
+
 type SellOfferMessageEnvelope struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Version       int32                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
 	Payload       *SellOfferMessage      `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	PublicKey     string                 `protobuf:"bytes,3,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	Signature     string                 `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -126,6 +144,20 @@ func (x *SellOfferMessageEnvelope) GetPayload() *SellOfferMessage {
 	return nil
 }
 
+func (x *SellOfferMessageEnvelope) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *SellOfferMessageEnvelope) GetSignature() string {
+	if x != nil {
+		return x.Signature
+	}
+	return ""
+}
+
 type BuyOfferMessage struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -136,7 +168,6 @@ type BuyOfferMessage struct {
 	Quantity       int32                  `protobuf:"varint,6,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	Price          int32                  `protobuf:"varint,7,opt,name=price,proto3" json:"price,omitempty"`
 	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	PublicKey      string                 `protobuf:"bytes,9,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -227,13 +258,6 @@ func (x *BuyOfferMessage) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *BuyOfferMessage) GetPublicKey() string {
-	if x != nil {
-		return x.PublicKey
-	}
-	return ""
-}
-
 type SellOfferMessage struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -243,7 +267,6 @@ type SellOfferMessage struct {
 	Quantity       int32                  `protobuf:"varint,5,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	Price          int32                  `protobuf:"varint,6,opt,name=price,proto3" json:"price,omitempty"`
 	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	PublicKey      string                 `protobuf:"bytes,8,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -327,18 +350,9 @@ func (x *SellOfferMessage) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *SellOfferMessage) GetPublicKey() string {
-	if x != nil {
-		return x.PublicKey
-	}
-	return ""
-}
-
 type DeleteBuyOfferMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Hash          string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
-	PublicKey     string                 `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	Signature     string                 `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -380,24 +394,12 @@ func (x *DeleteBuyOfferMessage) GetHash() string {
 	return ""
 }
 
-func (x *DeleteBuyOfferMessage) GetPublicKey() string {
-	if x != nil {
-		return x.PublicKey
-	}
-	return ""
-}
-
-func (x *DeleteBuyOfferMessage) GetSignature() string {
-	if x != nil {
-		return x.Signature
-	}
-	return ""
-}
-
 type DeleteBuyOfferMessageEnvelope struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Version       int32                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
 	Payload       *DeleteBuyOfferMessage `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	PublicKey     string                 `protobuf:"bytes,3,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	Signature     string                 `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -446,11 +448,23 @@ func (x *DeleteBuyOfferMessageEnvelope) GetPayload() *DeleteBuyOfferMessage {
 	return nil
 }
 
+func (x *DeleteBuyOfferMessageEnvelope) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *DeleteBuyOfferMessageEnvelope) GetSignature() string {
+	if x != nil {
+		return x.Signature
+	}
+	return ""
+}
+
 type DeleteSellOfferMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Hash          string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
-	PublicKey     string                 `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	Signature     string                 `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -492,24 +506,12 @@ func (x *DeleteSellOfferMessage) GetHash() string {
 	return ""
 }
 
-func (x *DeleteSellOfferMessage) GetPublicKey() string {
-	if x != nil {
-		return x.PublicKey
-	}
-	return ""
-}
-
-func (x *DeleteSellOfferMessage) GetSignature() string {
-	if x != nil {
-		return x.Signature
-	}
-	return ""
-}
-
 type DeleteSellOfferMessageEnvelope struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	Version       int32                   `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
 	Payload       *DeleteSellOfferMessage `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	PublicKey     string                  `protobuf:"bytes,3,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	Signature     string                  `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -558,17 +560,37 @@ func (x *DeleteSellOfferMessageEnvelope) GetPayload() *DeleteSellOfferMessage {
 	return nil
 }
 
+func (x *DeleteSellOfferMessageEnvelope) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *DeleteSellOfferMessageEnvelope) GetSignature() string {
+	if x != nil {
+		return x.Signature
+	}
+	return ""
+}
+
 var File_pkg_protocol_offers_proto protoreflect.FileDescriptor
 
 const file_pkg_protocol_offers_proto_rawDesc = "" +
 	"\n" +
-	"\x19pkg/protocol/offers.proto\x12\rfractalengine\x1a\x1fgoogle/protobuf/timestamp.proto\"m\n" +
+	"\x19pkg/protocol/offers.proto\x12\rfractalengine\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaa\x01\n" +
 	"\x17BuyOfferMessageEnvelope\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x05R\aversion\x128\n" +
-	"\apayload\x18\x02 \x01(\v2\x1e.fractalengine.BuyOfferMessageR\apayload\"o\n" +
+	"\apayload\x18\x02 \x01(\v2\x1e.fractalengine.BuyOfferMessageR\apayload\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x03 \x01(\tR\tpublicKey\x12\x1c\n" +
+	"\tsignature\x18\x04 \x01(\tR\tsignature\"\xac\x01\n" +
 	"\x18SellOfferMessageEnvelope\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x05R\aversion\x129\n" +
-	"\apayload\x18\x02 \x01(\v2\x1f.fractalengine.SellOfferMessageR\apayload\"\xae\x02\n" +
+	"\apayload\x18\x02 \x01(\v2\x1f.fractalengine.SellOfferMessageR\apayload\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x03 \x01(\tR\tpublicKey\x12\x1c\n" +
+	"\tsignature\x18\x04 \x01(\tR\tsignature\"\x8f\x02\n" +
 	"\x0fBuyOfferMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0fofferer_address\x18\x02 \x01(\tR\x0eoffererAddress\x12%\n" +
@@ -578,9 +600,7 @@ const file_pkg_protocol_offers_proto_rawDesc = "" +
 	"\bquantity\x18\x06 \x01(\x05R\bquantity\x12\x14\n" +
 	"\x05price\x18\a \x01(\x05R\x05price\x129\n" +
 	"\n" +
-	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1d\n" +
-	"\n" +
-	"public_key\x18\t \x01(\tR\tpublicKey\"\x88\x02\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xe9\x01\n" +
 	"\x10SellOfferMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0fofferer_address\x18\x02 \x01(\tR\x0eoffererAddress\x12\x12\n" +
@@ -589,25 +609,23 @@ const file_pkg_protocol_offers_proto_rawDesc = "" +
 	"\bquantity\x18\x05 \x01(\x05R\bquantity\x12\x14\n" +
 	"\x05price\x18\x06 \x01(\x05R\x05price\x129\n" +
 	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1d\n" +
-	"\n" +
-	"public_key\x18\b \x01(\tR\tpublicKey\"h\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"+\n" +
 	"\x15DeleteBuyOfferMessage\x12\x12\n" +
-	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x1d\n" +
-	"\n" +
-	"public_key\x18\x02 \x01(\tR\tpublicKey\x12\x1c\n" +
-	"\tsignature\x18\x03 \x01(\tR\tsignature\"y\n" +
+	"\x04hash\x18\x01 \x01(\tR\x04hash\"\xb6\x01\n" +
 	"\x1dDeleteBuyOfferMessageEnvelope\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x05R\aversion\x12>\n" +
-	"\apayload\x18\x02 \x01(\v2$.fractalengine.DeleteBuyOfferMessageR\apayload\"i\n" +
-	"\x16DeleteSellOfferMessage\x12\x12\n" +
-	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x1d\n" +
+	"\apayload\x18\x02 \x01(\v2$.fractalengine.DeleteBuyOfferMessageR\apayload\x12\x1d\n" +
 	"\n" +
-	"public_key\x18\x02 \x01(\tR\tpublicKey\x12\x1c\n" +
-	"\tsignature\x18\x03 \x01(\tR\tsignature\"{\n" +
+	"public_key\x18\x03 \x01(\tR\tpublicKey\x12\x1c\n" +
+	"\tsignature\x18\x04 \x01(\tR\tsignature\",\n" +
+	"\x16DeleteSellOfferMessage\x12\x12\n" +
+	"\x04hash\x18\x01 \x01(\tR\x04hash\"\xb8\x01\n" +
 	"\x1eDeleteSellOfferMessageEnvelope\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x05R\aversion\x12?\n" +
-	"\apayload\x18\x02 \x01(\v2%.fractalengine.DeleteSellOfferMessageR\apayloadB\x0eZ\fpkg/protocolb\x06proto3"
+	"\apayload\x18\x02 \x01(\v2%.fractalengine.DeleteSellOfferMessageR\apayload\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x03 \x01(\tR\tpublicKey\x12\x1c\n" +
+	"\tsignature\x18\x04 \x01(\tR\tsignatureB\x0eZ\fpkg/protocolb\x06proto3"
 
 var (
 	file_pkg_protocol_offers_proto_rawDescOnce sync.Once

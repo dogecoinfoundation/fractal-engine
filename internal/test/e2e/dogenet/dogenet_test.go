@@ -117,3 +117,51 @@ func TestMintMessage(t *testing.T) {
 		assert.Error(t, fmt.Errorf("expected mint message"), "expected mint message")
 	}
 }
+
+func TestOffersMessage(t *testing.T) {
+	err := dogenetClientA.GossipMint(store.Mint{
+		Id: "1",
+		MintWithoutID: store.MintWithoutID{
+
+			Title:         "Test Mint",
+			FractionCount: 100,
+			Description:   "Test Description",
+			Tags:          []string{"test", "mint"},
+			Metadata: map[string]interface{}{
+				"test": "test",
+			},
+		},
+	})
+
+	if err != nil {
+		assert.Error(t, err, "failed to gossip mint")
+	} else {
+		fmt.Println("Mint gossiped successfully")
+	}
+
+	fmt.Println("Waiting for message...")
+
+	msg := <-dogenetClientB.Messages
+
+	payload := protocol.MessageEnvelope{}
+	err = payload.Deserialize(msg.Payload)
+	if err != nil {
+		panic(err)
+	}
+
+	switch payload.Action {
+	case protocol.ACTION_MINT:
+		mint := protocol.MintMessage{}
+		err = proto.Unmarshal(payload.Data, &mint)
+		if err != nil {
+			assert.Error(t, err, "expected mint message")
+		}
+
+		assert.Equal(t, mint.Title, "Test Mint")
+		assert.Equal(t, mint.Description, "Test Description")
+		assert.Equal(t, mint.FractionCount, int32(100))
+
+	default:
+		assert.Error(t, fmt.Errorf("expected mint message"), "expected mint message")
+	}
+}
