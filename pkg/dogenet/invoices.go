@@ -85,8 +85,8 @@ func (c *DogeNetClient) recvInvoice(msg dnet.Message) {
 		return
 	}
 
-	if address != invoice.Payload.PaymentAddress {
-		log.Println("Payment address does not match public key")
+	if address != invoice.Payload.SellOfferAddress {
+		log.Println("Sell offer address does not match public key")
 		return
 	}
 

@@ -102,6 +102,8 @@ func (c *DogeNetClient) recvBuyOffer(msg dnet.Message) {
 		Price:          offer.Payload.Price,
 	}
 
+	log.Println("buyOfferPayload", buyOfferPayload)
+
 	offerPayload, err := protojson.Marshal(&buyOfferPayload)
 	if err != nil {
 		log.Println("Error marshalling offer:", err)

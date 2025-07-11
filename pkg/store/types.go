@@ -255,6 +255,7 @@ type InvoiceHash struct {
 	SellOfferAddress string  `json:"sell_offer_address"`
 	BuyOfferValue    float64 `json:"buy_offer_value"`
 	PublicKey        string  `json:"public_key"`
+	Signature        string  `json:"signature"`
 }
 
 type Invoice struct {
@@ -273,6 +274,7 @@ type Invoice struct {
 	TransactionHash        string    `json:"transaction_hash"`
 	PendingTokenBalanceId  string    `json:"pending_token_balance_id"`
 	PublicKey              string    `json:"public_key"`
+	Signature              string    `json:"signature"`
 }
 
 func (i *Invoice) GenerateHash() (string, error) {
@@ -285,6 +287,7 @@ func (i *Invoice) GenerateHash() (string, error) {
 		SellOfferAddress: i.SellOfferAddress,
 		BuyOfferValue:    i.BuyOfferValue,
 		PublicKey:        i.PublicKey,
+		Signature:        i.Signature,
 	}
 
 	jsonBytes, err := json.Marshal(input)

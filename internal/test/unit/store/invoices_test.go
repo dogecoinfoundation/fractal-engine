@@ -23,6 +23,8 @@ func TestSaveAndGetInvoices(t *testing.T) {
 		BuyOfferPrice:          25,
 		CreatedAt:              time.Now(),
 		PublicKey:              "myPublicKey",
+		SellOfferAddress:       "mySellOfferAddress",
+		Signature:              "mySignature",
 	}
 
 	id, err := tokenisationStore.SaveInvoice(&invoice)

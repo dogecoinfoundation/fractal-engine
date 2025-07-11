@@ -3,6 +3,8 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -24,7 +26,8 @@ var dogenetClientA *dogenet.DogeNetClient
 var dogenetClientB *dogenet.DogeNetClient
 var dogenetA testcontainers.Container
 var dogenetB testcontainers.Container
-var tokenisationStore *store.TokenisationStore
+var tokenisationStoreA *store.TokenisationStore
+var tokenisationStoreB *store.TokenisationStore
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
@@ -35,14 +38,28 @@ func TestMain(m *testing.M) {
 	}
 	networkName := net.Name
 
-	tokenisationStore, err = store.NewTokenisationStore("sqlite://test.db", config.Config{
+	os.Remove("test.db")
+	tokenisationStoreA, err = store.NewTokenisationStore("sqlite://test.db", config.Config{
 		MigrationsPath: "../../../../db/migrations",
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	err = tokenisationStore.Migrate()
+	err = tokenisationStoreA.Migrate()
+	if err != nil && err.Error() != "no change" {
+		panic(err)
+	}
+
+	os.Remove("testb.db")
+	tokenisationStoreB, err = store.NewTokenisationStore("sqlite://testb.db", config.Config{
+		MigrationsPath: "../../../../db/migrations",
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	err = tokenisationStoreB.Migrate()
 	if err != nil && err.Error() != "no change" {
 		panic(err)
 	}
@@ -53,13 +70,13 @@ func TestMain(m *testing.M) {
 	}
 
 	logConsumerA := &support.StdoutLogConsumer{Name: "alpha"}
-	dogenetClientA, dogenetA, err = support.StartDogenetInstance(ctx, feKey, "Dockerfile.dogenet", "alpha", "8085", "44069", "33069", networkName, logConsumerA, tokenisationStore)
+	dogenetClientA, dogenetA, err = support.StartDogenetInstance(ctx, feKey, "Dockerfile.dogenet", "alpha", "8085", "44069", "33069", networkName, logConsumerA, tokenisationStoreA)
 	if err != nil {
 		panic(err)
 	}
 
 	logConsumerB := &support.StdoutLogConsumer{Name: "beta"}
-	dogenetClientB, dogenetB, err = support.StartDogenetInstance(ctx, feKey, "Dockerfile.dogenet", "beta", "8086", "44070", "33070", networkName, logConsumerB, tokenisationStore)
+	dogenetClientB, dogenetB, err = support.StartDogenetInstance(ctx, feKey, "Dockerfile.dogenet", "beta", "8086", "44070", "33070", networkName, logConsumerB, tokenisationStoreB)
 	if err != nil {
 		panic(err)
 	}
@@ -239,7 +256,7 @@ func TestOffersMessage(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 
-	offers, err := tokenisationStore.GetSellOffers(0, 10, "1", address)
+	offers, err := tokenisationStoreB.GetSellOffers(0, 10, "1", address)
 	if err != nil {
 		assert.Error(t, err, "failed to get sell offers")
 	}
@@ -252,12 +269,14 @@ func TestOffersMessage(t *testing.T) {
 	assert.Equal(t, offers[0].PublicKey, pubHex)
 
 	buyOfferPayload := protocol.BuyOfferPayload{
-		MintHash:       "1",
+		MintHash:       "MyMintHashOffers123",
 		OffererAddress: address,
-		SellerAddress:  "selleraddy",
+		SellerAddress:  "selleraddyInvoice",
 		Quantity:       100,
 		Price:          100,
 	}
+
+	log.Println("buyOfferPayload", buyOfferPayload)
 
 	payloadBytes2, err := protojson.Marshal(&buyOfferPayload)
 	if err != nil {
@@ -302,7 +321,7 @@ func TestOffersMessage(t *testing.T) {
 			assert.Error(t, err, "expected buy offer message")
 		}
 
-		assert.Equal(t, buyOffer.Payload.MintHash, "1")
+		assert.Equal(t, buyOffer.Payload.MintHash, "MyMintHashOffers123")
 		assert.Equal(t, buyOffer.Payload.OffererAddress, address)
 		assert.Equal(t, buyOffer.Payload.SellerAddress, "selleraddy")
 		assert.Equal(t, buyOffer.Payload.Quantity, int32(100))
@@ -313,15 +332,15 @@ func TestOffersMessage(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 
-	offers2, err := tokenisationStore.GetBuyOffersByMintAndSellerAddress(0, 10, "1", "selleraddy")
+	offers2, err := tokenisationStoreB.GetBuyOffersByMintAndSellerAddress(0, 10, "MyMintHashOffers123", "selleraddyInvoice")
 	if err != nil {
 		assert.Error(t, err, "failed to get buy offers")
 	}
 
 	assert.Equal(t, len(offers2), 1)
-	assert.Equal(t, offers2[0].MintHash, "1")
+	assert.Equal(t, offers2[0].MintHash, "MyMintHashOffers123")
 	assert.Equal(t, offers2[0].OffererAddress, address)
-	assert.Equal(t, offers2[0].SellerAddress, "selleraddy")
+	assert.Equal(t, offers2[0].SellerAddress, "selleraddyInvoice")
 	assert.Equal(t, offers2[0].Quantity, 100)
 	assert.Equal(t, offers2[0].Price, 100)
 	assert.Equal(t, offers2[0].PublicKey, pubHex)
@@ -380,13 +399,13 @@ func TestInvoiceMessage(t *testing.T) {
 	}
 
 	invoicePayload := protocol.InvoicePayload{
-		PaymentAddress:         address,
-		BuyOfferOffererAddress: address,
+		PaymentAddress:         "paymentaddyzz",
+		BuyOfferOffererAddress: "buyofferoffereraddress",
 		BuyOfferHash:           "buyofferhash",
 		BuyOfferMintHash:       "buyofferminthash",
 		BuyOfferQuantity:       100,
 		BuyOfferPrice:          100,
-		SellOfferAddress:       "selleraddy",
+		SellOfferAddress:       address,
 	}
 
 	payloadBytes, err := protojson.Marshal(&invoicePayload)
@@ -406,6 +425,7 @@ func TestInvoiceMessage(t *testing.T) {
 		BuyOfferMintHash:       invoicePayload.BuyOfferMintHash,
 		BuyOfferQuantity:       int(invoicePayload.BuyOfferQuantity),
 		BuyOfferPrice:          int(invoicePayload.BuyOfferPrice),
+		SellOfferAddress:       invoicePayload.SellOfferAddress,
 		CreatedAt:              time.Now(),
 		PublicKey:              pubHex,
 		Signature:              signature,
@@ -432,13 +452,13 @@ func TestInvoiceMessage(t *testing.T) {
 			assert.Error(t, err, "expected invoice message")
 		}
 
-		assert.Equal(t, invoice.Payload.PaymentAddress, address)
-		assert.Equal(t, invoice.Payload.BuyOfferOffererAddress, address)
+		assert.Equal(t, invoice.Payload.PaymentAddress, "paymentaddyzz")
+		assert.Equal(t, invoice.Payload.BuyOfferOffererAddress, "buyofferoffereraddress")
 		assert.Equal(t, invoice.Payload.BuyOfferHash, "buyofferhash")
 		assert.Equal(t, invoice.Payload.BuyOfferMintHash, "buyofferminthash")
 		assert.Equal(t, invoice.Payload.BuyOfferQuantity, int32(100))
 		assert.Equal(t, invoice.Payload.BuyOfferPrice, int32(100))
-		assert.Equal(t, invoice.Payload.SellOfferAddress, "selleraddy")
+		assert.Equal(t, invoice.Payload.SellOfferAddress, address)
 	default:
 		assert.Error(t, fmt.Errorf("expected invoice message"), "expected invoice message")
 	}
