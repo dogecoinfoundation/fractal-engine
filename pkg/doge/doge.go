@@ -4,11 +4,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/base58"
+	"golang.org/x/crypto/ripemd160"
 )
 
 func WrapOpReturn(data []byte) string {
@@ -85,4 +87,30 @@ func ValidateSignature(payload []byte, publicKey string, signature string) error
 	}
 
 	return nil
+}
+
+func PublicKeyToDogeAddress(pubKeyHex string) (string, error) {
+	pubKeyBytes, err := hex.DecodeString(pubKeyHex)
+	if err != nil {
+		return "", fmt.Errorf("invalid public key hex: %v", err)
+	}
+
+	sha256Hasher := sha256.New()
+	sha256Hasher.Write(pubKeyBytes)
+	shaHashed := sha256Hasher.Sum(nil)
+
+	ripemd160Hasher := ripemd160.New()
+	ripemd160Hasher.Write(shaHashed)
+	pubKeyHash := ripemd160Hasher.Sum(nil)
+
+	versionedPayload := append([]byte{0x1E}, pubKeyHash...)
+
+	firstSHA := sha256.Sum256(versionedPayload)
+	secondSHA := sha256.Sum256(firstSHA[:])
+	checksum := secondSHA[:4]
+
+	fullPayload := append(versionedPayload, checksum...)
+
+	address := base58.Encode(fullPayload)
+	return address, nil
 }

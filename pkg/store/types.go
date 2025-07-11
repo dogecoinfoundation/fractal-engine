@@ -113,6 +113,7 @@ type BuyOfferWithoutID struct {
 	Price          int       `json:"price"`
 	CreatedAt      time.Time `json:"created_at"`
 	PublicKey      string    `json:"public_key"`
+	Signature      string    `json:"signature"`
 }
 
 type SellOfferWithoutID struct {
@@ -123,6 +124,7 @@ type SellOfferWithoutID struct {
 	Price          int       `json:"price"`
 	CreatedAt      time.Time `json:"created_at"`
 	PublicKey      string    `json:"public_key"`
+	Signature      string    `json:"signature"`
 }
 
 type BuyOfferHash struct {
@@ -160,6 +162,7 @@ type SellOfferHash struct {
 	Quantity       int    `json:"quantity"`
 	Price          int    `json:"price"`
 	PublicKey      string `json:"public_key"`
+	Signature      string `json:"signature"`
 }
 
 func (o *SellOfferWithoutID) GenerateHash() (string, error) {
@@ -169,6 +172,7 @@ func (o *SellOfferWithoutID) GenerateHash() (string, error) {
 		Quantity:       o.Quantity,
 		Price:          o.Price,
 		PublicKey:      o.PublicKey,
+		Signature:      o.Signature,
 	}
 
 	jsonBytes, err := json.Marshal(input)
@@ -204,6 +208,7 @@ type UnconfirmedInvoice struct {
 	SellOfferAddress       string    `json:"sell_offer_address"`
 	BuyOfferValue          float64   `json:"buy_offer_value"`
 	PublicKey              string    `json:"public_key"`
+	Signature              string    `json:"signature"`
 }
 
 func (u *UnconfirmedInvoice) GenerateHash() (string, error) {
@@ -238,6 +243,7 @@ type UnconfirmedInvoiceHash struct {
 	SellOfferAddress       string  `json:"sell_offer_address"`
 	BuyOfferValue          float64 `json:"buy_offer_value"`
 	PublicKey              string  `json:"public_key"`
+	Signature              string  `json:"signature"`
 }
 
 type InvoiceHash struct {

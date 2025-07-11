@@ -211,6 +211,7 @@ func (or *OfferRoutes) postSellOffer(w http.ResponseWriter, r *http.Request) {
 		Price:          request.Payload.Price,
 		CreatedAt:      time.Now(),
 		PublicKey:      request.PublicKey,
+		Signature:      request.Signature,
 	}
 	newOfferWithoutId.Hash, err = newOfferWithoutId.GenerateHash()
 	if err != nil {

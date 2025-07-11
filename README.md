@@ -22,7 +22,8 @@ Ensure Docker is running (WSL2 active for windows).
 ## Generate Protobuffers
 
 `protoc --proto_path=. --go_out=. .\pkg\protocol\mint.proto`
-`protoc --proto_path=. --go_out=. .\pkg\protocol\offers.proto`
+`protoc --proto_path=. --go_out=. .\pkg\protocol\sell_offers.proto`
+`protoc --proto_path=. --go_out=. .\pkg\protocol\buy_offers.proto`
 `protoc --proto_path=. --go_out=. .\pkg\protocol\invoices.proto`
 `protoc --proto_path=. --go_out=. .\pkg\protocol\payment.proto`
 

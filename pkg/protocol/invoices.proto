@@ -23,17 +23,21 @@ message InvoiceMessageEnvelope {
     string signature = 5;
 }
 
-// Payload of an invoice
+
+message InvoicePayload {
+    string payment_address = 1;
+    string buy_offer_offerer_address = 2;
+    string buy_offer_hash = 3;
+    string buy_offer_mint_hash = 4;
+    int32 buy_offer_quantity = 5;
+    int32 buy_offer_price = 6;
+    string sell_offer_address = 7;
+}
+
 message InvoiceMessage {
     string id = 1;
     string hash = 2;
-    string payment_address = 3;
-    string buy_offer_offerer_address = 4;
-    string buy_offer_hash = 5;
-    string buy_offer_mint_hash = 6;
-    int32 buy_offer_quantity = 7;
-    int32 buy_offer_price = 8;
-    google.protobuf.Timestamp created_at = 9;
-    string sell_offer_address = 10;
+    InvoicePayload payload = 3;
+    google.protobuf.Timestamp created_at = 4;
 }
 

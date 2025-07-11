@@ -6,7 +6,8 @@ create table sell_offers (
     quantity int not null,
     price int not null,
     created_at timestamp not null,
-    public_key text not null
+    public_key text not null,
+    signature text not null
 );
 
 create table buy_offers (
@@ -18,5 +19,6 @@ create table buy_offers (
     quantity int not null,
     price int not null,
     created_at timestamp not null,
-    public_key text not null
+    public_key text not null,
+    signature text not null
 );
