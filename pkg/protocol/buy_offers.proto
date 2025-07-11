@@ -1,0 +1,41 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+package fractalengine;
+
+option go_package = "pkg/protocol";
+
+message BuyOfferMessageEnvelope {
+    int32 type = 1;
+    int32 version = 2;
+    BuyOfferMessage payload = 3;
+    string public_key = 4;
+    string signature = 5;
+}
+
+message BuyOfferMessage {
+    string id = 1;
+    string hash = 2;
+    BuyOfferPayload payload = 3;
+    google.protobuf.Timestamp created_at = 4;
+}
+
+message BuyOfferPayload {
+    string offerer_address = 1;
+    string seller_address = 2;
+    string mint_hash = 3;
+    int32 quantity = 4;
+    int32 price = 5;
+}
+
+message DeleteBuyOfferMessage {
+    string hash = 1;
+}
+
+message DeleteBuyOfferMessageEnvelope {
+    int32 type = 1;
+    int32 version = 2;
+    DeleteBuyOfferMessage payload = 3;
+    string public_key = 4;
+    string signature = 5;
+}

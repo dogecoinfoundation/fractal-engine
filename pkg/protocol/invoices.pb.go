@@ -105,6 +105,8 @@ type InvoiceMessageEnvelope struct {
 	Type          int32                  `protobuf:"varint,1,opt,name=type,proto3" json:"type,omitempty"`
 	Version       int32                  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
 	Payload       *InvoiceMessage        `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	PublicKey     string                 `protobuf:"bytes,4,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	Signature     string                 `protobuf:"bytes,5,opt,name=signature,proto3" json:"signature,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -160,26 +162,125 @@ func (x *InvoiceMessageEnvelope) GetPayload() *InvoiceMessage {
 	return nil
 }
 
-// Payload of an invoice
-type InvoiceMessage struct {
+func (x *InvoiceMessageEnvelope) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *InvoiceMessageEnvelope) GetSignature() string {
+	if x != nil {
+		return x.Signature
+	}
+	return ""
+}
+
+type InvoicePayload struct {
 	state                  protoimpl.MessageState `protogen:"open.v1"`
-	Id                     string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Hash                   string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
-	PaymentAddress         string                 `protobuf:"bytes,3,opt,name=payment_address,json=paymentAddress,proto3" json:"payment_address,omitempty"`
-	BuyOfferOffererAddress string                 `protobuf:"bytes,4,opt,name=buy_offer_offerer_address,json=buyOfferOffererAddress,proto3" json:"buy_offer_offerer_address,omitempty"`
-	BuyOfferHash           string                 `protobuf:"bytes,5,opt,name=buy_offer_hash,json=buyOfferHash,proto3" json:"buy_offer_hash,omitempty"`
-	BuyOfferMintHash       string                 `protobuf:"bytes,6,opt,name=buy_offer_mint_hash,json=buyOfferMintHash,proto3" json:"buy_offer_mint_hash,omitempty"`
-	BuyOfferQuantity       int32                  `protobuf:"varint,7,opt,name=buy_offer_quantity,json=buyOfferQuantity,proto3" json:"buy_offer_quantity,omitempty"`
-	BuyOfferPrice          int32                  `protobuf:"varint,8,opt,name=buy_offer_price,json=buyOfferPrice,proto3" json:"buy_offer_price,omitempty"`
-	CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	SellOfferAddress       string                 `protobuf:"bytes,10,opt,name=sell_offer_address,json=sellOfferAddress,proto3" json:"sell_offer_address,omitempty"`
+	PaymentAddress         string                 `protobuf:"bytes,1,opt,name=payment_address,json=paymentAddress,proto3" json:"payment_address,omitempty"`
+	BuyOfferOffererAddress string                 `protobuf:"bytes,2,opt,name=buy_offer_offerer_address,json=buyOfferOffererAddress,proto3" json:"buy_offer_offerer_address,omitempty"`
+	BuyOfferHash           string                 `protobuf:"bytes,3,opt,name=buy_offer_hash,json=buyOfferHash,proto3" json:"buy_offer_hash,omitempty"`
+	BuyOfferMintHash       string                 `protobuf:"bytes,4,opt,name=buy_offer_mint_hash,json=buyOfferMintHash,proto3" json:"buy_offer_mint_hash,omitempty"`
+	BuyOfferQuantity       int32                  `protobuf:"varint,5,opt,name=buy_offer_quantity,json=buyOfferQuantity,proto3" json:"buy_offer_quantity,omitempty"`
+	BuyOfferPrice          int32                  `protobuf:"varint,6,opt,name=buy_offer_price,json=buyOfferPrice,proto3" json:"buy_offer_price,omitempty"`
+	SellOfferAddress       string                 `protobuf:"bytes,7,opt,name=sell_offer_address,json=sellOfferAddress,proto3" json:"sell_offer_address,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
 
+func (x *InvoicePayload) Reset() {
+	*x = InvoicePayload{}
+	mi := &file_pkg_protocol_invoices_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InvoicePayload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InvoicePayload) ProtoMessage() {}
+
+func (x *InvoicePayload) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_protocol_invoices_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InvoicePayload.ProtoReflect.Descriptor instead.
+func (*InvoicePayload) Descriptor() ([]byte, []int) {
+	return file_pkg_protocol_invoices_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *InvoicePayload) GetPaymentAddress() string {
+	if x != nil {
+		return x.PaymentAddress
+	}
+	return ""
+}
+
+func (x *InvoicePayload) GetBuyOfferOffererAddress() string {
+	if x != nil {
+		return x.BuyOfferOffererAddress
+	}
+	return ""
+}
+
+func (x *InvoicePayload) GetBuyOfferHash() string {
+	if x != nil {
+		return x.BuyOfferHash
+	}
+	return ""
+}
+
+func (x *InvoicePayload) GetBuyOfferMintHash() string {
+	if x != nil {
+		return x.BuyOfferMintHash
+	}
+	return ""
+}
+
+func (x *InvoicePayload) GetBuyOfferQuantity() int32 {
+	if x != nil {
+		return x.BuyOfferQuantity
+	}
+	return 0
+}
+
+func (x *InvoicePayload) GetBuyOfferPrice() int32 {
+	if x != nil {
+		return x.BuyOfferPrice
+	}
+	return 0
+}
+
+func (x *InvoicePayload) GetSellOfferAddress() string {
+	if x != nil {
+		return x.SellOfferAddress
+	}
+	return ""
+}
+
+type InvoiceMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Hash          string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	Payload       *InvoicePayload        `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
 func (x *InvoiceMessage) Reset() {
 	*x = InvoiceMessage{}
-	mi := &file_pkg_protocol_invoices_proto_msgTypes[2]
+	mi := &file_pkg_protocol_invoices_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -191,7 +292,7 @@ func (x *InvoiceMessage) String() string {
 func (*InvoiceMessage) ProtoMessage() {}
 
 func (x *InvoiceMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_protocol_invoices_proto_msgTypes[2]
+	mi := &file_pkg_protocol_invoices_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -204,7 +305,7 @@ func (x *InvoiceMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvoiceMessage.ProtoReflect.Descriptor instead.
 func (*InvoiceMessage) Descriptor() ([]byte, []int) {
-	return file_pkg_protocol_invoices_proto_rawDescGZIP(), []int{2}
+	return file_pkg_protocol_invoices_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *InvoiceMessage) GetId() string {
@@ -221,46 +322,11 @@ func (x *InvoiceMessage) GetHash() string {
 	return ""
 }
 
-func (x *InvoiceMessage) GetPaymentAddress() string {
+func (x *InvoiceMessage) GetPayload() *InvoicePayload {
 	if x != nil {
-		return x.PaymentAddress
+		return x.Payload
 	}
-	return ""
-}
-
-func (x *InvoiceMessage) GetBuyOfferOffererAddress() string {
-	if x != nil {
-		return x.BuyOfferOffererAddress
-	}
-	return ""
-}
-
-func (x *InvoiceMessage) GetBuyOfferHash() string {
-	if x != nil {
-		return x.BuyOfferHash
-	}
-	return ""
-}
-
-func (x *InvoiceMessage) GetBuyOfferMintHash() string {
-	if x != nil {
-		return x.BuyOfferMintHash
-	}
-	return ""
-}
-
-func (x *InvoiceMessage) GetBuyOfferQuantity() int32 {
-	if x != nil {
-		return x.BuyOfferQuantity
-	}
-	return 0
-}
-
-func (x *InvoiceMessage) GetBuyOfferPrice() int32 {
-	if x != nil {
-		return x.BuyOfferPrice
-	}
-	return 0
+	return nil
 }
 
 func (x *InvoiceMessage) GetCreatedAt() *timestamppb.Timestamp {
@@ -268,13 +334,6 @@ func (x *InvoiceMessage) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
-}
-
-func (x *InvoiceMessage) GetSellOfferAddress() string {
-	if x != nil {
-		return x.SellOfferAddress
-	}
-	return ""
 }
 
 var File_pkg_protocol_invoices_proto protoreflect.FileDescriptor
@@ -287,24 +346,28 @@ const file_pkg_protocol_invoices_proto_rawDesc = "" +
 	"\x12sell_offer_address\x18\x02 \x01(\tR\x10sellOfferAddress\x12!\n" +
 	"\finvoice_hash\x18\x03 \x01(\tR\vinvoiceHash\x12\x1b\n" +
 	"\tmint_hash\x18\x04 \x01(\tR\bmintHash\x12\x1a\n" +
-	"\bquantity\x18\x05 \x01(\x05R\bquantity\"\x7f\n" +
+	"\bquantity\x18\x05 \x01(\x05R\bquantity\"\xbc\x01\n" +
 	"\x16InvoiceMessageEnvelope\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\x05R\x04type\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x05R\aversion\x127\n" +
-	"\apayload\x18\x03 \x01(\v2\x1d.fractalengine.InvoiceMessageR\apayload\"\xac\x03\n" +
+	"\apayload\x18\x03 \x01(\v2\x1d.fractalengine.InvoiceMessageR\apayload\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x04 \x01(\tR\tpublicKey\x12\x1c\n" +
+	"\tsignature\x18\x05 \x01(\tR\tsignature\"\xcd\x02\n" +
+	"\x0eInvoicePayload\x12'\n" +
+	"\x0fpayment_address\x18\x01 \x01(\tR\x0epaymentAddress\x129\n" +
+	"\x19buy_offer_offerer_address\x18\x02 \x01(\tR\x16buyOfferOffererAddress\x12$\n" +
+	"\x0ebuy_offer_hash\x18\x03 \x01(\tR\fbuyOfferHash\x12-\n" +
+	"\x13buy_offer_mint_hash\x18\x04 \x01(\tR\x10buyOfferMintHash\x12,\n" +
+	"\x12buy_offer_quantity\x18\x05 \x01(\x05R\x10buyOfferQuantity\x12&\n" +
+	"\x0fbuy_offer_price\x18\x06 \x01(\x05R\rbuyOfferPrice\x12,\n" +
+	"\x12sell_offer_address\x18\a \x01(\tR\x10sellOfferAddress\"\xa8\x01\n" +
 	"\x0eInvoiceMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04hash\x18\x02 \x01(\tR\x04hash\x12'\n" +
-	"\x0fpayment_address\x18\x03 \x01(\tR\x0epaymentAddress\x129\n" +
-	"\x19buy_offer_offerer_address\x18\x04 \x01(\tR\x16buyOfferOffererAddress\x12$\n" +
-	"\x0ebuy_offer_hash\x18\x05 \x01(\tR\fbuyOfferHash\x12-\n" +
-	"\x13buy_offer_mint_hash\x18\x06 \x01(\tR\x10buyOfferMintHash\x12,\n" +
-	"\x12buy_offer_quantity\x18\a \x01(\x05R\x10buyOfferQuantity\x12&\n" +
-	"\x0fbuy_offer_price\x18\b \x01(\x05R\rbuyOfferPrice\x129\n" +
+	"\x04hash\x18\x02 \x01(\tR\x04hash\x127\n" +
+	"\apayload\x18\x03 \x01(\v2\x1d.fractalengine.InvoicePayloadR\apayload\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12,\n" +
-	"\x12sell_offer_address\x18\n" +
-	" \x01(\tR\x10sellOfferAddressB\x0eZ\fpkg/protocolb\x06proto3"
+	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\x0eZ\fpkg/protocolb\x06proto3"
 
 var (
 	file_pkg_protocol_invoices_proto_rawDescOnce sync.Once
@@ -318,21 +381,23 @@ func file_pkg_protocol_invoices_proto_rawDescGZIP() []byte {
 	return file_pkg_protocol_invoices_proto_rawDescData
 }
 
-var file_pkg_protocol_invoices_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_pkg_protocol_invoices_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_pkg_protocol_invoices_proto_goTypes = []any{
 	(*OnChainInvoiceMessage)(nil),  // 0: fractalengine.OnChainInvoiceMessage
 	(*InvoiceMessageEnvelope)(nil), // 1: fractalengine.InvoiceMessageEnvelope
-	(*InvoiceMessage)(nil),         // 2: fractalengine.InvoiceMessage
-	(*timestamppb.Timestamp)(nil),  // 3: google.protobuf.Timestamp
+	(*InvoicePayload)(nil),         // 2: fractalengine.InvoicePayload
+	(*InvoiceMessage)(nil),         // 3: fractalengine.InvoiceMessage
+	(*timestamppb.Timestamp)(nil),  // 4: google.protobuf.Timestamp
 }
 var file_pkg_protocol_invoices_proto_depIdxs = []int32{
-	2, // 0: fractalengine.InvoiceMessageEnvelope.payload:type_name -> fractalengine.InvoiceMessage
-	3, // 1: fractalengine.InvoiceMessage.created_at:type_name -> google.protobuf.Timestamp
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 0: fractalengine.InvoiceMessageEnvelope.payload:type_name -> fractalengine.InvoiceMessage
+	2, // 1: fractalengine.InvoiceMessage.payload:type_name -> fractalengine.InvoicePayload
+	4, // 2: fractalengine.InvoiceMessage.created_at:type_name -> google.protobuf.Timestamp
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_pkg_protocol_invoices_proto_init() }
@@ -346,7 +411,7 @@ func file_pkg_protocol_invoices_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_protocol_invoices_proto_rawDesc), len(file_pkg_protocol_invoices_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -3,7 +3,6 @@ package dogenet
 import (
 	"bufio"
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,12 +11,10 @@ import (
 	"net/http"
 
 	"dogecoin.org/fractal-engine/pkg/config"
-	"dogecoin.org/fractal-engine/pkg/protocol"
+
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/Dogebox-WG/gossip/dnet"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type NodePubKeyMsg struct {
@@ -39,7 +36,10 @@ type GetNodesResponse []NodeInfo
 
 type GossipClient interface {
 	GossipMint(record store.Mint) error
-	GossipOffer(record store.Offer) error
+	GossipBuyOffer(record store.BuyOffer) error
+	GossipSellOffer(record store.SellOffer) error
+	GossipDeleteBuyOffer(hash string, publicKey string, signature string) error
+	GossipDeleteSellOffer(hash string, publicKey string, signature string) error
 	GossipUnconfirmedInvoice(record store.UnconfirmedInvoice) error
 	GetNodes() (GetNodesResponse, error)
 	AddPeer(addPeer AddPeer) error
@@ -65,103 +65,6 @@ func convertToStructPBMap(m map[string]interface{}) map[string]*structpb.Value {
 		fields[k] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v.(string)}}
 	}
 	return fields
-}
-
-func (c *DogeNetClient) GossipMint(record store.Mint) error {
-	mintMessage := protocol.MintMessage{
-		Id:              record.Id,
-		Title:           record.Title,
-		Description:     record.Description,
-		FractionCount:   int32(record.FractionCount),
-		Tags:            record.Tags,
-		TransactionHash: record.TransactionHash.String,
-		Metadata:        &structpb.Struct{Fields: convertToStructPBMap(record.Metadata)},
-		Hash:            record.Hash,
-		Requirements:    &structpb.Struct{Fields: convertToStructPBMap(record.Requirements)},
-		LockupOptions:   &structpb.Struct{Fields: convertToStructPBMap(record.LockupOptions)},
-		FeedUrl:         record.FeedURL,
-		CreatedAt:       timestamppb.New(record.CreatedAt),
-	}
-
-	envelope := protocol.MintMessageEnvelope{
-		Type:    protocol.ACTION_MINT,
-		Version: protocol.DEFAULT_VERSION,
-		Payload: &mintMessage,
-	}
-
-	data, err := proto.Marshal(&envelope)
-	if err != nil {
-		log.Fatalf("Failed to marshal: %v", err)
-	}
-
-	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagMint, c.feKey, data)
-
-	err = encodedMsg.Send(c.sock)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *DogeNetClient) GossipOffer(record store.Offer) error {
-	offerMessage := protocol.OfferMessage{
-		Id:             record.Id,
-		OffererAddress: record.OffererAddress,
-		Type:           protocol.OfferType(record.Type),
-		Hash:           record.Hash,
-		CreatedAt:      timestamppb.New(record.CreatedAt),
-		Quantity:       int32(record.Quantity),
-		Price:          int32(record.Price),
-	}
-
-	envelope := protocol.OfferMessageEnvelope{
-		Type:    protocol.ACTION_OFFER,
-		Version: protocol.DEFAULT_VERSION,
-		Payload: &offerMessage,
-	}
-
-	data, err := proto.Marshal(&envelope)
-	if err != nil {
-		log.Fatalf("Failed to marshal: %v", err)
-	}
-
-	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagOffer, c.feKey, data)
-
-	err = encodedMsg.Send(c.sock)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *DogeNetClient) GossipUnconfirmedInvoice(record store.UnconfirmedInvoice) error {
-	invoiceMessage := protocol.InvoiceMessage{
-		Id:             record.Id,
-		PaymentAddress: record.PaymentAddress,
-		CreatedAt:      timestamppb.New(record.CreatedAt),
-	}
-
-	envelope := protocol.InvoiceMessageEnvelope{
-		Type:    protocol.ACTION_INVOICE,
-		Version: protocol.DEFAULT_VERSION,
-		Payload: &invoiceMessage,
-	}
-
-	data, err := proto.Marshal(&envelope)
-	if err != nil {
-		log.Fatalf("Failed to marshal: %v", err)
-	}
-
-	encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagInvoice, c.feKey, data)
-
-	err = encodedMsg.Send(c.sock)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func NewDogeNetClient(cfg *config.Config, store *store.TokenisationStore) *DogeNetClient {
@@ -321,10 +224,16 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 		switch msg.Tag {
 		case TagMint:
 			c.recvMint(msg)
-		case TagOffer:
-			c.recvOffer(msg)
+		case TagBuyOffer:
+			c.recvBuyOffer(msg)
+		case TagSellOffer:
+			c.recvSellOffer(msg)
 		case TagInvoice:
 			c.recvInvoice(msg)
+		case TagDeleteBuyOffer:
+			c.recvDeleteBuyOffer(msg)
+		case TagDeleteSellOffer:
+			c.recvDeleteSellOffer(msg)
 		default:
 			log.Printf("[FE] unknown message: [%s][%s]", msg.Chan, msg.Tag)
 		}
@@ -342,117 +251,4 @@ func (c *DogeNetClient) Stop() error {
 	}
 
 	return nil
-}
-
-func (c *DogeNetClient) recvOffer(msg dnet.Message) {
-	log.Printf("[FE] received offer message")
-
-	envelope := protocol.OfferMessageEnvelope{}
-	err := proto.Unmarshal(msg.Payload, &envelope)
-	if err != nil {
-		log.Println("Error deserializing message envelope:", err)
-		return
-	}
-
-	if envelope.Type != protocol.ACTION_OFFER {
-		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Type)
-		return
-	}
-
-	offer := envelope.Payload
-
-	offerWithoutID := store.OfferWithoutID{
-		OffererAddress: offer.OffererAddress,
-		Type:           store.OfferType(offer.Type),
-		Hash:           offer.Hash,
-		Quantity:       int(offer.Quantity),
-		Price:          int(offer.Price),
-		CreatedAt:      offer.CreatedAt.AsTime(),
-	}
-
-	// TODO: check if the offer is valid
-
-	id, err := c.store.SaveOffer(&offerWithoutID)
-	if err != nil {
-		log.Println("Error saving unconfirmed offer:", err)
-		return
-	}
-
-	log.Printf("[FE] unconfirmed offer saved: %v", id)
-}
-
-func (c *DogeNetClient) recvMint(msg dnet.Message) {
-	log.Printf("[FE] received mint message")
-
-	envelope := protocol.MintMessageEnvelope{}
-	err := proto.Unmarshal(msg.Payload, &envelope)
-	if err != nil {
-		log.Println("Error deserializing message envelope:", err)
-		return
-	}
-
-	if envelope.Type != protocol.ACTION_MINT {
-		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Type)
-		return
-	}
-
-	mint := envelope.Payload
-
-	id, err := c.store.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:            mint.Hash,
-		Title:           mint.Title,
-		FractionCount:   int(mint.FractionCount),
-		Description:     mint.Description,
-		Tags:            mint.Tags,
-		Metadata:        mint.Metadata.AsMap(),
-		TransactionHash: sql.NullString{String: mint.TransactionHash, Valid: true},
-		CreatedAt:       mint.CreatedAt.AsTime(),
-		Requirements:    mint.Requirements.AsMap(),
-		LockupOptions:   mint.LockupOptions.AsMap(),
-	})
-
-	if err != nil {
-		log.Println("Error saving unconfirmed mint:", err)
-		return
-	}
-
-	log.Printf("[FE] unconfirmed mint saved: %v", id)
-}
-
-func (c *DogeNetClient) recvInvoice(msg dnet.Message) {
-	log.Printf("[FE] received invoice message")
-
-	envelope := protocol.InvoiceMessageEnvelope{}
-	err := proto.Unmarshal(msg.Payload, &envelope)
-	if err != nil {
-		log.Println("Error deserializing message envelope:", err)
-		return
-	}
-
-	if envelope.Type != protocol.ACTION_INVOICE {
-		log.Printf("[FE] unexpected action: [%s][%s][%d]", msg.Chan, msg.Tag, envelope.Type)
-		return
-	}
-
-	invoice := envelope.Payload
-
-	invoiceWithoutID := store.UnconfirmedInvoice{
-		PaymentAddress:         invoice.PaymentAddress,
-		BuyOfferOffererAddress: invoice.BuyOfferOffererAddress,
-		BuyOfferHash:           invoice.BuyOfferHash,
-		BuyOfferMintHash:       invoice.BuyOfferMintHash,
-		BuyOfferQuantity:       int(invoice.BuyOfferQuantity),
-		BuyOfferPrice:          int(invoice.BuyOfferPrice),
-		CreatedAt:              invoice.CreatedAt.AsTime(),
-		Hash:                   invoice.Hash,
-		Id:                     invoice.Id,
-	}
-
-	id, err := c.store.SaveUnconfirmedInvoice(&invoiceWithoutID)
-	if err != nil {
-		log.Println("Error saving unconfirmed invoice:", err)
-		return
-	}
-
-	log.Printf("[FE] unconfirmed invoice saved: %v", id)
 }

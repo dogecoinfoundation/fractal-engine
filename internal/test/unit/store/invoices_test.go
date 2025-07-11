@@ -22,6 +22,9 @@ func TestSaveAndGetInvoices(t *testing.T) {
 		BuyOfferQuantity:       10,
 		BuyOfferPrice:          25,
 		CreatedAt:              time.Now(),
+		PublicKey:              "myPublicKey",
+		SellOfferAddress:       "mySellOfferAddress",
+		Signature:              "mySignature",
 	}
 
 	id, err := tokenisationStore.SaveInvoice(&invoice)
@@ -44,4 +47,5 @@ func TestSaveAndGetInvoices(t *testing.T) {
 	assert.Equal(t, invoices[0].BuyOfferQuantity, invoice.BuyOfferQuantity, "failed to match invoice buy offer quantity")
 	assert.Equal(t, invoices[0].BuyOfferPrice, invoice.BuyOfferPrice, "failed to match invoice buy offer price")
 	assert.Equal(t, invoices[0].CreatedAt.Unix(), invoice.CreatedAt.Unix(), "failed to match invoice created at")
+	assert.Equal(t, invoices[0].PublicKey, invoice.PublicKey, "failed to match invoice public key")
 }

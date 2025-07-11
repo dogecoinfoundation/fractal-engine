@@ -8,7 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
@@ -16,10 +18,11 @@ import (
 type InvoiceRoutes struct {
 	store        *store.TokenisationStore
 	gossipClient dogenet.GossipClient
+	cfg          *config.Config
 }
 
-func HandleInvoiceRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux) {
-	ir := &InvoiceRoutes{store: store, gossipClient: gossipClient}
+func HandleInvoiceRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux, cfg *config.Config) {
+	ir := &InvoiceRoutes{store: store, gossipClient: gossipClient, cfg: cfg}
 
 	mux.HandleFunc("/invoices", ir.handleInvoices)
 }
@@ -125,15 +128,27 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	count, err := ir.store.CountUnconfirmedInvoices(request.Payload.BuyOfferMintHash, request.Payload.BuyOfferOffererAddress)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if count >= ir.cfg.InvoiceLimit {
+		http.Error(w, "Invoice limit reached", http.StatusBadRequest)
+		return
+	}
+
 	newInvoiceWithoutId := &store.UnconfirmedInvoice{
-		BuyOfferHash:           request.BuyOfferHash,
-		BuyOfferMintHash:       request.BuyOfferMintHash,
-		BuyOfferQuantity:       request.BuyOfferQuantity,
-		BuyOfferPrice:          request.BuyOfferPrice,
-		BuyOfferOffererAddress: request.BuyOfferOffererAddress,
-		PaymentAddress:         request.PaymentAddress,
+		BuyOfferHash:           request.Payload.BuyOfferHash,
+		BuyOfferMintHash:       request.Payload.BuyOfferMintHash,
+		BuyOfferQuantity:       request.Payload.BuyOfferQuantity,
+		BuyOfferPrice:          request.Payload.BuyOfferPrice,
+		BuyOfferOffererAddress: request.Payload.BuyOfferOffererAddress,
+		PaymentAddress:         request.Payload.PaymentAddress,
 		CreatedAt:              time.Now(),
-		SellOfferAddress:       request.SellOfferAddress,
+		SellOfferAddress:       request.Payload.SellOfferAddress,
+		PublicKey:              request.PublicKey,
 	}
 
 	newInvoiceWithoutId.Hash, err = newInvoiceWithoutId.GenerateHash()

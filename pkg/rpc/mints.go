@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
@@ -16,10 +17,11 @@ import (
 type MintRoutes struct {
 	store        *store.TokenisationStore
 	gossipClient dogenet.GossipClient
+	cfg          *config.Config
 }
 
-func HandleMintRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux) {
-	mr := &MintRoutes{store: store, gossipClient: gossipClient}
+func HandleMintRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux, cfg *config.Config) {
+	mr := &MintRoutes{store: store, gossipClient: gossipClient, cfg: cfg}
 
 	mux.HandleFunc("/mints", mr.handleMints)
 }
@@ -119,15 +121,16 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newMintWithoutId := &store.MintWithoutID{
-		Title:         request.Title,
-		FractionCount: request.FractionCount,
-		Description:   request.Description,
-		Tags:          request.Tags,
-		Metadata:      request.Metadata,
+		Title:         request.Payload.Title,
+		FractionCount: request.Payload.FractionCount,
+		Description:   request.Payload.Description,
+		Tags:          request.Payload.Tags,
+		Metadata:      request.Payload.Metadata,
 		CreatedAt:     time.Now(),
-		Requirements:  request.Requirements,
-		LockupOptions: request.LockupOptions,
-		FeedURL:       request.FeedURL,
+		Requirements:  request.Payload.Requirements,
+		LockupOptions: request.Payload.LockupOptions,
+		FeedURL:       request.Payload.FeedURL,
+		PublicKey:     request.PublicKey,
 	}
 
 	newMintWithoutId.Hash, err = newMintWithoutId.GenerateHash()
