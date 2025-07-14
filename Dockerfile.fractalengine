@@ -1,0 +1,38 @@
+
+# --- Stage 1: Clone & Build ---
+    FROM golang:1.24 as builder
+
+    # Install libsystemd-dev and git
+    RUN apt-get update && apt-get install -y \
+        git \
+        pkg-config \
+        libsystemd-dev \
+        && rm -rf /var/lib/apt/lists/*
+    
+    # Set the working directory
+    WORKDIR /app
+    
+    # Clone the repo
+    COPY . .
+    
+    # Download dependencies
+    RUN go mod download
+    
+    # Build the Go binary
+    RUN go build -o fractalengine ./cmd/fractal-engine/fractal_engine.go
+    
+    # --- Stage 2: Minimal Runtime Image ---
+    FROM debian:bookworm-slim
+    
+    # Add CA certificates if needed for HTTPS
+    RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+    
+    WORKDIR /root/
+    
+    # Copy built binary
+    COPY --from=builder /app/fractalengine .
+    COPY --from=builder /app/db/migrations/ /root/db/migrations/
+    
+    EXPOSE 8891
+    
+    CMD /root/fractalengine -rpc-server-host 0.0.0.0 -rpc-server-port 8891 -doge-net-network tcp -doge-net-address dogenet:8085 -doge-scheme http -doge-host dogecoin -doge-port 22555 -doge-user test -doge-password test -database-url memory://fractal-engine.db -persist-follower true
