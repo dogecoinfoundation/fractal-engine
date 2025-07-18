@@ -3,6 +3,8 @@ package protocol
 import (
 	"bytes"
 	"encoding/binary"
+
+	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
 // Version
@@ -77,4 +79,12 @@ func (m *MessageEnvelope) Deserialize(data []byte) error {
 
 	m.Data = buf.Bytes()
 	return nil
+}
+
+func ConvertToStructPBMap(m map[string]interface{}) map[string]*structpb.Value {
+	fields := make(map[string]*structpb.Value)
+	for k, v := range m {
+		fields[k] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v.(string)}}
+	}
+	return fields
 }

@@ -1,6 +1,6 @@
 package config
 
-import "github.com/Dogebox-WG/gossip/dnet"
+import "code.dogecoin.org/gossip/dnet"
 
 type Config struct {
 	RpcServerHost      string

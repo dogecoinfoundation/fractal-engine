@@ -25,14 +25,17 @@
     FROM debian:bookworm-slim
     
     # Add CA certificates if needed for HTTPS
-    RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+    RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib/apt/lists/*
     
     WORKDIR /root/
     
+    ARG DATABASE_URL
+    ENV DATABASE_URL=${DATABASE_URL}
+
     # Copy built binary
     COPY --from=builder /app/fractalengine .
     COPY --from=builder /app/db/migrations/ /root/db/migrations/
-    
+
     EXPOSE 8891
     
-    CMD /root/fractalengine -rpc-server-host 0.0.0.0 -rpc-server-port 8891 -doge-net-network tcp -doge-net-address dogenet:8085 -doge-scheme http -doge-host dogecoin -doge-port 22555 -doge-user test -doge-password test -database-url memory://fractal-engine.db -persist-follower true
+    CMD /root/fractalengine -rpc-server-host 0.0.0.0 -rpc-server-port 8891 -doge-net-network unix -doge-net-address /tmp/dogenet.sock -doge-scheme http -doge-host dogecoin -doge-port 22556 -doge-user test -doge-password test -database-url ${DATABASE_URL} -persist-follower true

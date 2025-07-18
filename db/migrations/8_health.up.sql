@@ -2,5 +2,7 @@ CREATE TABLE IF NOT EXISTS health (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     current_block_height INTEGER NOT NULL,
     latest_block_height INTEGER NOT NULL,
+    chain TEXT NOT NULL,
+    wallets_enabled INTEGER NOT NULL DEFAULT 0,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

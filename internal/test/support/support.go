@@ -3,7 +3,6 @@ package support
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -14,12 +13,11 @@ import (
 	"testing"
 	"time"
 
+	"code.dogecoin.org/gossip/dnet"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
-	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"github.com/Dogebox-WG/gossip/dnet"
 	"github.com/docker/go-connections/nat"
 	"github.com/dogecoinfoundation/dogetest/pkg/dogetest"
 	"github.com/testcontainers/testcontainers-go"
@@ -392,99 +390,99 @@ func StartDogenetInstance(ctx context.Context, feKey dnet.KeyPair, image string,
 	return dogenetClient, dogenetA, nil
 }
 
-func WriteMintToCore(dogeTest *dogetest.DogeTest, addressBook *dogetest.AddressBook, mintResponse *rpc.CreateMintResponse) error {
-	unspent, err := dogeTest.Rpc.ListUnspent(addressBook.Addresses[0].Address)
-	if err != nil {
-		log.Fatal(err)
-	}
+// func WriteMintToCore(dogeTest *dogetest.DogeTest, addressBook *dogetest.AddressBook, mintResponse *rpc.CreateMintResponse) error {
+// 	unspent, err := dogeTest.Rpc.ListUnspent(addressBook.Addresses[0].Address)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
 
-	if len(unspent) == 0 {
-		return fmt.Errorf("no unspent outputs found")
-	}
+// 	if len(unspent) == 0 {
+// 		return fmt.Errorf("no unspent outputs found")
+// 	}
 
-	selectedUTXO := unspent[0]
+// 	selectedUTXO := unspent[0]
 
-	inputs := []map[string]interface{}{
-		{
-			"txid": selectedUTXO.TxID,
-			"vout": selectedUTXO.Vout,
-		},
-	}
+// 	inputs := []map[string]interface{}{
+// 		{
+// 			"txid": selectedUTXO.TxID,
+// 			"vout": selectedUTXO.Vout,
+// 		},
+// 	}
 
-	change := selectedUTXO.Amount - 0.5
+// 	change := selectedUTXO.Amount - 0.5
 
-	outputs := map[string]interface{}{
-		addressBook.Addresses[0].Address: change,
-		"data":                           mintResponse.EncodedTransactionBody,
-	}
+// 	outputs := map[string]interface{}{
+// 		addressBook.Addresses[0].Address: change,
+// 		"data":                           mintResponse.EncodedTransactionBody,
+// 	}
 
-	createResp, err := dogeTest.Rpc.Request("createrawtransaction", []interface{}{inputs, outputs})
+// 	createResp, err := dogeTest.Rpc.Request("createrawtransaction", []interface{}{inputs, outputs})
 
-	if err != nil {
-		log.Fatalf("Error creating raw transaction: %v", err)
-	}
+// 	if err != nil {
+// 		log.Fatalf("Error creating raw transaction: %v", err)
+// 	}
 
-	var rawTx string
+// 	var rawTx string
 
-	if err := json.Unmarshal(*createResp, &rawTx); err != nil {
-		log.Fatalf("Error parsing raw transaction: %v", err)
-	}
+// 	if err := json.Unmarshal(*createResp, &rawTx); err != nil {
+// 		log.Fatalf("Error parsing raw transaction: %v", err)
+// 	}
 
-	// Step 3: Add OP_RETURN output to the transaction
-	rawTxBytes, err := hex.DecodeString(rawTx)
-	if err != nil {
-		log.Fatalf("Error decoding raw transaction hex: %v", err)
-	}
+// 	// Step 3: Add OP_RETURN output to the transaction
+// 	rawTxBytes, err := hex.DecodeString(rawTx)
+// 	if err != nil {
+// 		log.Fatalf("Error decoding raw transaction hex: %v", err)
+// 	}
 
-	prevTxs := []map[string]interface{}{
-		{
+// 	prevTxs := []map[string]interface{}{
+// 		{
 
-			"txid":         selectedUTXO.TxID,
-			"vout":         selectedUTXO.Vout,
-			"scriptPubKey": selectedUTXO.ScriptPubKey,
-			"amount":       selectedUTXO.Amount,
-		},
-	}
+// 			"txid":         selectedUTXO.TxID,
+// 			"vout":         selectedUTXO.Vout,
+// 			"scriptPubKey": selectedUTXO.ScriptPubKey,
+// 			"amount":       selectedUTXO.Amount,
+// 		},
+// 	}
 
-	// Prepare privkeys (private keys for signing)
-	privkeys := []string{addressBook.Addresses[0].PrivateKey}
+// 	// Prepare privkeys (private keys for signing)
+// 	privkeys := []string{addressBook.Addresses[0].PrivateKey}
 
-	signResp, err := dogeTest.Rpc.Request("signrawtransaction", []interface{}{hex.EncodeToString(rawTxBytes), prevTxs, privkeys})
-	if err != nil {
-		log.Fatalf("Error signing raw transaction: %v", err)
-	}
+// 	signResp, err := dogeTest.Rpc.Request("signrawtransaction", []interface{}{hex.EncodeToString(rawTxBytes), prevTxs, privkeys})
+// 	if err != nil {
+// 		log.Fatalf("Error signing raw transaction: %v", err)
+// 	}
 
-	var signResult map[string]interface{}
-	if err := json.Unmarshal(*signResp, &signResult); err != nil {
-		log.Fatalf("Error parsing signed transaction: %v", err)
-	}
+// 	var signResult map[string]interface{}
+// 	if err := json.Unmarshal(*signResp, &signResult); err != nil {
+// 		log.Fatalf("Error parsing signed transaction: %v", err)
+// 	}
 
-	signedTx, ok := signResult["hex"].(string)
-	if !ok {
-		log.Fatal("Error retrieving signed transaction hex.")
-	}
+// 	signedTx, ok := signResult["hex"].(string)
+// 	if !ok {
+// 		log.Fatal("Error retrieving signed transaction hex.")
+// 	}
 
-	// Step 5: Broadcast the signed transaction
-	sendResp, err := dogeTest.Rpc.Request("sendrawtransaction", []interface{}{signedTx})
-	if err != nil {
-		log.Fatalf("Error broadcasting transaction: %v", err)
-	}
+// 	// Step 5: Broadcast the signed transaction
+// 	sendResp, err := dogeTest.Rpc.Request("sendrawtransaction", []interface{}{signedTx})
+// 	if err != nil {
+// 		log.Fatalf("Error broadcasting transaction: %v", err)
+// 	}
 
-	var txID string
-	if err := json.Unmarshal(*sendResp, &txID); err != nil {
-		log.Fatalf("Error parsing transaction ID: %v", err)
-	}
+// 	var txID string
+// 	if err := json.Unmarshal(*sendResp, &txID); err != nil {
+// 		log.Fatalf("Error parsing transaction ID: %v", err)
+// 	}
 
-	fmt.Printf("Transaction sent successfully! TXID: %s\n", txID)
+// 	fmt.Printf("Transaction sent successfully! TXID: %s\n", txID)
 
-	time.Sleep(2 * time.Second)
+// 	time.Sleep(2 * time.Second)
 
-	blockies, err := dogeTest.ConfirmBlocks()
-	if err != nil {
-		log.Fatal(err)
-	}
+// 	blockies, err := dogeTest.ConfirmBlocks()
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
 
-	fmt.Println("Blockies:", blockies)
+// 	fmt.Println("Blockies:", blockies)
 
-	return nil
-}
+// 	return nil
+// }

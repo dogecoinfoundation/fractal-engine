@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 
+	"code.dogecoin.org/gossip/dnet"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/service"
@@ -32,8 +33,8 @@ func main() {
 
 	flag.StringVar(&rpcServerHost, "rpc-server-host", "0.0.0.0", "RPC Server Host")
 	flag.StringVar(&rpcServerPort, "rpc-server-port", "8080", "RPC Server Port")
-	flag.StringVar(&dogeNetNetwork, "doge-net-network", "tcp", "DogeNet Network")
-	flag.StringVar(&dogeNetAddress, "doge-net-address", "0.0.0.0:8085", "DogeNet Address")
+	flag.StringVar(&dogeNetNetwork, "doge-net-network", "unix", "DogeNet Network")
+	flag.StringVar(&dogeNetAddress, "doge-net-address", "/tmp/dogenet.sock", "DogeNet Address")
 	flag.StringVar(&dogeScheme, "doge-scheme", "http", "Doge Scheme")
 	flag.StringVar(&dogeHost, "doge-host", "0.0.0.0", "Doge Host")
 	flag.StringVar(&dogePort, "doge-port", "22555", "Doge Port")
@@ -72,6 +73,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create tokenisation store: %v", err)
 	}
+
+	kp, err := dnet.GenerateKeyPair()
+	if err != nil {
+		log.Fatalf("Failed to generate key pair: %v", err)
+	}
+
+	cfg.DogeNetKeyPair = kp
 
 	dogenetClient := dogenet.NewDogeNetClient(cfg, tokenStore)
 

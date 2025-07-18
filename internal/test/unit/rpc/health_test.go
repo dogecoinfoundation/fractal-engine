@@ -14,11 +14,13 @@ func TestGetHealth(t *testing.T) {
 	_, err := feClient.GetHealth()
 	assert.Error(t, err, "failed to get health: 404 Not Found")
 
-	tokenisationStore.UpsertHealth(100, 200)
+	tokenisationStore.UpsertHealth(100, 200, "test", true)
 
 	healthResponse, err := feClient.GetHealth()
 	assert.NilError(t, err)
 	assert.Equal(t, healthResponse.CurrentBlockHeight, int64(100))
 	assert.Equal(t, healthResponse.LatestBlockHeight, int64(200))
 	assert.Equal(t, healthResponse.UpdatedAt.IsZero(), false)
+	assert.Equal(t, healthResponse.Chain, "test")
+	assert.Equal(t, healthResponse.WalletsEnabled, true)
 }

@@ -3,10 +3,10 @@ package dogenet
 import (
 	"log"
 
+	"code.dogecoin.org/gossip/dnet"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"github.com/Dogebox-WG/gossip/dnet"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"

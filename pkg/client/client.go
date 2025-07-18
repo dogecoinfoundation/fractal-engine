@@ -293,21 +293,6 @@ func (c *TokenisationClient) GetBuyOffers(page int, limit int, mintHash string) 
 }
 
 func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintResponse, error) {
-	payloadBytes, err := json.Marshal(mint.Payload)
-	if err != nil {
-		return rpc.CreateMintResponse{}, err
-	}
-
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
-	if err != nil {
-		return rpc.CreateMintResponse{}, err
-	}
-
-	mint.SignedRequest = rpc.SignedRequest{
-		PublicKey: c.pubHex,
-		Signature: signature,
-	}
-
 	jsonValue, err := json.Marshal(mint)
 	if err != nil {
 		return rpc.CreateMintResponse{}, err

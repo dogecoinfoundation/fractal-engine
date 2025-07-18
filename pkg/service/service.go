@@ -33,7 +33,7 @@ func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetCl
 	healthService := health.NewHealthService(dogeClient, tokenStore)
 
 	return &TokenisationService{
-		RpcServer:      rpc.NewRpcServer(cfg, tokenStore, dogenetClient),
+		RpcServer:      rpc.NewRpcServer(cfg, tokenStore, dogenetClient, dogeClient),
 		Store:          tokenStore,
 		DogeNetClient:  dogenetClient,
 		DogeClient:     dogeClient,

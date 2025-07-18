@@ -3,12 +3,13 @@ module dogecoin.org/fractal-engine
 go 1.24.0
 
 require (
-	github.com/Dogebox-WG/gossip v0.0.21-0.20250602032058-1408c427c179
+	code.dogecoin.org/gossip v0.0.18
 	github.com/btcsuite/btcd/btcec/v2 v2.3.5
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/docker/go-connections v0.5.0
 	github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3
 	github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9
+	github.com/dogeorg/doge v0.0.15
 	github.com/golang-migrate/migrate v3.5.4+incompatible
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
@@ -22,6 +23,8 @@ require (
 	google.golang.org/protobuf v1.36.6
 	gotest.tools/v3 v3.5.2
 )
+
+replace code.dogecoin.org/gossip => github.com/dogeorg/gossip v0.0.18
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
@@ -43,7 +46,6 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/docker v28.2.2+incompatible // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/dogeorg/doge v0.0.12 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

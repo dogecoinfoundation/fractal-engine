@@ -1,5 +1,22 @@
 version: '3.8'
 services:
+  fractal-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.fractaladmin
+      args:
+        DATABASE_URL: "file:/app/data/fractal-ui.db"
+    ports:
+      - "3030:3000" 
+    environment:
+      - FRACTAL_ENGINE_URL=http://fractalengine:8891
+      - DATABASE_URL=file:/app/data/fractal-ui.db
+    volumes:
+      - sqlite-data:/app/data
+    depends_on:
+      fractalengine:
+        condition: service_healthy
+    restart: unless-stopped
   dogenet:
     build:
       context: .
@@ -8,7 +25,12 @@ services:
     ports:
       - "8085:8085"
     volumes:
-      - ./data/dogenet/data:/root/storage
+      - doge-sock:/tmp
+    healthcheck:
+      test: ["CMD", "test", "/tmp/dogenet.sock"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
   fractalengine:
     build:
       context: .
@@ -16,26 +38,44 @@ services:
     container_name: fractalengine
     ports:
       - "8891:8891"
-    volumes:
-      - ./data/fractalengine/data:/root/storage
+    environment:
+      - DATABASE_URL=sqlite:///root/storage/fractal-engine.db
     depends_on:
       dogecoin:
         condition: service_healthy
+      dogenet:
+        condition: service_healthy
+    volumes:
+      - doge-sock:/tmp
+      - sqlite-fractalengine-data:/root/storage
+    healthcheck:
+      test: [
+        "CMD", "curl", "--silent", "content-type: text/plain;", "http://127.0.0.1:8891/health"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   dogecoin:
     build:
       context: .
       dockerfile: Dockerfile.dogecoin
     container_name: dogecoin
     ports:
-      - "22555:22555"
-    volumes:
-      - ./data/dogecoin/data:/root/storage
+      - "22556:22556"
     healthcheck:
       test: [
-        "CMD", "curl", "--silent", "--user", "user:password",
+        "CMD", "curl", "--silent", "--user", "test:test",
         "--data-binary", "{\"jsonrpc\":\"1.0\",\"id\":\"curltest\",\"method\":\"getblockchaininfo\",\"params\":[]}",
-        "-H", "content-type: text/plain;", "http://127.0.0.1:22555"
+        "-H", "content-type: text/plain;", "http://127.0.0.1:22556"
       ]
       interval: 10s
       timeout: 5s
       retries: 5
+
+volumes:
+  sqlite-data:
+    driver: local
+  doge-sock:
+    driver: local
+  sqlite-fractalengine-data:
+    driver: local

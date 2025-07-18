@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"code.dogecoin.org/gossip/dnet"
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"github.com/Dogebox-WG/gossip/dnet"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gotest.tools/assert"

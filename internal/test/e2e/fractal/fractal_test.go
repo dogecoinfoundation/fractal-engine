@@ -101,7 +101,9 @@ func TestFractal(t *testing.T) {
 
 	feClient := client.NewTokenisationClient("http://"+feConfigA.RpcServerHost+":"+feConfigA.RpcServerPort, privHex, pubHex)
 
-	mintResponse, err := feClient.Mint(&rpc.CreateMintRequest{
+	_, err = feClient.Mint(&rpc.CreateMintRequest{
+		Address:   "testA0",
+		PublicKey: pubHex,
 		Payload: rpc.CreateMintRequestPayload{
 			Title:         "Test Mint",
 			FractionCount: 100,
@@ -121,17 +123,17 @@ func TestFractal(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	// Write mint to core (OG Node)
-	err = support.WriteMintToCore(testGroups[0].DogeTest, testGroups[0].AddressBook, &mintResponse)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// // Write mint to core (OG Node)
+	// err = support.WriteMintToCore(testGroups[0].DogeTest, testGroups[0].AddressBook, &mintResponse)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	// Write mint to core (2nd node)
-	err = support.WriteMintToCore(testGroups[1].DogeTest, testGroups[1].AddressBook, &mintResponse)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// // Write mint to core (2nd node)
+	// err = support.WriteMintToCore(testGroups[1].DogeTest, testGroups[1].AddressBook, &mintResponse)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// OG Node
 	for {

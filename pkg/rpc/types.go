@@ -60,9 +60,33 @@ func (req *SignedRequest) ValidateSignature(payloadBytes []byte) error {
 	return nil
 }
 
-type CreateMintRequest struct {
-	SignedRequest
+type PrepareMintRequest struct {
 	Payload CreateMintRequestPayload `json:"payload"`
+}
+
+func (req *PrepareMintRequest) Validate() error {
+	var missing []string
+
+	if req.Payload.Title == "" {
+		missing = append(missing, "title")
+	}
+	if req.Payload.FractionCount <= 0 {
+		missing = append(missing, "fraction_count (must be > 0)")
+	}
+	if req.Payload.Description == "" {
+		missing = append(missing, "description")
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing or invalid fields: %s", strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+type CreateMintRequest struct {
+	Address   string                   `json:"address"`
+	PublicKey string                   `json:"public_key"`
+	Payload   CreateMintRequestPayload `json:"payload"`
 }
 
 type CreateMintRequestPayload struct {
@@ -80,11 +104,11 @@ type CreateMintRequestPayload struct {
 func (req *CreateMintRequest) Validate() error {
 	var missing []string
 
+	if req.Address == "" {
+		missing = append(missing, "address")
+	}
 	if req.PublicKey == "" {
 		missing = append(missing, "public_key")
-	}
-	if req.Signature == "" {
-		missing = append(missing, "signature")
 	}
 
 	if req.Payload.Title == "" {
@@ -97,15 +121,6 @@ func (req *CreateMintRequest) Validate() error {
 		missing = append(missing, "description")
 	}
 
-	payloadBytes, err := json.Marshal(req.Payload)
-	if err != nil {
-		return fmt.Errorf("invalid payload: %w", err)
-	}
-
-	if err := req.ValidateSignature(payloadBytes); err != nil {
-		return err
-	}
-
 	if len(missing) > 0 {
 		return fmt.Errorf("missing or invalid fields: %s", strings.Join(missing, ", "))
 	}
@@ -113,9 +128,7 @@ func (req *CreateMintRequest) Validate() error {
 }
 
 type CreateMintResponse struct {
-	EncodedTransactionBody string `json:"encoded_transaction_body"`
-	TransactionHash        string `json:"transaction_hash"`
-	Id                     string `json:"id"`
+	TransactionId string `json:"transaction_id"`
 }
 
 type GetMintsResponse struct {
@@ -407,5 +420,21 @@ type CreateInvoiceResponse struct {
 type GetHealthResponse struct {
 	CurrentBlockHeight int64     `json:"current_block_height"`
 	LatestBlockHeight  int64     `json:"latest_block_height"`
+	Chain              string    `json:"chain"`
+	WalletsEnabled     bool      `json:"wallets_enabled"`
 	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+type Address struct {
+	Address    string `json:"address"`
+	PrivateKey string `json:"private_key"`
+	PublicKey  string `json:"public_key"`
+	Label      string `json:"label"`
+}
+
+type SignTxRequest struct {
+	Payload                PrepareMintRequest `json:"payload"`
+	Signature              string             `json:"signature"`
+	PublicKey              string             `json:"public_key"`
+	EncodedTransactionBody string             `json:"encoded_transaction_body"`
 }

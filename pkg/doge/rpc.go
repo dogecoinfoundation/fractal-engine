@@ -36,6 +36,96 @@ func NewRpcClient(config *config.Config) *RpcClient {
 	}
 }
 
+func (t *RpcClient) ListUnspent(address string) ([]UTXO, error) {
+	res, err := t.Request("listunspent", []any{0, 99999999, []string{address}})
+	if err != nil {
+		return []UTXO{}, err
+	}
+
+	var result []UTXO
+	err = json.Unmarshal(*res, &result)
+	if err != nil {
+		return []UTXO{}, err
+	}
+
+	return result, nil
+}
+
+func (t *RpcClient) Generate(n int) ([]string, error) {
+	res, err := t.Request("generate", []any{n})
+	if err != nil {
+		return []string{}, err
+	}
+
+	var result []string
+	err = json.Unmarshal(*res, &result)
+	if err != nil {
+		return []string{}, err
+	}
+
+	return result, nil
+}
+
+func (t *RpcClient) GetNewAddress() (string, error) {
+	res, err := t.Request("getnewaddress", []any{})
+	if err != nil {
+		return "", err
+	}
+
+	var result string
+	err = json.Unmarshal(*res, &result)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (t *RpcClient) DumpPrivKey(address string) (string, error) {
+	res, err := t.Request("dumpprivkey", []any{address})
+	if err != nil {
+		return "", err
+	}
+
+	var result string
+	err = json.Unmarshal(*res, &result)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (t *RpcClient) SendToAddress(address string, amount float64) (string, error) {
+	res, err := t.Request("sendtoaddress", []any{address, amount})
+	if err != nil {
+		return "", err
+	}
+
+	var result string
+	err = json.Unmarshal(*res, &result)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (t *RpcClient) GetWalletInfo() (WalletInfo, error) {
+	res, err := t.Request("getwalletinfo", []any{})
+	if err != nil {
+		return WalletInfo{}, err
+	}
+
+	var result WalletInfo
+	err = json.Unmarshal(*res, &result)
+	if err != nil {
+		return WalletInfo{}, err
+	}
+
+	return result, nil
+}
+
 func (t *RpcClient) GetBestBlockHash() (string, error) {
 	res, err := t.Request("getbestblockhash", []any{})
 	if err != nil {

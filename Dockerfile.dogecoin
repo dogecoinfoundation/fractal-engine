@@ -4,9 +4,7 @@ RUN curl -o dogecoin.tar.gz -Lk https://github.com/dogecoin/dogecoin/releases/do
 RUN tar -xvf dogecoin.tar.gz
 RUN rm dogecoin.tar.gz
 RUN install -m 0755 -o root -g root -t /usr/local/bin dogecoin-1.14.9/bin/*
-EXPOSE 22555
+EXPOSE 22556
 
-ARG DOGECOIN_CONF=regtest
-
-COPY $DOGECOIN_CONF.conf /dogecoin.conf
-CMD ["dogecoind", "-printtoconsole", "$DOGECOIN_CONF", "-reindex-chainstate", "-min", "-splash=0", "-conf=/dogecoin.conf"]
+COPY regtest.conf /dogecoin.conf
+CMD ["dogecoind", "-printtoconsole", "-regtest", "-reindex-chainstate", "-min", "-splash=0", "-conf=/dogecoin.conf"]

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"gotest.tools/assert"
 )
@@ -11,7 +12,7 @@ import (
 func TestMints(t *testing.T) {
 	tokenisationStore, dogenetClient, mux, feClient := SetupRpcTest(t)
 
-	rpc.HandleMintRoutes(tokenisationStore, dogenetClient, mux, &config.Config{})
+	rpc.HandleMintRoutes(tokenisationStore, dogenetClient, mux, &config.Config{}, doge.NewRpcClient(&config.Config{}))
 
 	mintRequest := rpc.CreateMintRequest{
 		Payload: rpc.CreateMintRequestPayload{
@@ -39,7 +40,7 @@ func TestMints(t *testing.T) {
 	}
 
 	assert.Equal(t, len(mints), 1)
-	assert.Equal(t, mints[0].Id, mintResponse.Id)
+	assert.Equal(t, mints[0].Id, mintResponse.TransactionId)
 	assert.Equal(t, mints[0].Title, mintRequest.Payload.Title)
 	assert.Equal(t, mints[0].FractionCount, mintRequest.Payload.FractionCount)
 	assert.Equal(t, mints[0].Description, mintRequest.Payload.Description)
@@ -50,7 +51,7 @@ func TestMints(t *testing.T) {
 	assert.Equal(t, mints[0].FeedURL, mintRequest.Payload.FeedURL)
 
 	assert.Equal(t, len(dogenetClient.mints), 1)
-	assert.Equal(t, dogenetClient.mints[0].Id, mintResponse.Id)
+	assert.Equal(t, dogenetClient.mints[0].Id, mintResponse.TransactionId)
 	assert.Equal(t, dogenetClient.mints[0].Title, mintRequest.Payload.Title)
 	assert.Equal(t, dogenetClient.mints[0].FractionCount, mintRequest.Payload.FractionCount)
 	assert.Equal(t, dogenetClient.mints[0].Description, mintRequest.Payload.Description)
