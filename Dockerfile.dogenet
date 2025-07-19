@@ -41,6 +41,9 @@
     RUN ./dogenet genkey ident-key ident-pub
 
     RUN mkdir -p /root/storage
+
+    ARG DOGE_NET_HANDLER
+    ENV DOGE_NET_HANDLER=unix:///tmp/dogenet.sock
     
-    CMD export KEY=$(cat dev-key) && export IDENT=$(cat ident-pub) && ./dogenet --local --public 0.0.0.0
-     
+    CMD export KEY=$(cat dev-key) && export IDENT=$(cat ident-pub) && ./dogenet --local --public 0.0.0.0 --handler $DOGE_NET_HANDLER
+    

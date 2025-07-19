@@ -20,7 +20,7 @@ Note: We override the DogeNet settings because in the full docker compose setup 
 ## Fractal only
 This is an example of running Fractal Engine and Fractal Admin UI inside of a docker container. You will also have DogeNet and Dogecoin Core running somewhere else already.
 ```
-docker compose --profile deps up
+DOGE_NET_HANDLER=tcp://localhost:8085 docker compose --profile deps up
 ```
 
 ```

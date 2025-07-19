@@ -24,8 +24,11 @@ services:
       context: .
       dockerfile: Dockerfile.dogenet
     container_name: dogenet
+    environment:
+      - DOGE_NET_HANDLER=$DOGE_NET_HANDLER
     ports:
       - "8085:8085"
+      - "8086:8086"
     volumes:
       - doge-sock:/tmp
     healthcheck:

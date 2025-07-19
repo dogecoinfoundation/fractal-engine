@@ -18,6 +18,7 @@ func main() {
 	var rpcServerPort string
 	var dogeNetNetwork string
 	var dogeNetAddress string
+	var dogeNetWebAddress string
 	var dogeScheme string
 	var dogeHost string
 	var dogePort string
@@ -32,9 +33,10 @@ func main() {
 	var sellOfferLimit int
 
 	flag.StringVar(&rpcServerHost, "rpc-server-host", "0.0.0.0", "RPC Server Host")
-	flag.StringVar(&rpcServerPort, "rpc-server-port", "8080", "RPC Server Port")
+	flag.StringVar(&rpcServerPort, "rpc-server-port", "8891", "RPC Server Port")
 	flag.StringVar(&dogeNetNetwork, "doge-net-network", "unix", "DogeNet Network")
 	flag.StringVar(&dogeNetAddress, "doge-net-address", "/tmp/dogenet.sock", "DogeNet Address")
+	flag.StringVar(&dogeNetWebAddress, "doge-net-web-address", "0.0.0.0:8085", "DogeNet Web Address")
 	flag.StringVar(&dogeScheme, "doge-scheme", "http", "Doge Scheme")
 	flag.StringVar(&dogeHost, "doge-host", "0.0.0.0", "Doge Host")
 	flag.StringVar(&dogePort, "doge-port", "22556", "Doge Port")
@@ -55,6 +57,7 @@ func main() {
 		RpcServerPort:      rpcServerPort,
 		DogeNetNetwork:     dogeNetNetwork,
 		DogeNetAddress:     dogeNetAddress,
+		DogeNetWebAddress:  dogeNetWebAddress,
 		DogeScheme:         dogeScheme,
 		DogeHost:           dogeHost,
 		DogePort:           dogePort,

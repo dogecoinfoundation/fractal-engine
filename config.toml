@@ -1,0 +1,4 @@
+fractal_engine_host = "localhost"
+fractal_engine_port = "8891"
+key_labels = ["main", "beta"]
+active_key = "beta"
