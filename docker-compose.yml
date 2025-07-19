@@ -17,7 +17,9 @@ services:
       fractalengine:
         condition: service_healthy
     restart: unless-stopped
+    profiles: [frontend]
   dogenet:
+    profiles: [deps]
     build:
       context: .
       dockerfile: Dockerfile.dogenet
@@ -32,6 +34,7 @@ services:
       timeout: 5s
       retries: 10
   fractalengine:
+    profiles: [fractal]
     build:
       context: .
       dockerfile: Dockerfile.fractalengine
@@ -56,6 +59,7 @@ services:
       timeout: 5s
       retries: 5
   dogecoin:
+    profiles: [deps]
     build:
       context: .
       dockerfile: Dockerfile.dogecoin

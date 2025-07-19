@@ -37,7 +37,7 @@ func main() {
 	flag.StringVar(&dogeNetAddress, "doge-net-address", "/tmp/dogenet.sock", "DogeNet Address")
 	flag.StringVar(&dogeScheme, "doge-scheme", "http", "Doge Scheme")
 	flag.StringVar(&dogeHost, "doge-host", "0.0.0.0", "Doge Host")
-	flag.StringVar(&dogePort, "doge-port", "22555", "Doge Port")
+	flag.StringVar(&dogePort, "doge-port", "22556", "Doge Port")
 	flag.StringVar(&dogeUser, "doge-user", "test", "Doge User")
 	flag.StringVar(&dogePassword, "doge-password", "test", "Doge Password")
 	flag.StringVar(&databaseURL, "database-url", "sqlite://fractal-engine.db", "Database URL")
