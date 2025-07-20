@@ -7,5 +7,5 @@ doge_host = "localhost"
 doge_port = "22556"
 doge_user = "test"
 doge_password = "test"
-key_labels = ["mysuperkey"]
-active_key = "mysuperkey"
+key_labels = ["mainz"]
+active_key = "mainz"

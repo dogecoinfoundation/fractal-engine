@@ -7,13 +7,17 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	fecli "dogecoin.org/fractal-engine/pkg/cli"
+	climodels "dogecoin.org/fractal-engine/pkg/cli/climodels"
 	"dogecoin.org/fractal-engine/pkg/cli/keys"
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
+	"github.com/charmbracelet/bubbles/table"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	bmclient "github.com/dogecoinfoundation/balance-master/pkg/client"
 	"github.com/urfave/cli/v3"
@@ -39,6 +43,13 @@ var MintCommand = &cli.Command{
 			Name:   "list",
 			Usage:  "List all tokens",
 			Action: mintListAction,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:  "config-path",
+					Usage: "Path to the config file",
+					Value: "config.toml",
+				},
+			},
 		},
 	},
 }
@@ -62,12 +73,48 @@ func mintListAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal(err)
 	}
 
-	mints, err := tokenisationClient.GetMints(1, 10, pubHex)
+	mints, err := tokenisationClient.GetMints(1, 10, pubHex, true)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(mints)
+	mintTable := climodels.CliTableModel{
+		Table: table.New(
+			table.WithColumns([]table.Column{
+				{Title: "ID", Width: 10},
+				{Title: "Title", Width: 10},
+				{Title: "Description", Width: 10},
+				{Title: "Fraction Count", Width: 10},
+				{Title: "Block Height", Width: 10},
+				{Title: "Transaction Hash", Width: 10},
+				{Title: "Hash", Width: 10},
+				{Title: "Created At", Width: 10},
+			}),
+		),
+	}
+
+	rows := []table.Row{}
+
+	for _, mint := range mints.Mints {
+		rows = append(rows, table.Row{
+			mint.Id,
+			mint.Title,
+			mint.Description,
+			fmt.Sprintf("%d", mint.FractionCount),
+			fmt.Sprintf("%d", mint.BlockHeight),
+			mint.TransactionHash.String,
+			mint.Hash,
+			mint.CreatedAt.Format(time.RFC3339),
+		})
+	}
+
+	mintTable.Table.SetRows(rows)
+
+	p := tea.NewProgram(mintTable)
+	_, err = p.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return nil
 }

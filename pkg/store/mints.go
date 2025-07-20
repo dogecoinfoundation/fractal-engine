@@ -11,12 +11,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (s *TokenisationStore) GetMintsByPublicKey(offset int, limit int, publicKey string) ([]Mint, error) {
+func (s *TokenisationStore) GetMintsByPublicKey(offset int, limit int, publicKey string, includeUnconfirmed bool) ([]Mint, error) {
 	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key FROM mints WHERE public_key = $1 LIMIT $2 OFFSET $3", publicKey, limit, offset)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	var mints []Mint
 	for rows.Next() {
@@ -28,6 +27,29 @@ func (s *TokenisationStore) GetMintsByPublicKey(offset int, limit int, publicKey
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+
+	rows.Close()
+
+	if includeUnconfirmed {
+		rows, err = s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key FROM unconfirmed_mints WHERE public_key = $1 LIMIT $2 OFFSET $3", publicKey, limit, offset)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var m Mint
+			if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress, &m.PublicKey); err != nil {
+				return nil, err
+			}
+			mints = append(mints, m)
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
+
+		rows.Close()
 	}
 
 	return mints, nil

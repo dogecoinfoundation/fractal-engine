@@ -321,8 +321,8 @@ func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintRe
 	return result, nil
 }
 
-func (c *TokenisationClient) GetMints(page int, limit int, publicKey string) (rpc.GetMintsResponse, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints?page=%d&limit=%d&public_key=%s", page, limit, publicKey))
+func (c *TokenisationClient) GetMints(page int, limit int, publicKey string, includeUnconfirmed bool) (rpc.GetMintsResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints?page=%d&limit=%d&public_key=%s&include_unconfirmed=%t", page, limit, publicKey, includeUnconfirmed))
 	if err != nil {
 		return rpc.GetMintsResponse{}, err
 	}

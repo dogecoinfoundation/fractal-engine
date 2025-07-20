@@ -6,7 +6,7 @@ create table unconfirmed_mints (
     tags TEXT,
     transaction_hash TEXT,
     block_height INTEGER,
-    output_address TEXT,
+    owner_address TEXT,
     metadata TEXT,
     hash TEXT,
     requirements TEXT,

@@ -3,3 +3,4 @@ test.db
 data
 test.toml
 **\test*.db
+config.toml

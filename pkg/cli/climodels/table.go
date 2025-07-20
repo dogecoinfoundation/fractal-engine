@@ -14,7 +14,9 @@ type CliTableModel struct {
 	Table table.Model
 }
 
-func (m CliTableModel) Init() tea.Cmd { return nil }
+func (m CliTableModel) Init() tea.Cmd {
+	return nil
+}
 
 func (m CliTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Quit
