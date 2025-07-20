@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
@@ -87,6 +88,7 @@ type CreateMintRequest struct {
 	Address   string                   `json:"address"`
 	PublicKey string                   `json:"public_key"`
 	Payload   CreateMintRequestPayload `json:"payload"`
+	Signature string                   `json:"signature"`
 }
 
 type CreateMintRequestPayload struct {
@@ -111,6 +113,15 @@ func (req *CreateMintRequest) Validate() error {
 		missing = append(missing, "public_key")
 	}
 
+	payloadBytes, err := json.Marshal(req.Payload)
+	if err != nil {
+		return fmt.Errorf("invalid payload: %w", err)
+	}
+
+	if err := doge.ValidateSignature(payloadBytes, req.PublicKey, req.Signature); err != nil {
+		return err
+	}
+
 	if req.Payload.Title == "" {
 		missing = append(missing, "title")
 	}
@@ -128,7 +139,7 @@ func (req *CreateMintRequest) Validate() error {
 }
 
 type CreateMintResponse struct {
-	TransactionId string `json:"transaction_id"`
+	Hash string `json:"hash"`
 }
 
 type GetMintsResponse struct {

@@ -1,4 +1,11 @@
 fractal_engine_host = "localhost"
 fractal_engine_port = "8891"
-key_labels = ["main", "beta"]
-active_key = "beta"
+balance_master_host = "localhost"
+balance_master_port = "8899"
+doge_scheme = "http"
+doge_host = "localhost"
+doge_port = "22556"
+doge_user = "test"
+doge_password = "test"
+key_labels = ["mysuperkey"]
+active_key = "mysuperkey"

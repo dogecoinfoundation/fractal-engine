@@ -9,6 +9,13 @@ import (
 type Config struct {
 	FractalEngineHost string   `toml:"fractal_engine_host"`
 	FractalEnginePort string   `toml:"fractal_engine_port"`
+	BalanceMasterHost string   `toml:"balance_master_host"`
+	BalanceMasterPort string   `toml:"balance_master_port"`
+	DogeScheme        string   `toml:"doge_scheme"`
+	DogeHost          string   `toml:"doge_host"`
+	DogePort          string   `toml:"doge_port"`
+	DogeUser          string   `toml:"doge_user"`
+	DogePassword      string   `toml:"doge_password"`
 	KeyLabels         []string `toml:"key_labels"`
 	ActiveKey         string   `toml:"active_key"`
 }

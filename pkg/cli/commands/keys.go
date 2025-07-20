@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	bmclient "github.com/dogecoinfoundation/balance-master/pkg/client"
 	"github.com/urfave/cli/v3"
 )
 
@@ -167,11 +168,20 @@ func listKeysAction(ctx context.Context, cmd *cli.Command) error {
 
 func createKeyAction(ctx context.Context, cmd *cli.Command) error {
 	var label string
+	var prefixStr string
 
 	group := huh.NewGroup(
 		huh.NewInput().
 			Title("What is the label for this key?").
 			Value(&label),
+		huh.NewSelect[string]().
+			Title("What chain is this key for?").
+			Options(
+				huh.NewOption("Mainnet", "mainnet"),
+				huh.NewOption("Testnet", "testnet"),
+				huh.NewOption("Regtest", "regtest"),
+			).
+			Value(&prefixStr),
 	)
 
 	form := huh.NewForm(group)
@@ -180,7 +190,12 @@ func createKeyAction(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair()
+	prefix, err := doge.GetPrefix(prefixStr)
+	if err != nil {
+		return err
+	}
+
+	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(prefix)
 	if err != nil {
 		return err
 	}
@@ -197,6 +212,7 @@ func createKeyAction(ctx context.Context, cmd *cli.Command) error {
 	store.Save(label+"_private_key", privHex)
 	store.Save(label+"_public_key", pubHex)
 	store.Save(label+"_address", address)
+	store.Save(label+"_chain", prefixStr)
 
 	config.KeyLabels = append(config.KeyLabels, label)
 
@@ -208,6 +224,18 @@ func createKeyAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	balanceMasterClient := bmclient.NewBalanceMasterClient(&bmclient.BalanceMasterClientConfig{
+		RpcServerHost: config.BalanceMasterHost,
+		RpcServerPort: config.BalanceMasterPort,
+	})
+
+	err = balanceMasterClient.TrackAddress(address)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Address tracked", address)
 
 	return nil
 }

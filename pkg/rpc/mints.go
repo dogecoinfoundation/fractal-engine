@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -11,7 +10,6 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
-	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
 
@@ -69,14 +67,28 @@ func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	publicKey := r.URL.Query().Get("public_key")
+
 	start := (page - 1) * limit
 	end := start + limit
 
-	mints, err := mr.store.GetMints(start, end)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+	var mints []store.Mint
+	var err error
+
+	if publicKey != "" {
+		mints, err = mr.store.GetMintsByPublicKey(start, end, publicKey)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+	} else {
+		mints, err = mr.store.GetMints(start, end)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Clamp the slice range
@@ -136,6 +148,8 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		LockupOptions: request.Payload.LockupOptions,
 		FeedURL:       request.Payload.FeedURL,
 		PublicKey:     request.PublicKey,
+		Signature:     request.Signature,
+		Address:       request.Address,
 	}
 
 	newMintWithoutId.Hash, err = newMintWithoutId.GenerateHash()
@@ -161,102 +175,102 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txid, err := mr.SignAndWriteMint(newMintWithoutId, request.Address)
-	if err != nil {
-		http.Error(w, "Unable to sign and write mint", http.StatusInternalServerError)
-		return
-	}
+	// txid, err := mr.SignAndWriteMint(newMintWithoutId, request.Address)
+	// if err != nil {
+	// 	http.Error(w, "Unable to sign and write mint", http.StatusInternalServerError)
+	// 	return
+	// }
 
 	response := CreateMintResponse{
-		TransactionId: txid,
+		Hash: newMintWithoutId.Hash,
 	}
 
 	respondJSON(w, http.StatusCreated, response)
 }
 
-func (mr *MintRoutes) SignAndWriteMint(newMintWithoutId *store.MintWithoutID, address string) (string, error) {
-	log.Println("newMintWithoutId", newMintWithoutId)
-	log.Println("address", address)
+// func (mr *MintRoutes) SignAndWriteMint(newMintWithoutId *store.MintWithoutID, address string) (string, error) {
+// 	log.Println("newMintWithoutId", newMintWithoutId)
+// 	log.Println("address", address)
 
-	envelope := protocol.NewMintTransactionEnvelope(newMintWithoutId.Hash, protocol.ACTION_MINT)
-	encodedTransactionBody := envelope.Serialize()
+// 	envelope := protocol.NewMintTransactionEnvelope(newMintWithoutId.Hash, protocol.ACTION_MINT)
+// 	encodedTransactionBody := envelope.Serialize()
 
-	log.Println("encodedTransactionBody", hex.EncodeToString(encodedTransactionBody))
+// 	log.Println("encodedTransactionBody", hex.EncodeToString(encodedTransactionBody))
 
-	inputs := []interface{}{}
-	outputs := map[string]interface{}{
-		"data": hex.EncodeToString(encodedTransactionBody),
-	}
+// 	inputs := []interface{}{}
+// 	outputs := map[string]interface{}{
+// 		"data": hex.EncodeToString(encodedTransactionBody),
+// 	}
 
-	res, err := mr.dogeClient.Request("createrawtransaction", []interface{}{
-		inputs,
-		outputs,
-	})
+// 	res, err := mr.dogeClient.Request("createrawtransaction", []interface{}{
+// 		inputs,
+// 		outputs,
+// 	})
 
-	if err != nil {
-		log.Println("error creating raw transaction", err)
-		return "", err
-	}
+// 	if err != nil {
+// 		log.Println("error creating raw transaction", err)
+// 		return "", err
+// 	}
 
-	var rawTx string
+// 	var rawTx string
 
-	if err := json.Unmarshal(*res, &rawTx); err != nil {
-		log.Println("error parsing raw transaction", err)
-		return "", err
-	}
+// 	if err := json.Unmarshal(*res, &rawTx); err != nil {
+// 		log.Println("error parsing raw transaction", err)
+// 		return "", err
+// 	}
 
-	res, err = mr.dogeClient.Request("fundrawtransaction", []interface{}{rawTx, map[string]interface{}{
-		"changeAddress": address,
-	}})
-	if err != nil {
-		log.Println("error funding raw transaction", err)
-		return "", err
-	}
+// 	res, err = mr.dogeClient.Request("fundrawtransaction", []interface{}{rawTx, map[string]interface{}{
+// 		"changeAddress": address,
+// 	}})
+// 	if err != nil {
+// 		log.Println("error funding raw transaction", err)
+// 		return "", err
+// 	}
 
-	var fundRawTransactionResponse doge.FundRawTransactionResponse
+// 	var fundRawTransactionResponse doge.FundRawTransactionResponse
 
-	if err := json.Unmarshal(*res, &fundRawTransactionResponse); err != nil {
-		log.Println("error parsing fund raw transaction response", err)
-		return "", err
-	}
+// 	if err := json.Unmarshal(*res, &fundRawTransactionResponse); err != nil {
+// 		log.Println("error parsing fund raw transaction response", err)
+// 		return "", err
+// 	}
 
-	privKey, err := mr.dogeClient.DumpPrivKey(address)
-	if err != nil {
-		log.Println("error dumping private key", err)
-		return "", err
-	}
+// 	privKey, err := mr.dogeClient.DumpPrivKey(address)
+// 	if err != nil {
+// 		log.Println("error dumping private key", err)
+// 		return "", err
+// 	}
 
-	log.Println("privKey", privKey)
+// 	log.Println("privKey", privKey)
 
-	res, err = mr.dogeClient.Request("signrawtransaction", []interface{}{fundRawTransactionResponse.Hex, []interface{}{}, []interface{}{
-		privKey,
-	}})
+// 	res, err = mr.dogeClient.Request("signrawtransaction", []interface{}{fundRawTransactionResponse.Hex, []interface{}{}, []interface{}{
+// 		privKey,
+// 	}})
 
-	if err != nil {
-		log.Println("error signing raw transaction", err)
-		return "", err
-	}
+// 	if err != nil {
+// 		log.Println("error signing raw transaction", err)
+// 		return "", err
+// 	}
 
-	var signRawTransactionResponse doge.SignRawTransactionResponse
-	if err := json.Unmarshal(*res, &signRawTransactionResponse); err != nil {
-		log.Println("error parsing sign raw transaction response", err)
-		return "", err
-	}
+// 	var signRawTransactionResponse doge.SignRawTransactionResponse
+// 	if err := json.Unmarshal(*res, &signRawTransactionResponse); err != nil {
+// 		log.Println("error parsing sign raw transaction response", err)
+// 		return "", err
+// 	}
 
-	log.Println("signRawTransactionResponse", signRawTransactionResponse)
+// 	log.Println("signRawTransactionResponse", signRawTransactionResponse)
 
-	res, err = mr.dogeClient.Request("sendrawtransaction", []interface{}{signRawTransactionResponse.Hex})
-	if err != nil {
-		log.Println("error sending raw transaction", err)
-		return "", err
-	}
+// 	res, err = mr.dogeClient.Request("sendrawtransaction", []interface{}{signRawTransactionResponse.Hex})
+// 	if err != nil {
+// 		log.Println("error sending raw transaction", err)
+// 		return "", err
+// 	}
 
-	var txid string
+// 	var txid string
 
-	if err := json.Unmarshal(*res, &txid); err != nil {
-		log.Println("error parsing send raw transaction response", err)
-		return "", err
-	}
+// 	if err := json.Unmarshal(*res, &txid); err != nil {
+// 		log.Println("error parsing send raw transaction response", err)
+// 		return "", err
+// 	}
 
-	return txid, nil
-}
+// 	return txid, nil
+// }

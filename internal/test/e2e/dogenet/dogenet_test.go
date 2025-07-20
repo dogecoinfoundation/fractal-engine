@@ -192,7 +192,7 @@ func TestOffersMessage(t *testing.T) {
 		assert.Error(t, fmt.Errorf("expected mint message"), "expected mint message")
 	}
 
-	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair()
+	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
 	if err != nil {
 		assert.Error(t, err, "failed to generate dogecoin keypair")
 	}
@@ -393,7 +393,7 @@ func TestInvoiceMessage(t *testing.T) {
 		assert.Error(t, fmt.Errorf("expected mint message"), "expected mint message")
 	}
 
-	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair()
+	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
 	if err != nil {
 		assert.Error(t, err, "failed to generate dogecoin keypair")
 	}

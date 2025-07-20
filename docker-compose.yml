@@ -1,5 +1,20 @@
 version: '3.8'
 services:
+  # balance-master:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.balance-master
+  #   container_name: balance-master
+  #   ports:
+  #     - "8899:8899"
+  #   environment:
+  #     - DATABASE_URL=sqlite:///root/storage/balance-master.db
+  #   depends_on:
+  #     dogecoin:
+  #       condition: service_healthy
+  #   profiles: [deps]
+  #   volumes:
+  #     - sqlite-balance-master-data:/root/storage
   fractal-ui:
     build:
       context: .
@@ -85,4 +100,6 @@ volumes:
   doge-sock:
     driver: local
   sqlite-fractalengine-data:
+    driver: local
+  sqlite-balance-master-data:
     driver: local

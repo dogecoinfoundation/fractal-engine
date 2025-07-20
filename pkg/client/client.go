@@ -300,7 +300,8 @@ func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintRe
 
 	resp, err := c.httpClient.Post(c.baseUrl+"/mints", "application/json", bytes.NewBuffer(jsonValue))
 	if err != nil {
-		return rpc.CreateMintResponse{}, err
+		body, _ := io.ReadAll(resp.Body)
+		return rpc.CreateMintResponse{}, fmt.Errorf("failed to mint token: %s", string(body))
 	}
 
 	defer resp.Body.Close()
@@ -320,8 +321,8 @@ func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintRe
 	return result, nil
 }
 
-func (c *TokenisationClient) GetMints(page int, limit int) (rpc.GetMintsResponse, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints?page=%d&limit=%d", page, limit))
+func (c *TokenisationClient) GetMints(page int, limit int, publicKey string) (rpc.GetMintsResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints?page=%d&limit=%d&public_key=%s", page, limit, publicKey))
 	if err != nil {
 		return rpc.GetMintsResponse{}, err
 	}

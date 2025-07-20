@@ -84,14 +84,23 @@ func (dr *DemoRoutes) getListUnspent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (dr *DemoRoutes) postSetupDemoBalance(w http.ResponseWriter, r *http.Request) {
-	address, err := dr.SetupAddress("DemoBalance", 1000)
+	address := r.URL.Query().Get("address")
+	if address == "" {
+		http.Error(w, "Address is required", http.StatusBadRequest)
+		return
+	}
 
+	_, err := dr.dogeClient.SendToAddress(address, float64(1000))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	log.Println(address)
+	_, err = dr.dogeClient.Generate(1)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	respondJSON(w, http.StatusOK, address)
 }

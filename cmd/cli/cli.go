@@ -16,6 +16,10 @@ func main() {
 		Commands: []*cli.Command{
 			commands.InitCommand,
 			commands.KeysCommand,
+			commands.HealthCommand,
+			commands.MintCommand,
+			commands.DemoCommand,
+			commands.BmCommand,
 		},
 	}).Run(context.Background(), os.Args)
 }

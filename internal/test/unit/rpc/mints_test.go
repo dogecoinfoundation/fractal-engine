@@ -40,7 +40,7 @@ func TestMints(t *testing.T) {
 	}
 
 	assert.Equal(t, len(mints), 1)
-	assert.Equal(t, mints[0].Id, mintResponse.TransactionId)
+	assert.Equal(t, mints[0].Id, mintResponse.Hash)
 	assert.Equal(t, mints[0].Title, mintRequest.Payload.Title)
 	assert.Equal(t, mints[0].FractionCount, mintRequest.Payload.FractionCount)
 	assert.Equal(t, mints[0].Description, mintRequest.Payload.Description)
@@ -51,7 +51,7 @@ func TestMints(t *testing.T) {
 	assert.Equal(t, mints[0].FeedURL, mintRequest.Payload.FeedURL)
 
 	assert.Equal(t, len(dogenetClient.mints), 1)
-	assert.Equal(t, dogenetClient.mints[0].Id, mintResponse.TransactionId)
+	assert.Equal(t, dogenetClient.mints[0].Id, mintResponse.Hash)
 	assert.Equal(t, dogenetClient.mints[0].Title, mintRequest.Payload.Title)
 	assert.Equal(t, dogenetClient.mints[0].FractionCount, mintRequest.Payload.FractionCount)
 	assert.Equal(t, dogenetClient.mints[0].Description, mintRequest.Payload.Description)

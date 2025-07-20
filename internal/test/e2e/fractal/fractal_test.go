@@ -94,7 +94,7 @@ TestFractal is a test that checks if the fractal engine is working correctly.
 func TestFractal(t *testing.T) {
 	feConfigA := testGroups[0].FeConfig
 
-	privHex, pubHex, _, err := doge.GenerateDogecoinKeypair()
+	privHex, pubHex, _, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
 	if err != nil {
 		log.Fatal(err)
 	}

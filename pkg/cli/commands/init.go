@@ -27,8 +27,15 @@ var InitCommand = &cli.Command{
 }
 
 func initAction(ctx context.Context, cmd *cli.Command) error {
-	var host string
-	var port string
+	host := "localhost"
+	port := "8891"
+	balanceMasterHost := "localhost"
+	balanceMasterPort := "8899"
+	dogeScheme := "http"
+	dogeHost := "localhost"
+	dogePort := "22556"
+	dogeUser := "test"
+	dogePassword := "test"
 
 	group := huh.NewGroup(
 		huh.NewInput().
@@ -37,6 +44,27 @@ func initAction(ctx context.Context, cmd *cli.Command) error {
 		huh.NewInput().
 			Title("What is the Fractal Engine Port?").
 			Value(&port),
+		huh.NewInput().
+			Title("What is the Balance Master Host?").
+			Value(&balanceMasterHost),
+		huh.NewInput().
+			Title("What is the Balance Master Port?").
+			Value(&balanceMasterPort),
+		huh.NewInput().
+			Title("What is the Dogecoin Scheme?").
+			Value(&dogeScheme),
+		huh.NewInput().
+			Title("What is the Dogecoin Host?").
+			Value(&dogeHost),
+		huh.NewInput().
+			Title("What is the Dogecoin Port?").
+			Value(&dogePort),
+		huh.NewInput().
+			Title("What is the Dogecoin User?").
+			Value(&dogeUser),
+		huh.NewInput().
+			Title("What is the Dogecoin Password?").
+			Value(&dogePassword),
 	)
 
 	form := huh.NewForm(group)
@@ -48,6 +76,13 @@ func initAction(ctx context.Context, cmd *cli.Command) error {
 	config := fecli.Config{
 		FractalEngineHost: host,
 		FractalEnginePort: port,
+		BalanceMasterHost: balanceMasterHost,
+		BalanceMasterPort: balanceMasterPort,
+		DogeScheme:        dogeScheme,
+		DogeHost:          dogeHost,
+		DogePort:          dogePort,
+		DogeUser:          dogeUser,
+		DogePassword:      dogePassword,
 	}
 
 	url := fmt.Sprintf("http://%s:%s", config.FractalEngineHost, config.FractalEnginePort)
@@ -83,7 +118,7 @@ func initAction(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	if err != nil || confirm {
+	if err == nil || confirm {
 		err = fecli.SaveConfig(&config, cmd.String("config-path"))
 		if err != nil {
 			log.Fatal(err)
