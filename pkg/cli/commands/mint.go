@@ -89,6 +89,7 @@ func mintListAction(ctx context.Context, cmd *cli.Command) error {
 				{Title: "Transaction Hash", Width: 10},
 				{Title: "Hash", Width: 10},
 				{Title: "Created At", Width: 10},
+				{Title: "Confirmed", Width: 10},
 			}),
 		),
 	}
@@ -105,6 +106,7 @@ func mintListAction(ctx context.Context, cmd *cli.Command) error {
 			mint.TransactionHash.String,
 			mint.Hash,
 			mint.CreatedAt.Format(time.RFC3339),
+			fmt.Sprintf("%t", mint.TransactionHash.Valid),
 		})
 	}
 

@@ -20,6 +20,7 @@ func main() {
 			commands.MintCommand,
 			commands.DemoCommand,
 			commands.BmCommand,
+			commands.DebugCommand,
 		},
 	}).Run(context.Background(), os.Args)
 }

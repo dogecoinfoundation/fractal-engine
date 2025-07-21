@@ -125,9 +125,9 @@ func (s *TokenisationStore) SaveMint(mint *MintWithoutID, ownerAddress string) (
 	}
 
 	_, err = s.DB.Exec(`
-	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url, owner_address, public_key)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, ownerAddress, mint.PublicKey)
+	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url, owner_address, public_key, block_height, transaction_hash)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, ownerAddress, mint.PublicKey, mint.BlockHeight, mint.TransactionHash)
 
 	return id, err
 }
@@ -208,6 +208,7 @@ func (s *TokenisationStore) MatchMint(onchainTransaction OnChainTransaction) boo
 }
 
 func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTransaction) error {
+
 	if onchainTransaction.ActionType != protocol.ACTION_MINT {
 		return fmt.Errorf("action type is not mint: %d", onchainTransaction.ActionType)
 	}
