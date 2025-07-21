@@ -115,6 +115,11 @@ func createSellOfferAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal(err)
 	}
 
+	address, err := store.Get(config.ActiveKey + "_address")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	tokenisationClient, err := getTokenisationClient(ctx, cmd)
 	if err != nil {
 		log.Fatal(err)
@@ -195,7 +200,7 @@ func createSellOfferAction(ctx context.Context, cmd *cli.Command) error {
 
 	createSellOfferRequest := rpc.CreateSellOfferRequest{
 		Payload: rpc.CreateSellOfferRequestPayload{
-			OffererAddress: pubHex,
+			OffererAddress: address,
 			MintHash:       selectedMintId,
 			Quantity:       fractionCountInt,
 			Price:          priceInt,

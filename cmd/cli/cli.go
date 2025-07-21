@@ -22,6 +22,7 @@ func main() {
 			commands.BmCommand,
 			commands.DebugCommand,
 			commands.SellOffersCommand,
+			commands.BuyOffersCommand,
 		},
 	}).Run(context.Background(), os.Args)
 }

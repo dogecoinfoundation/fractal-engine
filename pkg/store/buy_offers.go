@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"log"
 
 	"github.com/google/uuid"
 )
@@ -32,6 +33,8 @@ func (s *TokenisationStore) DeleteBuyOffer(hash string, publicKey string) error 
 func (s *TokenisationStore) GetBuyOffersByMintAndSellerAddress(offset int, limit int, mintHash string, sellerAddress string) ([]BuyOffer, error) {
 	var rows *sql.Rows
 	var err error
+
+	log.Println("GetBuyOffersByMintAndSellerAddress", mintHash, sellerAddress)
 
 	if sellerAddress == "" {
 		rows, err = s.DB.Query("SELECT id, created_at, offerer_address, seller_address, hash, mint_hash, quantity, price, public_key, signature FROM buy_offers WHERE mint_hash = $1 LIMIT $2 OFFSET $3", mintHash, limit, offset)

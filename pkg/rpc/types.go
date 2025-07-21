@@ -347,6 +347,11 @@ type SellOfferWithMint struct {
 	Mint  store.Mint      `json:"mint"`
 }
 
+type BuyOfferWithMint struct {
+	Offer store.BuyOffer `json:"offer"`
+	Mint  store.Mint     `json:"mint"`
+}
+
 type GetSellOffersResponse struct {
 	Offers []SellOfferWithMint `json:"offers"`
 	Total  int                 `json:"total"`
@@ -355,10 +360,10 @@ type GetSellOffersResponse struct {
 }
 
 type GetBuyOffersResponse struct {
-	Offers []store.BuyOffer `json:"offers"`
-	Total  int              `json:"total"`
-	Page   int              `json:"page"`
-	Limit  int              `json:"limit"`
+	Offers []BuyOfferWithMint `json:"offers"`
+	Total  int                `json:"total"`
+	Page   int                `json:"page"`
+	Limit  int                `json:"limit"`
 }
 
 type CreateInvoiceRequest struct {
