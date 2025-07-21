@@ -81,13 +81,12 @@ func mintListAction(ctx context.Context, cmd *cli.Command) error {
 	mintTable := climodels.CliTableModel{
 		Table: table.New(
 			table.WithColumns([]table.Column{
-				{Title: "ID", Width: 10},
-				{Title: "Title", Width: 10},
+				{Title: "Hash", Width: 64},
+				{Title: "Title", Width: 20},
 				{Title: "Description", Width: 10},
 				{Title: "Fraction Count", Width: 10},
 				{Title: "Block Height", Width: 10},
 				{Title: "Transaction Hash", Width: 10},
-				{Title: "Hash", Width: 10},
 				{Title: "Created At", Width: 10},
 				{Title: "Confirmed", Width: 10},
 			}),
@@ -98,13 +97,12 @@ func mintListAction(ctx context.Context, cmd *cli.Command) error {
 
 	for _, mint := range mints.Mints {
 		rows = append(rows, table.Row{
-			mint.Id,
+			mint.Hash,
 			mint.Title,
 			mint.Description,
 			fmt.Sprintf("%d", mint.FractionCount),
 			fmt.Sprintf("%d", mint.BlockHeight),
 			mint.TransactionHash.String,
-			mint.Hash,
 			mint.CreatedAt.Format(time.RFC3339),
 			fmt.Sprintf("%t", mint.TransactionHash.Valid),
 		})

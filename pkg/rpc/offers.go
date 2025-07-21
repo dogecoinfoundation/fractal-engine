@@ -170,8 +170,22 @@ func (or *OfferRoutes) getSellOffers(w http.ResponseWriter, r *http.Request) {
 		end = len(offers)
 	}
 
+	offersWithMints := []SellOfferWithMint{}
+	for _, offer := range offers {
+		mint, err := or.store.GetMintByHash(offer.MintHash)
+		if err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		offersWithMints = append(offersWithMints, SellOfferWithMint{
+			Offer: offer,
+			Mint:  mint,
+		})
+	}
+
 	response := GetSellOffersResponse{
-		Offers: offers[start:end],
+		Offers: offersWithMints[start:end],
 		Total:  len(offers),
 		Page:   page,
 		Limit:  limit,

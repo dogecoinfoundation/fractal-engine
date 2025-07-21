@@ -11,6 +11,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"github.com/gorilla/mux"
 )
 
 type MintRoutes struct {
@@ -23,7 +24,9 @@ type MintRoutes struct {
 func HandleMintRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux, cfg *config.Config, dogeClient *doge.RpcClient) {
 	mr := &MintRoutes{store: store, gossipClient: gossipClient, cfg: cfg, dogeClient: dogeClient}
 
+	mux.HandleFunc("/mints/{hash}", mr.handleMint)
 	mux.HandleFunc("/mints", mr.handleMints)
+
 }
 
 func (mr *MintRoutes) handleMints(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +38,31 @@ func (mr *MintRoutes) handleMints(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func (mr *MintRoutes) handleMint(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		mr.getMint(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (mr *MintRoutes) getMint(w http.ResponseWriter, r *http.Request) {
+	hash := mux.Vars(r)["hash"]
+
+	mint, err := mr.store.GetMintByHash(hash)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	response := GetMintResponse{
+		Mint: mint,
+	}
+
+	respondJSON(w, http.StatusOK, response)
 }
 
 // @Summary		Get all mints

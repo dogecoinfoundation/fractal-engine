@@ -11,8 +11,26 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func (s *TokenisationStore) GetMintByHash(hash string) (Mint, error) {
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key FROM mints WHERE hash = $1", hash)
+	if err != nil {
+		return Mint{}, err
+	}
+
+	var m Mint
+	if rows.Next() {
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress, &m.PublicKey); err != nil {
+			return Mint{}, err
+		}
+	}
+
+	rows.Close()
+
+	return m, nil
+}
+
 func (s *TokenisationStore) GetMintsByPublicKey(offset int, limit int, publicKey string, includeUnconfirmed bool) ([]Mint, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key FROM mints WHERE public_key = $1 LIMIT $2 OFFSET $3", publicKey, limit, offset)
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key FROM mints WHERE public_key = $1 and transaction_hash is not null LIMIT $2 OFFSET $3", publicKey, limit, offset)
 	if err != nil {
 		return nil, err
 	}

@@ -338,11 +338,20 @@ type CreateOfferResponse struct {
 	Hash string `json:"hash"`
 }
 
+type GetMintResponse struct {
+	Mint store.Mint `json:"mint"`
+}
+
+type SellOfferWithMint struct {
+	Offer store.SellOffer `json:"offer"`
+	Mint  store.Mint      `json:"mint"`
+}
+
 type GetSellOffersResponse struct {
-	Offers []store.SellOffer `json:"offers"`
-	Total  int               `json:"total"`
-	Page   int               `json:"page"`
-	Limit  int               `json:"limit"`
+	Offers []SellOfferWithMint `json:"offers"`
+	Total  int                 `json:"total"`
+	Page   int                 `json:"page"`
+	Limit  int                 `json:"limit"`
 }
 
 type GetBuyOffersResponse struct {
