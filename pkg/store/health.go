@@ -47,7 +47,7 @@ func (s *TokenisationStore) UpsertHealth(currentBlockHeight int64, latestBlockHe
 		return err
 	}
 
-	stmt, err = tx.Prepare("INSERT INTO health (current_block_height, latest_block_height, chain, wallets_enabled, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)")
+	stmt, err = tx.Prepare("INSERT INTO health (current_block_height, latest_block_height, chain, wallets_enabled, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)")
 	if err != nil {
 		return err
 	}

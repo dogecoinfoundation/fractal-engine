@@ -70,15 +70,25 @@ func (s *TokenisationStore) RemovePendingTokenBalance(invoiceHash, mintHash stri
 	return err
 }
 
-func (s *TokenisationStore) GetPendingTokenBalance(invoiceHash, mintHash string) (PendingTokenBalance, error) {
-	rows, err := s.DB.Query(`
+func (s *TokenisationStore) GetPendingTokenBalance(invoiceHash, mintHash string, tx *sql.Tx) (PendingTokenBalance, error) {
+	var rows *sql.Rows
+	var err error
+
+	if tx == nil {
+		rows, err = s.DB.Query(`
 		SELECT quantity, invoice_hash, mint_hash, owner_address FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2
 	`, invoiceHash, mintHash)
-	if err != nil {
-		return PendingTokenBalance{}, err
+	} else {
+		rows, err = tx.Query(`
+			SELECT quantity, invoice_hash, mint_hash, owner_address FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2
+		`, invoiceHash, mintHash)
 	}
 
 	defer rows.Close()
+
+	if err != nil {
+		return PendingTokenBalance{}, err
+	}
 
 	if rows.Next() {
 		var pendingTokenBalance PendingTokenBalance
@@ -114,29 +124,36 @@ func (s *TokenisationStore) GetPendingTokenBalanceTotalForMintAndOwner(mintHash 
 	return 0, nil
 }
 
-func (s *TokenisationStore) GetTokenBalance(address, mintHash string) (int, error) {
-	log.Println("Getting token balance:", address, mintHash)
+func (s *TokenisationStore) GetTokenBalances(address string, mintHash string) ([]TokenBalance, error) {
+	log.Println("Getting token balance: ADDRESS", address, "MINT HASH", mintHash)
 
 	rows, err := s.DB.Query(`
 		SELECT quantity FROM token_balances WHERE address = $1 AND mint_hash = $2
 	`, address, mintHash)
 
 	if err != nil {
-		return 0, err
+		return []TokenBalance{}, err
 	}
 
 	defer rows.Close()
 
-	if rows.Next() {
+	tokenBalances := []TokenBalance{}
+
+	for rows.Next() {
+
 		var quantity int
 		err := rows.Scan(&quantity)
 		if err != nil {
-			return 0, err
+			return []TokenBalance{}, err
 		}
-		return quantity, nil
+		tokenBalances = append(tokenBalances, TokenBalance{
+			Address:  address,
+			MintHash: mintHash,
+			Quantity: quantity,
+		})
 	}
 
-	return 0, nil
+	return tokenBalances, nil
 }
 
 func (s *TokenisationStore) UpsertTokenBalanceWithTransaction(address, mintHash string, quantity int, tx *sql.Tx) error {
@@ -144,9 +161,7 @@ func (s *TokenisationStore) UpsertTokenBalanceWithTransaction(address, mintHash 
 
 	_, err := tx.Exec(`
 	INSERT INTO token_balances (address, mint_hash, quantity, created_at, updated_at)
-	VALUES ($1, $2, $3, $4, $5)		
-	ON CONFLICT (address, mint_hash)
-	DO UPDATE SET quantity = quantity + $3, updated_at = EXCLUDED.updated_at
+	VALUES ($1, $2, $3, $4, $5)
 	`, address, mintHash, quantity, time.Now(), time.Now())
 
 	return err

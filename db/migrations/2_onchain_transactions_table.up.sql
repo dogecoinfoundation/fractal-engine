@@ -1,14 +1,12 @@
-create table onchain_transactions (
-    id text primary key,
-    tx_hash text not null,
-    block_height bigint not null,
-    transaction_number integer not null,
-    action_type text not null,
-    action_version integer not null,
-    action_data blob not null,
-    address text not null,
-    created_at datetime not null default current_timestamp,
-    value float not null
+CREATE TABLE IF NOT EXISTS onchain_transactions (
+    id TEXT PRIMARY KEY,
+    tx_hash TEXT NOT NULL,
+    block_height BIGINT NOT NULL,
+    transaction_number INTEGER NOT NULL,
+    action_type TEXT NOT NULL,
+    action_version INTEGER NOT NULL,
+    action_data BYTEA NOT NULL,
+    address TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    value DOUBLE PRECISION NOT NULL
 );
-
-

@@ -100,7 +100,6 @@ type CreateMintRequestPayload struct {
 	Requirements  store.StringInterfaceMap `json:"requirements"`
 	LockupOptions store.StringInterfaceMap `json:"lockup_options"`
 	FeedURL       string                   `json:"feed_url"`
-	OwnerAddress  string                   `json:"owner_address"`
 }
 
 func (req *CreateMintRequest) Validate() error {
@@ -140,6 +139,11 @@ func (req *CreateMintRequest) Validate() error {
 
 type CreateMintResponse struct {
 	Hash string `json:"hash"`
+}
+
+type GetTokenBalanceResponse struct {
+	MintHash string `json:"mint_hash"`
+	Balance  int    `json:"balance"`
 }
 
 type GetMintsResponse struct {
@@ -437,9 +441,7 @@ type GetInvoicesResponse struct {
 }
 
 type CreateInvoiceResponse struct {
-	EncodedTransactionBody string `json:"encoded_transaction_body"`
-	TransactionHash        string `json:"transaction_hash"`
-	Id                     string `json:"id"`
+	Hash string `json:"hash"`
 }
 
 type GetHealthResponse struct {

@@ -14,7 +14,6 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type TokenisationStore struct {
@@ -29,7 +28,20 @@ func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, 
 		return nil, err
 	}
 
-	if u.Scheme == "memory" {
+	if u.Scheme == "duckdb" {
+		var url string
+		if u.Host == "" {
+			url = u.Path
+		} else {
+			url = u.Host
+		}
+
+		duckdb, err := sql.Open("duckdb", url)
+		if err != nil {
+			return nil, err
+		}
+		return &TokenisationStore{DB: duckdb, backend: "duckdb", cfg: cfg}, nil
+	} else if u.Scheme == "memory" {
 		sqlite, err := sql.Open("sqlite3", ":memory:")
 		if err != nil {
 			return nil, err
@@ -55,6 +67,10 @@ func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, 
 		if err != nil {
 			return nil, err
 		}
+
+		if err != nil {
+			return nil, err
+		}
 		return &TokenisationStore{DB: postgres, backend: "postgres", cfg: cfg}, nil
 	}
 
@@ -72,7 +88,12 @@ func (s *TokenisationStore) Migrate() error {
 		return err
 	}
 
-	return m.Up()
+	err = m.Up()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ProjectRoot() (string, error) {
@@ -116,6 +137,15 @@ func (s *TokenisationStore) getMigrationDriver() (database.Driver, error) {
 	}
 
 	if s.backend == "sqlite" {
+		driver, err := sqlite.WithInstance(s.DB, &sqlite.Config{})
+		if err != nil {
+			return nil, err
+		}
+
+		return driver, nil
+	}
+
+	if s.backend == "duckdb" {
 		driver, err := sqlite.WithInstance(s.DB, &sqlite.Config{})
 		if err != nil {
 			return nil, err

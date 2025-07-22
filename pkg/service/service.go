@@ -28,19 +28,19 @@ func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetCl
 	dogeClient := doge.NewRpcClient(cfg)
 	follower := doge.NewFollower(cfg, tokenStore)
 
-	trimmerService := NewTrimmerService(20160, 100, tokenStore, dogeClient)
+	// trimmerService := NewTrimmerService(20160, 100, tokenStore, dogeClient)
 	processor := NewFractalEngineProcessor(tokenStore)
 	healthService := health.NewHealthService(dogeClient, tokenStore)
 
 	return &TokenisationService{
-		RpcServer:      rpc.NewRpcServer(cfg, tokenStore, dogenetClient, dogeClient),
-		Store:          tokenStore,
-		DogeNetClient:  dogenetClient,
-		DogeClient:     dogeClient,
-		Follower:       follower,
-		TrimmerService: trimmerService,
-		Processor:      processor,
-		HealthService:  healthService,
+		RpcServer:     rpc.NewRpcServer(cfg, tokenStore, dogenetClient, dogeClient),
+		Store:         tokenStore,
+		DogeNetClient: dogenetClient,
+		DogeClient:    dogeClient,
+		Follower:      follower,
+		// TrimmerService: trimmerService,
+		Processor:     processor,
+		HealthService: healthService,
 	}
 }
 
@@ -64,7 +64,7 @@ func (s *TokenisationService) Start() {
 	go s.HealthService.Start()
 	go s.RpcServer.Start()
 	go s.Follower.Start()
-	go s.TrimmerService.Start()
+	// go s.TrimmerService.Start()
 	go s.Processor.Start()
 }
 
@@ -101,6 +101,6 @@ func (s *TokenisationService) Stop() {
 	s.Follower.Stop()
 	s.Store.Close()
 	s.RpcServer.Stop()
-	s.TrimmerService.Stop()
+	// s.TrimmerService.Stop()
 	s.DogeNetClient.Stop()
 }

@@ -41,7 +41,7 @@ type MintWithoutID struct {
 	LockupOptions   StringInterfaceMap `json:"lockup_options"`
 	FeedURL         string             `json:"feed_url"`
 	PublicKey       string             `json:"public_key"`
-	Address         string             `json:"address"`
+	OwnerAddress    string             `json:"owner_address"`
 	Signature       string             `json:"signature"`
 }
 

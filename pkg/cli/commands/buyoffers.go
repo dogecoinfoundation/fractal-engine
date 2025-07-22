@@ -210,7 +210,7 @@ func createBuyOfferAction(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	log.Println(selectedOffer.Offer.OffererAddress)
+	log.Println("AAA", selectedOffer.Offer.OffererAddress, selectedOffer.Offer.MintHash, selectedOffer.Offer.Quantity, selectedOffer.Offer.Price)
 
 	buyOfferRequest := rpc.CreateBuyOfferRequest{
 		Payload: rpc.CreateBuyOfferRequestPayload{

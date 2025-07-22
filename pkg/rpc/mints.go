@@ -1,7 +1,9 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -153,13 +155,21 @@ func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 	var request CreateMintRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println("error reading request body", err)
+		http.Error(w, "Error reading request", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	if err := json.NewDecoder(bytes.NewReader(bodyBytes)).Decode(&request); err != nil {
 		log.Println("error decoding request", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	err := request.Validate()
+	err = request.Validate()
 	if err != nil {
 		log.Println("error validating mint", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -178,7 +188,7 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		FeedURL:       request.Payload.FeedURL,
 		PublicKey:     request.PublicKey,
 		Signature:     request.Signature,
-		Address:       request.Address,
+		OwnerAddress:  request.Address,
 	}
 
 	newMintWithoutId.Hash, err = newMintWithoutId.GenerateHash()
@@ -189,6 +199,7 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 
 	id, err := mr.store.SaveUnconfirmedMint(newMintWithoutId)
 	if err != nil {
+		log.Println("error saving unconfirmed mint", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}

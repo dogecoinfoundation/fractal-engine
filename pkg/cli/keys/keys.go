@@ -11,7 +11,7 @@ type SecureStore struct {
 }
 
 func NewSecureStore() *SecureStore {
-	return &SecureStore{service: "fractal-engine"}
+	return &SecureStore{service: "fractalengine"}
 }
 
 func (s *SecureStore) Save(key string, value string) error {

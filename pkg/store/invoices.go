@@ -9,7 +9,7 @@ import (
 )
 
 func (s *TokenisationStore) GetInvoices(offset int, limit int, mintHash string, offererAddress string) ([]Invoice, error) {
-	rows, err := s.DB.Query("SELECT id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address, public_key, signature FROM invoices WHERE buy_offer_mint_hash = $1 AND buy_offer_offerer_address = $2 LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
+	rows, err := s.DB.Query("SELECT id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address, public_key, signature FROM invoices WHERE buy_offer_mint_hash = $1 AND (buy_offer_offerer_address = $2 OR sell_offer_address = $2) LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (s *TokenisationStore) MatchInvoice(onchainTransaction OnChainTransaction) 
 	exists := rows.Next()
 
 	if exists {
-		_, err = s.DB.Exec("DELETE FROM onchain_transactions WHERE $1", onchainTransaction.Id)
+		_, err = s.DB.Exec("DELETE FROM onchain_transactions WHERE id = $1", onchainTransaction.Id)
 		if err != nil {
 			return false
 		}
@@ -145,7 +145,7 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 
 	rows.Close()
 
-	pendingTokenBalance, err := s.GetPendingTokenBalance(unconfirmedInvoice.Hash, unconfirmedInvoice.BuyOfferMintHash)
+	pendingTokenBalance, err := s.GetPendingTokenBalance(unconfirmedInvoice.Hash, unconfirmedInvoice.BuyOfferMintHash, nil)
 	if err != nil {
 		return err
 	}
@@ -167,6 +167,8 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 		BuyOfferValue:          unconfirmedInvoice.BuyOfferValue,
 		PublicKey:              unconfirmedInvoice.PublicKey,
 		Signature:              unconfirmedInvoice.Signature,
+		BlockHeight:            onchainTransaction.Height,
+		TransactionHash:        onchainTransaction.TxHash,
 	})
 
 	if err != nil {
@@ -180,7 +182,7 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 		return err
 	}
 
-	_, err = s.DB.Exec("DELETE FROM onchain_transactions WHERE $1", onchainTransaction.Id)
+	_, err = s.DB.Exec("DELETE FROM onchain_transactions WHERE id = $1", onchainTransaction.Id)
 	if err != nil {
 		return err
 	}

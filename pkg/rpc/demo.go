@@ -84,20 +84,30 @@ func (dr *DemoRoutes) getListUnspent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (dr *DemoRoutes) postSetupDemoBalance(w http.ResponseWriter, r *http.Request) {
+	_, err := dr.dogeClient.Generate(101)
+	if err != nil {
+		log.Println("error generating blocks", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	address := r.URL.Query().Get("address")
 	if address == "" {
+		log.Println("address is required")
 		http.Error(w, "Address is required", http.StatusBadRequest)
 		return
 	}
 
-	_, err := dr.dogeClient.SendToAddress(address, float64(1000))
+	_, err = dr.dogeClient.SendToAddress(address, float64(1000))
 	if err != nil {
+		log.Println("error sending to address", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	_, err = dr.dogeClient.Generate(1)
 	if err != nil {
+		log.Println("error generating blocks", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

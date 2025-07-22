@@ -9,6 +9,7 @@ import (
 
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/rpc"
+	"dogecoin.org/fractal-engine/pkg/store"
 )
 
 type TokenisationClient struct {
@@ -61,6 +62,28 @@ func (c *TokenisationClient) CreateInvoice(invoice *rpc.CreateInvoiceRequest) (r
 	err = json.Unmarshal(body, &result)
 	if err != nil {
 		return rpc.CreateInvoiceResponse{}, err
+	}
+
+	return result, nil
+}
+
+func (c *TokenisationClient) GetInvoices(page int, limit int, mintHash string, offererAddress string) (rpc.GetInvoicesResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/invoices?page=%d&limit=%d&mint_hash=%s&offerer_address=%s", page, limit, mintHash, offererAddress))
+	if err != nil {
+		return rpc.GetInvoicesResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rpc.GetInvoicesResponse{}, fmt.Errorf("failed to get invoices: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.GetInvoicesResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.GetInvoicesResponse{}, err
 	}
 
 	return result, nil
@@ -360,6 +383,29 @@ func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintRe
 	err = json.Unmarshal(body, &result)
 	if err != nil {
 		return rpc.CreateMintResponse{}, err
+	}
+
+	return result, nil
+}
+
+func (c *TokenisationClient) GetTokenBalance(address string, mintHash string) ([]store.TokenBalance, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/token-balances?address=%s&mint_hash=%s", address, mintHash))
+	if err != nil {
+		return []store.TokenBalance{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return []store.TokenBalance{}, fmt.Errorf("failed to get token balance: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var result []store.TokenBalance
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return []store.TokenBalance{}, err
 	}
 
 	return result, nil

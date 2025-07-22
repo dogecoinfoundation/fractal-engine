@@ -185,9 +185,9 @@ func (s *TokenisationStore) SaveUnconfirmedMint(mint *MintWithoutID) (string, er
 	}
 
 	_, err = s.DB.Exec(`
-	INSERT INTO unconfirmed_mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url, public_key)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, mint.PublicKey)
+	INSERT INTO unconfirmed_mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url, public_key, owner_address)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, mint.PublicKey, mint.OwnerAddress)
 
 	return id, err
 }
@@ -216,7 +216,7 @@ func (s *TokenisationStore) MatchMint(onchainTransaction OnChainTransaction) boo
 	exists := rows.Next()
 
 	if exists {
-		_, err = s.DB.Exec("DELETE FROM onchain_transactions WHERE $1", onchainTransaction.Id)
+		_, err = s.DB.Exec("DELETE FROM onchain_transactions WHERE id = $1", onchainTransaction.Id)
 		if err != nil {
 			return false
 		}
@@ -241,6 +241,8 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 	if err != nil {
 		return err
 	}
+
+	defer rows.Close()
 
 	var unconfirmedMint Mint
 	if rows.Next() {
@@ -271,6 +273,7 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 		LockupOptions:   unconfirmedMint.LockupOptions,
 		FeedURL:         unconfirmedMint.FeedURL,
 		PublicKey:       unconfirmedMint.PublicKey,
+		OwnerAddress:    onchainTransaction.Address,
 	}, onchainTransaction.Address)
 
 	if err != nil {
@@ -281,16 +284,19 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 	err = s.UpsertTokenBalance(onchainTransaction.Address, unconfirmedMint.Hash, unconfirmedMint.FractionCount)
 
 	if err != nil {
+		log.Println("error upserting token balance", err)
 		return err
 	}
 
 	_, err = s.DB.Exec("DELETE FROM unconfirmed_mints WHERE id = $1", unconfirmedMint.Id)
 	if err != nil {
+		log.Println("error deleting unconfirmed mint", err)
 		return err
 	}
 
-	_, err = s.DB.Exec("DELETE FROM onchain_transactions WHERE $1", onchainTransaction.Id)
+	_, err = s.DB.Exec("DELETE FROM onchain_transactions WHERE id = $1", onchainTransaction.Id)
 	if err != nil {
+		log.Println("error deleting onchain transaction", err)
 		return err
 	}
 

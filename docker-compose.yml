@@ -15,6 +15,29 @@ services:
   #   profiles: [deps]
   #   volumes:
   #     - sqlite-balance-master-data:/root/storage
+  fractalstore:
+    build:
+      context: .
+      dockerfile: Dockerfile.fractalstore
+      args:
+        POSTGRES_USER: fractalstore
+        POSTGRES_PASSWORD: fractalstore
+        POSTGRES_DB: fractalstore
+    container_name: fractalstore
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=fractalstore
+      - POSTGRES_PASSWORD=fractalstore
+      - POSTGRES_DB=fractalstore
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    profiles: [deps]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "fractalstore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   fractal-ui:
     build:
       context: .
@@ -66,6 +89,8 @@ services:
         condition: service_healthy
       dogenet:
         condition: service_healthy
+      fractalstore:
+        condition: service_healthy
     volumes:
       - doge-sock:/tmp
       - sqlite-fractalengine-data:/root/storage
@@ -102,4 +127,6 @@ volumes:
   sqlite-fractalengine-data:
     driver: local
   sqlite-balance-master-data:
+    driver: local
+  postgres-data:
     driver: local

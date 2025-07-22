@@ -17,7 +17,7 @@ func (c *TokenisationClient) TopUpBalance(ctx context.Context, address string) e
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to get health: %s", resp.Status)
+		return fmt.Errorf("failed to top up balance: %s", resp.Status)
 	}
 
 	body, _ := io.ReadAll(resp.Body)

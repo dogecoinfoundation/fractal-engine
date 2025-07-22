@@ -42,7 +42,7 @@ func main() {
 	flag.StringVar(&dogePort, "doge-port", "22556", "Doge Port")
 	flag.StringVar(&dogeUser, "doge-user", "test", "Doge User")
 	flag.StringVar(&dogePassword, "doge-password", "test", "Doge Password")
-	flag.StringVar(&databaseURL, "database-url", "sqlite://fractal-engine.db", "Database URL")
+	flag.StringVar(&databaseURL, "database-url", "postgres://fractalstore:fractalstore@localhost:5432/fractalstore?sslmode=disable", "Database URL")
 	flag.StringVar(&migrationsPath, "migrations-path", "db/migrations", "Migrations Path")
 	flag.BoolVar(&persistFollower, "persist-follower", true, "Persist Follower")
 	flag.IntVar(&rateLimitPerSecond, "api-rate-limit-per-second", 10, "API Rate Limit Per Second")

@@ -24,7 +24,7 @@ import (
 )
 
 var MintCommand = &cli.Command{
-	Name:  "mint",
+	Name:  "mints",
 	Usage: "Manage the minting of tokens",
 	Commands: []*cli.Command{
 		{
@@ -215,6 +215,11 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal(err)
 	}
 
+	log.Println("address", address)
+	log.Println("pubHex", pubHex)
+	log.Println("payload", payload)
+	log.Println("signature", signature)
+
 	mintResponse, err := tokenisationClient.Mint(&rpc.CreateMintRequest{
 		Address:   address,
 		PublicKey: pubHex,
@@ -235,6 +240,8 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 			"vout": utxos[0].VOut,
 		},
 	}
+
+	log.Println("encodedTransactionBody", inputs)
 
 	outputs := map[string]interface{}{
 		"data":  hex.EncodeToString(encodedTransactionBody),
@@ -280,12 +287,6 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 
 	if err := json.Unmarshal(*res, &txid); err != nil {
 		log.Println("error parsing send raw transaction response", err)
-		return err
-	}
-
-	_, err = dogeClient.Request("generate", []interface{}{1})
-	if err != nil {
-		log.Println("error generating block", err)
 		return err
 	}
 
