@@ -13,7 +13,6 @@ func (s *TokenisationStore) UpsertTokenBalance(address, mintHash string, quantit
 	_, err := s.DB.Exec(`
 	INSERT INTO token_balances (address, mint_hash, quantity, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5)		
-	ON CONFLICT (address, mint_hash)
 	DO UPDATE SET quantity = $3, updated_at = EXCLUDED.updated_at
 	`, address, mintHash, quantity, time.Now(), time.Now())
 
@@ -30,7 +29,6 @@ func (s *TokenisationStore) UpsertPendingTokenBalance(invoiceHash, mintHash stri
 	_, err := s.DB.Exec(`
 	INSERT INTO pending_token_balances (invoice_hash, mint_hash, quantity, onchain_transaction_id, created_at, owner_address)
 	VALUES ($1, $2, $3, $4, $5, $6)
-	ON CONFLICT (invoice_hash, mint_hash)
 	DO UPDATE SET quantity = $3
 	`, invoiceHash, mintHash, quantity, onchainTransactionId, time.Now(), ownerAddress)
 
