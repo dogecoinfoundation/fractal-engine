@@ -134,14 +134,26 @@ func TestInvoiceCreationNotFromSeller(t *testing.T) {
 }
 
 func AssertNoPendingTokenBalance(t *testing.T, invoiceHash string, mintHash string, tokenisationStore *store.TokenisationStore) {
-	_, err := tokenisationStore.GetPendingTokenBalance(invoiceHash, mintHash)
+	tx, err := tokenisationStore.DB.Begin()
+	if err != nil {
+		t.Fatalf("Failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	_, err = tokenisationStore.GetPendingTokenBalance(invoiceHash, mintHash, tx)
 	if err == nil {
 		t.Fatalf("Expected error getting pending token balance")
 	}
 }
 
 func AssertPendingTokenBalance(t *testing.T, invoiceHash string, mintHash string, quantity int, tokenisationStore *store.TokenisationStore) {
-	pendingTokenBalance, err := tokenisationStore.GetPendingTokenBalance(invoiceHash, mintHash)
+	tx, err := tokenisationStore.DB.Begin()
+	if err != nil {
+		t.Fatalf("Failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	pendingTokenBalance, err := tokenisationStore.GetPendingTokenBalance(invoiceHash, mintHash, tx)
 	if err != nil {
 		t.Fatalf("Failed to get pending token balance: %v", err)
 	}
@@ -150,12 +162,17 @@ func AssertPendingTokenBalance(t *testing.T, invoiceHash string, mintHash string
 }
 
 func AssertTokenBalance(t *testing.T, s, hash string, i int, tokenisationStore *store.TokenisationStore) {
-	tokenBalance, err := tokenisationStore.GetTokenBalance(s, hash)
+	tokenBalance, err := tokenisationStore.GetTokenBalances(s, hash)
 	if err != nil {
 		t.Fatalf("Failed to get token balance: %v", err)
 	}
 
-	assert.Equal(t, i, tokenBalance)
+	totalQuantity := 0
+	for _, balance := range tokenBalance {
+		totalQuantity += balance.Quantity
+	}
+
+	assert.Equal(t, i, totalQuantity)
 }
 
 func CreateOnChainPaymentMessage(t *testing.T, trxnHash string, invoiceHash string, ownerAddress string, blockHeight int64, trxnNo int, value float64, tokenisationStore *store.TokenisationStore) {
@@ -222,12 +239,12 @@ func AssertUnconfirmedMintCreation(t *testing.T, hash string, tokenisationStore 
 	assert.Equal(t, 1, len(mints))
 	assert.Equal(t, "Test Mint", mints[0].Title)
 
-	tokenBalance, err := tokenisationStore.GetTokenBalance("ownerAddress", hash)
+	tokenBalance, err := tokenisationStore.GetTokenBalances("ownerAddress", hash)
 	if err != nil {
 		t.Fatalf("Failed to get token balance: %v", err)
 	}
 
-	assert.Equal(t, 100, tokenBalance)
+	assert.Equal(t, 100, tokenBalance[0].Quantity)
 }
 
 func CreateUnconfirmedMint(t *testing.T, trxnHash string, tokenisationStore *store.TokenisationStore) string {

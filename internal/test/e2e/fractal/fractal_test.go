@@ -115,7 +115,6 @@ func TestFractal(t *testing.T) {
 			Requirements:  map[string]interface{}{},
 			LockupOptions: map[string]interface{}{},
 			FeedURL:       "https://test.com",
-			OwnerAddress:  "testA0",
 		},
 	})
 
@@ -123,7 +122,7 @@ func TestFractal(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	// // Write mint to core (OG Node)
+	// Write mint to core (OG Node)
 	// err = support.WriteMintToCore(testGroups[0].DogeTest, testGroups[0].AddressBook, &mintResponse)
 	// if err != nil {
 	// 	log.Fatal(err)

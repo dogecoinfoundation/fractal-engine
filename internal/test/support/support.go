@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,19 +20,36 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/dogecoinfoundation/dogetest/pkg/dogetest"
 	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 func SetupTestDB(t *testing.T) *store.TokenisationStore {
-	testDir := os.TempDir()
-	dbPath := filepath.Join(testDir, fmt.Sprintf("test_rpc_%d.db", rand.Intn(1000000)))
+	ctx := context.Background()
 
-	tokenisationStore, err := store.NewTokenisationStore("sqlite:///"+dbPath, config.Config{
+	// Start PostgreSQL container
+	postgresContainer, err := postgres.Run(ctx,
+		"postgres:16-alpine",
+		postgres.WithDatabase("testdb"),
+		postgres.WithUsername("postgres"),
+		postgres.WithPassword("postgres"),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2)),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Get connection string
+	connStr, err := postgresContainer.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tokenisationStore, err := store.NewTokenisationStore(connStr, config.Config{
 		MigrationsPath: "../../../../db/migrations",
 	})
-	if err != nil {
-		t.Fatalf("Failed to create tokenisation store: %v", err)
-	}
 
 	err = tokenisationStore.Migrate()
 	if err != nil {

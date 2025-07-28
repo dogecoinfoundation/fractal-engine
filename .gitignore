@@ -4,3 +4,5 @@ data
 test.toml
 **\test*.db
 config.toml
+coverage.txt
+bin
