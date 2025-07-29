@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,35 +13,22 @@ import (
 	"testing"
 	"time"
 
+	"code.dogecoin.org/gossip/dnet"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"github.com/Dogebox-WG/gossip/dnet"
 	"github.com/docker/go-connections/nat"
 	"github.com/dogecoinfoundation/dogetest/pkg/dogetest"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func SetupTestDB(t *testing.T) *store.TokenisationStore {
-	testDir := os.TempDir()
-	dbPath := filepath.Join(testDir, fmt.Sprintf("test_rpc_%d.db", rand.Intn(1000000)))
-
-	tokenisationStore, err := store.NewTokenisationStore("sqlite:///"+dbPath, config.Config{
-		MigrationsPath: "../../../../db/migrations",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create tokenisation store: %v", err)
-	}
-
-	err = tokenisationStore.Migrate()
-	if err != nil {
-		t.Fatalf("Failed to migrate tokenisation store: %v", err)
-	}
-
-	return tokenisationStore
+func SetupTestDB() *store.TokenisationStore {
+	// Use the shared database approach for better performance
+	return SetupTestDBShared()
 }
 
 type TestGroup struct {
@@ -63,6 +49,7 @@ type TestGroup struct {
 	DnPort           int
 	DnGossipPort     int
 	FeRpcPort        int
+	DbUrl            string // Track DB URL for cleanup
 }
 
 func (tg *TestGroup) Stop() {
@@ -82,6 +69,14 @@ func (tg *TestGroup) Stop() {
 
 	if tg.FeService != nil {
 		tg.FeService.Stop()
+	}
+
+	// Cleanup SQLite database file
+	if tg.DbUrl != "" {
+		dbPath := strings.TrimPrefix(tg.DbUrl, "sqlite://")
+		if err := os.Remove(dbPath); err != nil && !os.IsNotExist(err) {
+			log.Printf("Failed to remove test database %s: %v", dbPath, err)
+		}
 	}
 
 	tg.Running = false
@@ -117,7 +112,7 @@ func NewTestGroup(name string, networkName string, instanceId int, dogeCorePort 
 	}
 }
 
-func (tg *TestGroup) Start() {
+func (tg *TestGroup) Start(m *testing.M) {
 	tg.Running = true
 	ctx := context.Background()
 
@@ -147,16 +142,8 @@ func (tg *TestGroup) Start() {
 		panic(err)
 	}
 
-	dbUrl := "sqlite://test" + strconv.Itoa(tg.InstanceId) + ".db"
-
-	os.Remove(dbUrl)
-
-	tokenStore, err := store.NewTokenisationStore(dbUrl, config.Config{
-		MigrationsPath: "../../../../db/migrations",
-	})
-	if err != nil {
-		panic(err)
-	}
+	// Use unique database file with timestamp to avoid conflicts
+	tokenStore := SetupTestDB()
 
 	nodeKey, err := dnet.GenerateKeyPair()
 	if err != nil {
@@ -184,7 +171,7 @@ func (tg *TestGroup) Start() {
 }
 
 func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogePort int, dogenetClient *dogenet.DogeNetClient, dogeTestInstance *dogetest.DogeTest, tokenStore *store.TokenisationStore) (*service.TokenisationService, *config.Config) {
-	os.Remove("test" + strconv.Itoa(instanceId) + ".db")
+	// Remove old test files - no longer needed as we use unique names
 
 	mappedPort, err := dogeTestInstance.Container.MappedPort(context.Background(), nat.Port(strconv.Itoa(dogePort)+"/tcp"))
 	if err != nil {
@@ -193,7 +180,8 @@ func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogePo
 
 	feConfig := config.NewConfig()
 	feConfig.DogeHost = dogeTestInstance.Host
-	feConfig.DatabaseURL = "sqlite://test" + strconv.Itoa(instanceId) + ".db"
+	// Use the same tokenStore that was passed in, don't create a new DB URL
+	// feConfig.DatabaseURL is not needed since we're using the passed tokenStore
 	feConfig.DogePort = mappedPort.Port()
 	feConfig.DogeUser = "test"
 	feConfig.DogePassword = "test"
@@ -413,9 +401,12 @@ func WriteMintToCore(dogeTest *dogetest.DogeTest, addressBook *dogetest.AddressB
 
 	change := selectedUTXO.Amount - 0.5
 
+	envelope := protocol.NewMintTransactionEnvelope(mintResponse.Hash, protocol.ACTION_MINT)
+	encodedTransactionBody := envelope.Serialize()
+
 	outputs := map[string]interface{}{
 		addressBook.Addresses[0].Address: change,
-		"data":                           mintResponse.EncodedTransactionBody,
+		"data":                           hex.EncodeToString(encodedTransactionBody),
 	}
 
 	createResp, err := dogeTest.Rpc.Request("createrawtransaction", []interface{}{inputs, outputs})

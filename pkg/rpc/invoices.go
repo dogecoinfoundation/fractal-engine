@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -11,7 +10,6 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 
-	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
 
@@ -171,13 +169,8 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	envelope := protocol.NewInvoiceTransactionEnvelope(newInvoiceWithoutId.Hash, newInvoiceWithoutId.SellOfferAddress, newInvoiceWithoutId.BuyOfferMintHash, int32(newInvoiceWithoutId.BuyOfferQuantity), protocol.ACTION_INVOICE)
-	encodedTransactionBody := envelope.Serialize()
-
 	response := CreateInvoiceResponse{
-		EncodedTransactionBody: hex.EncodeToString(encodedTransactionBody),
-		Id:                     id,
-		TransactionHash:        newInvoiceWithoutId.Hash,
+		Hash: newInvoiceWithoutId.Hash,
 	}
 
 	respondJSON(w, http.StatusCreated, response)

@@ -1,11 +1,22 @@
 package store
 
 import (
+	"database/sql"
+	"log"
+
 	"github.com/google/uuid"
 )
 
 func (s *TokenisationStore) GetSellOffers(offset int, limit int, mintHash string, offererAddress string) ([]SellOffer, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, offerer_address, hash, mint_hash, quantity, price, public_key FROM sell_offers WHERE mint_hash = $1 AND offerer_address = $2 LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
+	var rows *sql.Rows
+	var err error
+
+	if offererAddress != "" {
+		log.Println("Getting sell offers for mint:", mintHash, "and offerer address:", offererAddress, "with limit:", limit, "and offset:", offset, s)
+		rows, err = s.DB.Query("SELECT id, created_at, offerer_address, hash, mint_hash, quantity, price, public_key FROM sell_offers WHERE mint_hash = $1 AND offerer_address = $2 LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
+	} else {
+		rows, err = s.DB.Query("SELECT id, created_at, offerer_address, hash, mint_hash, quantity, price, public_key FROM sell_offers WHERE mint_hash = $1 LIMIT $2 OFFSET $3", mintHash, limit, offset)
+	}
 	if err != nil {
 		return nil, err
 	}

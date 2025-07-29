@@ -9,6 +9,7 @@ import (
 
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/rpc"
+	"dogecoin.org/fractal-engine/pkg/store"
 )
 
 type TokenisationClient struct {
@@ -61,6 +62,28 @@ func (c *TokenisationClient) CreateInvoice(invoice *rpc.CreateInvoiceRequest) (r
 	err = json.Unmarshal(body, &result)
 	if err != nil {
 		return rpc.CreateInvoiceResponse{}, err
+	}
+
+	return result, nil
+}
+
+func (c *TokenisationClient) GetInvoices(page int, limit int, mintHash string, offererAddress string) (rpc.GetInvoicesResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/invoices?page=%d&limit=%d&mint_hash=%s&offerer_address=%s", page, limit, mintHash, offererAddress))
+	if err != nil {
+		return rpc.GetInvoicesResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rpc.GetInvoicesResponse{}, fmt.Errorf("failed to get invoices: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.GetInvoicesResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.GetInvoicesResponse{}, err
 	}
 
 	return result, nil
@@ -248,6 +271,50 @@ func (c *TokenisationClient) CreateSellOffer(offer *rpc.CreateSellOfferRequest) 
 	return result, nil
 }
 
+func (c *TokenisationClient) GetMintByHash(hash string) (rpc.GetMintResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints/%s", hash))
+	if err != nil {
+		return rpc.GetMintResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rpc.GetMintResponse{}, fmt.Errorf("failed to get mint: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.GetMintResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.GetMintResponse{}, err
+	}
+
+	return result, nil
+}
+
+func (c *TokenisationClient) GetSellOffersByMintHash(page int, limit int, mintHash string) (rpc.GetSellOffersResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/sell-offers?page=%d&limit=%d&mint_hash=%s", page, limit, mintHash))
+	if err != nil {
+		return rpc.GetSellOffersResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rpc.GetSellOffersResponse{}, fmt.Errorf("failed to get offers: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.GetSellOffersResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.GetSellOffersResponse{}, err
+	}
+
+	return result, nil
+}
+
 func (c *TokenisationClient) GetBuyOffersBySellerAddress(page int, limit int, mintHash string, sellerAddress string) (rpc.GetBuyOffersResponse, error) {
 	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/buy-offers?page=%d&limit=%d&mint_hash=%s&seller_address=%s", page, limit, mintHash, sellerAddress))
 	if err != nil {
@@ -293,21 +360,6 @@ func (c *TokenisationClient) GetBuyOffers(page int, limit int, mintHash string) 
 }
 
 func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintResponse, error) {
-	payloadBytes, err := json.Marshal(mint.Payload)
-	if err != nil {
-		return rpc.CreateMintResponse{}, err
-	}
-
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
-	if err != nil {
-		return rpc.CreateMintResponse{}, err
-	}
-
-	mint.SignedRequest = rpc.SignedRequest{
-		PublicKey: c.pubHex,
-		Signature: signature,
-	}
-
 	jsonValue, err := json.Marshal(mint)
 	if err != nil {
 		return rpc.CreateMintResponse{}, err
@@ -315,7 +367,8 @@ func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintRe
 
 	resp, err := c.httpClient.Post(c.baseUrl+"/mints", "application/json", bytes.NewBuffer(jsonValue))
 	if err != nil {
-		return rpc.CreateMintResponse{}, err
+		body, _ := io.ReadAll(resp.Body)
+		return rpc.CreateMintResponse{}, fmt.Errorf("failed to mint token: %s", string(body))
 	}
 
 	defer resp.Body.Close()
@@ -335,8 +388,37 @@ func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintRe
 	return result, nil
 }
 
-func (c *TokenisationClient) GetMints(page int, limit int) (rpc.GetMintsResponse, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints?page=%d&limit=%d", page, limit))
+func (c *TokenisationClient) GetTokenBalance(address string, mintHash string) ([]store.TokenBalance, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/token-balances?address=%s&mint_hash=%s", address, mintHash))
+	if err != nil {
+		return []store.TokenBalance{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return []store.TokenBalance{}, fmt.Errorf("failed to get token balance: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var result []store.TokenBalance
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return []store.TokenBalance{}, err
+	}
+
+	return result, nil
+}
+
+func (c *TokenisationClient) GetMints(page int, limit int, publicKey string, includeUnconfirmed bool) (rpc.GetMintsResponse, error) {
+	var resp *http.Response
+	var err error
+	if includeUnconfirmed {
+		resp, err = c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints?page=%d&limit=%d&public_key=%s&include_unconfirmed=true", page, limit, publicKey))
+	} else {
+		resp, err = c.httpClient.Get(c.baseUrl + fmt.Sprintf("/mints?page=%d&limit=%d&public_key=%s", page, limit, publicKey))
+	}
 	if err != nil {
 		return rpc.GetMintsResponse{}, err
 	}

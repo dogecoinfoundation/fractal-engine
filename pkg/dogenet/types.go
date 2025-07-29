@@ -1,6 +1,6 @@
 package dogenet
 
-import "github.com/Dogebox-WG/gossip/dnet"
+import "code.dogecoin.org/gossip/dnet"
 
 var ChanFE = dnet.NewTag("FractalEngine")
 var TagMint = dnet.NewTag("Mint")

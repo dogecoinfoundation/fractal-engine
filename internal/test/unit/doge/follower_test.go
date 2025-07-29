@@ -31,7 +31,7 @@ func (f *FakeChainFollower) Stop() {
 }
 
 func TestDogeFollower(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	chainFollower := &FakeChainFollower{
 		Messages: make(chan messages.Message),

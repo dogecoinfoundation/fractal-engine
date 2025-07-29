@@ -12,8 +12,8 @@ import (
 
 	"dogecoin.org/fractal-engine/pkg/config"
 
+	"code.dogecoin.org/gossip/dnet"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"github.com/Dogebox-WG/gossip/dnet"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -174,6 +174,7 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 
 	reader := bufio.NewReader(c.sock)
 
+	log.Printf("[FE] reading BindMessage reply.")
 	br_buf := [dnet.BindMessageSize]byte{}
 	_, err = io.ReadAtLeast(reader, br_buf[:], len(br_buf))
 	if err != nil {
@@ -181,6 +182,8 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 		c.sock.Close()
 		return err
 	}
+
+	log.Printf("[FE] reading DecodeBindMessage reply.")
 
 	if _, ok := dnet.DecodeBindMessage(br_buf[:]); ok {
 		// send the node's pubkey to the announce service

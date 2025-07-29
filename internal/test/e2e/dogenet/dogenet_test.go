@@ -4,17 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"testing"
 	"time"
 
+	"code.dogecoin.org/gossip/dnet"
 	"dogecoin.org/fractal-engine/internal/test/support"
-	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"github.com/Dogebox-WG/gossip/dnet"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -38,31 +36,8 @@ func TestMain(m *testing.M) {
 	}
 	networkName := net.Name
 
-	os.Remove("test.db")
-	tokenisationStoreA, err = store.NewTokenisationStore("sqlite://test.db", config.Config{
-		MigrationsPath: "../../../../db/migrations",
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = tokenisationStoreA.Migrate()
-	if err != nil && err.Error() != "no change" {
-		panic(err)
-	}
-
-	os.Remove("testb.db")
-	tokenisationStoreB, err = store.NewTokenisationStore("sqlite://testb.db", config.Config{
-		MigrationsPath: "../../../../db/migrations",
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = tokenisationStoreB.Migrate()
-	if err != nil && err.Error() != "no change" {
-		panic(err)
-	}
+	tokenisationStoreA = support.SetupTestDB()
+	tokenisationStoreB = support.SetupTestDB()
 
 	feKey, err := dnet.GenerateKeyPair()
 	if err != nil {
@@ -149,7 +124,6 @@ func TestOffersMessage(t *testing.T) {
 	err := dogenetClientA.GossipMint(store.Mint{
 		Id: "1",
 		MintWithoutID: store.MintWithoutID{
-
 			Title:         "Test Mint",
 			FractionCount: 100,
 			Description:   "Test Description",
@@ -192,7 +166,7 @@ func TestOffersMessage(t *testing.T) {
 		assert.Error(t, fmt.Errorf("expected mint message"), "expected mint message")
 	}
 
-	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair()
+	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
 	if err != nil {
 		assert.Error(t, err, "failed to generate dogecoin keypair")
 	}
@@ -393,7 +367,7 @@ func TestInvoiceMessage(t *testing.T) {
 		assert.Error(t, fmt.Errorf("expected mint message"), "expected mint message")
 	}
 
-	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair()
+	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
 	if err != nil {
 		assert.Error(t, err, "failed to generate dogecoin keypair")
 	}

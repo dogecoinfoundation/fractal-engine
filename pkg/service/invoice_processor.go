@@ -74,13 +74,13 @@ func (p *InvoiceProcessor) EnsurePendingTokenBalance(tx store.OnChainTransaction
 		log.Println("Error unmarshalling invoice:", err)
 	}
 
-	pendingTokenBalance, _ := p.store.GetPendingTokenBalance(invoice.InvoiceHash, invoice.MintHash)
+	pendingTokenBalance, _ := p.store.GetPendingTokenBalance(invoice.InvoiceHash, invoice.MintHash, nil)
 	if pendingTokenBalance.InvoiceHash != "" {
 		log.Println("Pending token balance already exists")
 		return true, nil
 	}
 
-	tokenBalance, err := p.store.GetTokenBalance(invoice.SellOfferAddress, invoice.MintHash)
+	tokenBalances, err := p.store.GetTokenBalances(invoice.SellOfferAddress, invoice.MintHash)
 	if err != nil {
 		log.Println("Error getting token balance:", err)
 		return false, err
@@ -92,7 +92,12 @@ func (p *InvoiceProcessor) EnsurePendingTokenBalance(tx store.OnChainTransaction
 		return false, err
 	}
 
-	tokenBalanceAvailable := tokenBalance - pendingTokenBalanceTotal
+	totalTokenBalance := 0
+	for _, tokenBalance := range tokenBalances {
+		totalTokenBalance += tokenBalance.Quantity
+	}
+
+	tokenBalanceAvailable := totalTokenBalance - pendingTokenBalanceTotal
 
 	if tokenBalanceAvailable >= int(invoice.Quantity) {
 		log.Println("Token balance is enough")

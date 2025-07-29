@@ -1,9 +1,11 @@
 package test_rpc
 
 import (
+	"encoding/json"
 	"testing"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"gotest.tools/assert"
 )
@@ -11,21 +13,40 @@ import (
 func TestMints(t *testing.T) {
 	tokenisationStore, dogenetClient, mux, feClient := SetupRpcTest(t)
 
-	rpc.HandleMintRoutes(tokenisationStore, dogenetClient, mux, &config.Config{})
+	rpc.HandleMintRoutes(tokenisationStore, dogenetClient, mux, &config.Config{}, doge.NewRpcClient(&config.Config{}))
+
+	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
+	if err != nil {
+		t.Fatalf("GenerateDogecoinKeypair: %v", err)
+	}
+
+	payload := rpc.CreateMintRequestPayload{
+		Title:         "Test Mint",
+		FractionCount: 100,
+		Description:   "Test Description",
+		Tags:          []string{"test", "mint"},
+		Metadata: map[string]interface{}{
+			"test": "test",
+		},
+		Requirements:  map[string]interface{}{},
+		LockupOptions: map[string]interface{}{},
+		FeedURL:       "https://test.com",
+	}
 
 	mintRequest := rpc.CreateMintRequest{
-		Payload: rpc.CreateMintRequestPayload{
-			Title:         "Test Mint",
-			FractionCount: 100,
-			Description:   "Test Description",
-			Tags:          []string{"test", "mint"},
-			Metadata: map[string]interface{}{
-				"test": "test",
-			},
-			Requirements:  map[string]interface{}{},
-			LockupOptions: map[string]interface{}{},
-			FeedURL:       "https://test.com",
-		},
+		Payload:   payload,
+		Address:   address,
+		PublicKey: pubHex,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("Failed to marshal payload: %v", err)
+	}
+
+	mintRequest.Signature, err = doge.SignPayload(payloadBytes, privHex)
+	if err != nil {
+		t.Fatalf("Failed to sign payload: %v", err)
 	}
 
 	mintResponse, err := feClient.Mint(&mintRequest)
@@ -39,7 +60,7 @@ func TestMints(t *testing.T) {
 	}
 
 	assert.Equal(t, len(mints), 1)
-	assert.Equal(t, mints[0].Id, mintResponse.Id)
+	assert.Equal(t, mints[0].Hash, mintResponse.Hash)
 	assert.Equal(t, mints[0].Title, mintRequest.Payload.Title)
 	assert.Equal(t, mints[0].FractionCount, mintRequest.Payload.FractionCount)
 	assert.Equal(t, mints[0].Description, mintRequest.Payload.Description)
@@ -50,7 +71,7 @@ func TestMints(t *testing.T) {
 	assert.Equal(t, mints[0].FeedURL, mintRequest.Payload.FeedURL)
 
 	assert.Equal(t, len(dogenetClient.mints), 1)
-	assert.Equal(t, dogenetClient.mints[0].Id, mintResponse.Id)
+	assert.Equal(t, dogenetClient.mints[0].Hash, mintResponse.Hash)
 	assert.Equal(t, dogenetClient.mints[0].Title, mintRequest.Payload.Title)
 	assert.Equal(t, dogenetClient.mints[0].FractionCount, mintRequest.Payload.FractionCount)
 	assert.Equal(t, dogenetClient.mints[0].Description, mintRequest.Payload.Description)

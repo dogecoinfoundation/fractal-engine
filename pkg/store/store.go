@@ -55,6 +55,7 @@ func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, 
 		if err != nil {
 			return nil, err
 		}
+
 		return &TokenisationStore{DB: postgres, backend: "postgres", cfg: cfg}, nil
 	}
 
@@ -72,7 +73,12 @@ func (s *TokenisationStore) Migrate() error {
 		return err
 	}
 
-	return m.Up()
+	err = m.Up()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ProjectRoot() (string, error) {
@@ -116,6 +122,15 @@ func (s *TokenisationStore) getMigrationDriver() (database.Driver, error) {
 	}
 
 	if s.backend == "sqlite" {
+		driver, err := sqlite.WithInstance(s.DB, &sqlite.Config{})
+		if err != nil {
+			return nil, err
+		}
+
+		return driver, nil
+	}
+
+	if s.backend == "duckdb" {
 		driver, err := sqlite.WithInstance(s.DB, &sqlite.Config{})
 		if err != nil {
 			return nil, err

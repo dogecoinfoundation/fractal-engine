@@ -1,0 +1,132 @@
+version: '3.8'
+services:
+  # balance-master:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.balance-master
+  #   container_name: balance-master
+  #   ports:
+  #     - "8899:8899"
+  #   environment:
+  #     - DATABASE_URL=sqlite:///root/storage/balance-master.db
+  #   depends_on:
+  #     dogecoin:
+  #       condition: service_healthy
+  #   profiles: [deps]
+  #   volumes:
+  #     - sqlite-balance-master-data:/root/storage
+  fractalstore:
+    build:
+      context: .
+      dockerfile: Dockerfile.fractalstore
+      args:
+        POSTGRES_USER: fractalstore
+        POSTGRES_PASSWORD: fractalstore
+        POSTGRES_DB: fractalstore
+    container_name: fractalstore
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=fractalstore
+      - POSTGRES_PASSWORD=fractalstore
+      - POSTGRES_DB=fractalstore
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    profiles: [deps]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "fractalstore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  fractal-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.fractaladmin
+      args:
+        DATABASE_URL: "file:/app/data/fractal-ui.db"
+    ports:
+      - "3030:3000" 
+    environment:
+      - FRACTAL_ENGINE_URL=http://fractalengine:8891
+      - DATABASE_URL=file:/app/data/fractal-ui.db
+    volumes:
+      - sqlite-data:/app/data
+    depends_on:
+      fractalengine:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles: [frontend]
+  dogenet:
+    profiles: [deps]
+    build:
+      context: .
+      dockerfile: Dockerfile.dogenet
+    container_name: dogenet
+    environment:
+      - DOGE_NET_HANDLER=$DOGE_NET_HANDLER
+    ports:
+      - "8085:8085"
+      - "8086:8086"
+    volumes:
+      - doge-sock:/tmp
+    healthcheck:
+      test: ["CMD", "test", "/tmp/dogenet.sock"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  fractalengine:
+    profiles: [fractal]
+    build:
+      context: .
+      dockerfile: Dockerfile.fractalengine
+    container_name: fractalengine
+    ports:
+      - "8891:8891"
+    environment:
+      - DATABASE_URL=sqlite:///root/storage/fractal-engine.db
+    depends_on:
+      dogecoin:
+        condition: service_healthy
+      dogenet:
+        condition: service_healthy
+      fractalstore:
+        condition: service_healthy
+    volumes:
+      - doge-sock:/tmp
+      - sqlite-fractalengine-data:/root/storage
+    healthcheck:
+      test: [
+        "CMD", "curl", "--silent", "content-type: text/plain;", "http://127.0.0.1:8891/health"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  dogecoin:
+    profiles: [deps]
+    build:
+      context: .
+      dockerfile: Dockerfile.dogecoin
+    container_name: dogecoin
+    ports:
+      - "22556:22556"
+    healthcheck:
+      test: [
+        "CMD", "curl", "--silent", "--user", "test:test",
+        "--data-binary", "{\"jsonrpc\":\"1.0\",\"id\":\"curltest\",\"method\":\"getblockchaininfo\",\"params\":[]}",
+        "-H", "content-type: text/plain;", "http://127.0.0.1:22556"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sqlite-data:
+    driver: local
+  doge-sock:
+    driver: local
+  sqlite-fractalengine-data:
+    driver: local
+  sqlite-balance-master-data:
+    driver: local
+  postgres-data:
+    driver: local

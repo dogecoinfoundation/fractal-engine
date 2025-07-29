@@ -19,7 +19,7 @@ func TestOfferSaveAndGet(t *testing.T) {
 	}
 
 	err = tokenisationStore.Migrate()
-	if err != nil {
+	if err != nil && err.Error() != "no change" {
 		t.Fatalf("Failed to migrate: %v", err)
 	}
 

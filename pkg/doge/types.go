@@ -260,3 +260,19 @@ type TxOut struct {
 	ScriptPubKey  RawTxnScriptPubKey `json:"scriptPubKey"`
 	Coinbase      bool               `json:"coinbase"`
 }
+
+type WalletInfo struct {
+	WalletName string          `json:"walletname"`
+	Balance    decimal.Decimal `json:"balance"`
+	TxCount    int64           `json:"txcount"`
+}
+
+type FundRawTransactionResponse struct {
+	Hex       string  `json:"hex"`
+	Fee       float64 `json:"fee"`
+	ChangePos float64 `json:"changepos"`
+}
+
+type SignRawTransactionResponse struct {
+	Hex string `json:"hex"`
+}

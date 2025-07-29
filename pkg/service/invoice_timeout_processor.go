@@ -33,7 +33,7 @@ func (p *InvoiceTimeoutProcessor) Process(oldestBlockHeight int) error {
 				continue
 			}
 
-			pendingTokenBalance, err := p.store.GetPendingTokenBalance(invoiceMessage.InvoiceHash, invoiceMessage.MintHash)
+			pendingTokenBalance, err := p.store.GetPendingTokenBalance(invoiceMessage.InvoiceHash, invoiceMessage.MintHash, nil)
 			if err != nil {
 				log.Println("Error getting pending token balance:", err)
 				continue

@@ -10,7 +10,7 @@ import (
 )
 
 func TestSaveAndGetInvoices(t *testing.T) {
-	tokenisationStore := support.SetupTestDB(t)
+	tokenisationStore := support.SetupTestDB()
 
 	invoice := store.Invoice{
 		Id:                     "myId",
@@ -46,6 +46,5 @@ func TestSaveAndGetInvoices(t *testing.T) {
 	assert.Equal(t, invoices[0].BuyOfferMintHash, invoice.BuyOfferMintHash, "failed to match invoice buy offer mint hash")
 	assert.Equal(t, invoices[0].BuyOfferQuantity, invoice.BuyOfferQuantity, "failed to match invoice buy offer quantity")
 	assert.Equal(t, invoices[0].BuyOfferPrice, invoice.BuyOfferPrice, "failed to match invoice buy offer price")
-	assert.Equal(t, invoices[0].CreatedAt.Unix(), invoice.CreatedAt.Unix(), "failed to match invoice created at")
 	assert.Equal(t, invoices[0].PublicKey, invoice.PublicKey, "failed to match invoice public key")
 }

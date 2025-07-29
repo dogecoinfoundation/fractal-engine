@@ -35,7 +35,7 @@ func TestInvoices(t *testing.T) {
 	}
 
 	assert.Equal(t, len(invoices), 1)
-	assert.Equal(t, invoices[0].Id, invoiceResponse.Id)
+	assert.Equal(t, invoices[0].Hash, invoiceResponse.Hash)
 	assert.Equal(t, invoices[0].PaymentAddress, invoice.Payload.PaymentAddress)
 	assert.Equal(t, invoices[0].BuyOfferOffererAddress, invoice.Payload.BuyOfferOffererAddress)
 	assert.Equal(t, invoices[0].BuyOfferHash, invoice.Payload.BuyOfferHash)
@@ -45,7 +45,7 @@ func TestInvoices(t *testing.T) {
 	assert.Equal(t, invoices[0].SellOfferAddress, invoice.Payload.SellOfferAddress)
 
 	assert.Equal(t, len(dogenetClient.invoices), 1)
-	assert.Equal(t, dogenetClient.invoices[0].Id, invoiceResponse.Id)
+	assert.Equal(t, dogenetClient.invoices[0].Hash, invoiceResponse.Hash)
 	assert.Equal(t, dogenetClient.invoices[0].PaymentAddress, invoice.Payload.PaymentAddress)
 	assert.Equal(t, dogenetClient.invoices[0].BuyOfferOffererAddress, invoice.Payload.BuyOfferOffererAddress)
 	assert.Equal(t, dogenetClient.invoices[0].BuyOfferHash, invoice.Payload.BuyOfferHash)

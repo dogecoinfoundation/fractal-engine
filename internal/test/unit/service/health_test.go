@@ -17,7 +17,7 @@ import (
 )
 
 func TestHealth(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	tokenisationStore.UpsertChainPosition(50, "0000000000000000000000000000000000000000000000000000000000000000", false)
 
@@ -33,6 +33,40 @@ func TestHealth(t *testing.T) {
 			err = json.Unmarshal(body, &rpcRequest)
 			if err != nil {
 				t.Fatal(err)
+			}
+
+			if rpcRequest["method"] == "getblockchaininfo" {
+				w.Header().Set("Content-Type", "application/json")
+				rpcResponse := rpcResponse{
+					Id:     3,
+					Result: json.RawMessage(`{"chain":"test"}`),
+				}
+
+				data, err := json.Marshal(rpcResponse)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				w.Write(data)
+
+				return
+			}
+
+			if rpcRequest["method"] == "getwalletinfo" {
+				w.Header().Set("Content-Type", "application/json")
+				rpcResponse := rpcResponse{
+					Id:     4,
+					Result: json.RawMessage("{}"),
+				}
+
+				data, err := json.Marshal(rpcResponse)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				w.Write(data)
+
+				return
 			}
 
 			if rpcRequest["method"] == "getbestblockhash" {
@@ -109,7 +143,7 @@ func TestHealth(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	currentBlockHeight, latestBlockHeight, updatedAt, err := tokenisationStore.GetHealth()
+	currentBlockHeight, latestBlockHeight, chain, walletsEnabled, updatedAt, err := tokenisationStore.GetHealth()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,4 +151,6 @@ func TestHealth(t *testing.T) {
 	assert.Equal(t, int64(50), currentBlockHeight)
 	assert.Equal(t, int64(100), latestBlockHeight)
 	assert.Equal(t, updatedAt.IsZero(), false)
+	assert.Equal(t, chain, "test")
+	assert.Equal(t, walletsEnabled, true)
 }

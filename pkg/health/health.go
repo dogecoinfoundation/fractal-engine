@@ -36,6 +36,14 @@ func (h *HealthService) Start() {
 			continue
 		}
 
+		blockchainInfo, err := h.dogeClient.GetBlockchainInfo()
+		if err != nil {
+			log.Println("Error getting blockchain info:", err)
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		chain := blockchainInfo.Chain
+
 		latestBlockHeight := int(blockHeader.Height)
 		currentBlockHeight, _, _, err := h.tokenStore.GetChainPosition()
 		if err != nil {
@@ -44,7 +52,9 @@ func (h *HealthService) Start() {
 			continue
 		}
 
-		err = h.tokenStore.UpsertHealth(int64(currentBlockHeight), int64(latestBlockHeight))
+		_, err = h.dogeClient.GetWalletInfo()
+
+		err = h.tokenStore.UpsertHealth(int64(currentBlockHeight), int64(latestBlockHeight), chain, err == nil)
 		if err != nil {
 			log.Println("Error upserting health:", err)
 		}

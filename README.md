@@ -42,3 +42,22 @@ scripts/generate_docs.sh
 
 ## Generate Swagger Docs
 `swag init --parseDependency --parseInternal --parseDepth 1 -g pkg/rpc/server.go`
+
+## Running Fractal Engine
+### Example Docker Compose
+There is an example of running Dogecoin Core, DogeNet, Fractal Engine, and Fractal Admin UI.
+You can just run `docker compose up`.
+
+### Docker Compose with deps only (dogenet, dogecoin core)
+This is usually if you want to dev on fractal engine or UI locally and its simple to just spin up a DogeNet + Dogecoin Core (regtest).
+`docker compose --profile deps up`
+Note: May require dockerfile configurations.
+
+If you are running DogeNet in container and running Fractal Engine locally you can run it like this.
+`go run cmd/fractal-engine/fractal_engine.go --doge-net-network tcp --doge-net-address localhost:8085`
+By default it expects to use a unix socket, but if its in a container we need to connect via TCP.
+
+### Docker Compose with fractal only (fractal engine, fractal ui)
+This is usually if you want to run fractal against your existing DogeNet and Dogecoin Core instances.
+`docker compose --profile fractal up`
+Note: May require dockerfile configurations.

@@ -3,3 +3,9 @@ test.db
 data
 test.toml
 **\test*.db
+config.toml
+coverage.txt
+bin
+coverage
+coverage.out
+coverage_*out

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"golang.org/x/time/rate"
@@ -18,13 +19,14 @@ import (
 // @version		1.0
 // @description	API for managing mints and offers
 type RpcServer struct {
-	config  *config.Config
-	quit    chan bool
-	server  *http.Server
-	Running bool
+	config     *config.Config
+	quit       chan bool
+	server     *http.Server
+	Running    bool
+	dogeClient *doge.RpcClient
 }
 
-func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClient dogenet.GossipClient) *RpcServer {
+func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClient dogenet.GossipClient, dogeClient *doge.RpcClient) *RpcServer {
 	mux := http.NewServeMux()
 
 	handler := withCORS(mux)
@@ -32,11 +34,13 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClie
 	limiter := rate.NewLimiter(rate.Limit(cfg.RateLimitPerSecond), cfg.RateLimitPerSecond*3)
 	handler = rateLimitMiddleware(limiter, handler)
 
-	HandleMintRoutes(store, gossipClient, mux, cfg)
+	HandleMintRoutes(store, gossipClient, mux, cfg, dogeClient)
 	HandleOfferRoutes(store, gossipClient, mux, cfg)
 	HandleInvoiceRoutes(store, gossipClient, mux, cfg)
 	HandleStatRoutes(store, mux)
 	HandleHealthRoutes(store, mux)
+	HandleDemoRoutes(store, gossipClient, mux, cfg, dogeClient)
+	HandleTokenRoutes(store, mux)
 
 	server := &http.Server{
 		Addr:    cfg.RpcServerHost + ":" + cfg.RpcServerPort,
@@ -44,10 +48,11 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClie
 	}
 
 	return &RpcServer{
-		config:  cfg,
-		server:  server,
-		quit:    make(chan bool),
-		Running: false,
+		config:     cfg,
+		server:     server,
+		quit:       make(chan bool),
+		Running:    false,
+		dogeClient: dogeClient,
 	}
 }
 
