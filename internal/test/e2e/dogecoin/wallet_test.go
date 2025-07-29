@@ -27,7 +27,7 @@ func TestWallet(t *testing.T) {
 
 	dogeTest, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
 		NetworkName: networkName,
-		Port:        22555,
+		Port:        22557,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +47,7 @@ func TestWallet(t *testing.T) {
 
 	address := addressBook.Addresses[0]
 
-	mappedPort, err := dogeTest.Container.MappedPort(ctx, "22555/tcp")
+	mappedPort, err := dogeTest.Container.MappedPort(ctx, "22557/tcp")
 	if err != nil {
 		t.Fatal(err)
 	}
