@@ -116,7 +116,7 @@ func (c *DogeNetClient) recvBuyOffer(msg dnet.Message) {
 		return
 	}
 
-	address, err := doge.PublicKeyToDogeAddress(envelope.PublicKey)
+	address, err := doge.PublicKeyToDogeAddress(envelope.PublicKey, doge.PrefixRegtest)
 	if err != nil {
 		log.Println("Error converting public key to doge address:", err)
 		return

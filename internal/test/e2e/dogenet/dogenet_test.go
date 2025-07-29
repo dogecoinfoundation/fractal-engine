@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"testing"
 	"time"
 
 	"code.dogecoin.org/gossip/dnet"
 	"dogecoin.org/fractal-engine/internal/test/support"
-	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
@@ -38,31 +36,8 @@ func TestMain(m *testing.M) {
 	}
 	networkName := net.Name
 
-	os.Remove("test.db")
-	tokenisationStoreA, err = store.NewTokenisationStore("sqlite://test.db", config.Config{
-		MigrationsPath: "../../../../db/migrations",
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = tokenisationStoreA.Migrate()
-	if err != nil && err.Error() != "no change" {
-		panic(err)
-	}
-
-	os.Remove("testb.db")
-	tokenisationStoreB, err = store.NewTokenisationStore("sqlite://testb.db", config.Config{
-		MigrationsPath: "../../../../db/migrations",
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = tokenisationStoreB.Migrate()
-	if err != nil && err.Error() != "no change" {
-		panic(err)
-	}
+	tokenisationStoreA = support.SetupTestDB()
+	tokenisationStoreB = support.SetupTestDB()
 
 	feKey, err := dnet.GenerateKeyPair()
 	if err != nil {
@@ -149,7 +124,6 @@ func TestOffersMessage(t *testing.T) {
 	err := dogenetClientA.GossipMint(store.Mint{
 		Id: "1",
 		MintWithoutID: store.MintWithoutID{
-
 			Title:         "Test Mint",
 			FractionCount: 100,
 			Description:   "Test Description",

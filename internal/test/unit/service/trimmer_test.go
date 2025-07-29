@@ -24,7 +24,7 @@ type rpcResponse struct {
 }
 
 func TestTrimmerServiceForOnChainTransactions(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	httptestServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

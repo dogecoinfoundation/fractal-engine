@@ -21,7 +21,7 @@ import (
 )
 
 func TestDogenet(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	myConn, dogenetConn := net.Pipe()
 

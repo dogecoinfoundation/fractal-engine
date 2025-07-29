@@ -261,7 +261,7 @@ func ValidateSignature(payload []byte, publicKey string, signature string) error
 	return nil
 }
 
-func PublicKeyToDogeAddress(pubKeyHex string) (string, error) {
+func PublicKeyToDogeAddress(pubKeyHex string, prefix byte) (string, error) {
 	pubKeyBytes, err := hex.DecodeString(pubKeyHex)
 	if err != nil {
 		return "", fmt.Errorf("invalid public key hex: %v", err)
@@ -275,7 +275,7 @@ func PublicKeyToDogeAddress(pubKeyHex string) (string, error) {
 	ripemd160Hasher.Write(shaHashed)
 	pubKeyHash := ripemd160Hasher.Sum(nil)
 
-	versionedPayload := append([]byte{0x1E}, pubKeyHash...)
+	versionedPayload := append([]byte{prefix}, pubKeyHash...)
 
 	firstSHA := sha256.Sum256(versionedPayload)
 	secondSHA := sha256.Sum256(firstSHA[:])

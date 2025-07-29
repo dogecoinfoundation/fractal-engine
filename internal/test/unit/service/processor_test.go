@@ -14,7 +14,7 @@ import (
 )
 
 func TestMintMatch(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	hash := CreateUnconfirmedMint(t, "txHash001", tokenisationStore)
 
@@ -25,7 +25,7 @@ func TestMintMatch(t *testing.T) {
 }
 
 func TestInvoiceMatch(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	hash := CreateUnconfirmedMint(t, "txHash001", tokenisationStore)
 
@@ -54,7 +54,7 @@ func TestInvoiceMatch(t *testing.T) {
 }
 
 func TestInvoiceMatchEarlierBlockHeightAndTransactionNumber(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	hash := CreateUnconfirmedMint(t, "txHash001", tokenisationStore)
 
@@ -73,7 +73,7 @@ func TestInvoiceMatchEarlierBlockHeightAndTransactionNumber(t *testing.T) {
 }
 
 func TestPaymentIsLessThanExpected(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	hash := CreateUnconfirmedMint(t, "txHash001", tokenisationStore)
 
@@ -97,7 +97,7 @@ func TestPaymentIsLessThanExpected(t *testing.T) {
 }
 
 func TestInvoiceTimesOutAfter14BlockDays(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	hash := CreateUnconfirmedMint(t, "txHash001", tokenisationStore)
 
@@ -118,7 +118,7 @@ func TestInvoiceTimesOutAfter14BlockDays(t *testing.T) {
 }
 
 func TestInvoiceCreationNotFromSeller(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	hash := CreateUnconfirmedMint(t, "txHash001", tokenisationStore)
 

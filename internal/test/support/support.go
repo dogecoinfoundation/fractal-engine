@@ -3,6 +3,7 @@ package support
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -15,48 +16,19 @@ import (
 	"code.dogecoin.org/gossip/dnet"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+	"dogecoin.org/fractal-engine/pkg/protocol"
+	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/docker/go-connections/nat"
 	"github.com/dogecoinfoundation/dogetest/pkg/dogetest"
 	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func SetupTestDB(t *testing.T) *store.TokenisationStore {
-	ctx := context.Background()
-
-	// Start PostgreSQL container
-	postgresContainer, err := postgres.Run(ctx,
-		"postgres:16-alpine",
-		postgres.WithDatabase("testdb"),
-		postgres.WithUsername("postgres"),
-		postgres.WithPassword("postgres"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2)),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Get connection string
-	connStr, err := postgresContainer.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	tokenisationStore, err := store.NewTokenisationStore(connStr, config.Config{
-		MigrationsPath: "../../../../db/migrations",
-	})
-
-	err = tokenisationStore.Migrate()
-	if err != nil {
-		t.Fatalf("Failed to migrate tokenisation store: %v", err)
-	}
-
-	return tokenisationStore
+func SetupTestDB() *store.TokenisationStore {
+	// Use the shared database approach for better performance
+	return SetupTestDBShared()
 }
 
 type TestGroup struct {
@@ -77,6 +49,7 @@ type TestGroup struct {
 	DnPort           int
 	DnGossipPort     int
 	FeRpcPort        int
+	DbUrl            string // Track DB URL for cleanup
 }
 
 func (tg *TestGroup) Stop() {
@@ -96,6 +69,14 @@ func (tg *TestGroup) Stop() {
 
 	if tg.FeService != nil {
 		tg.FeService.Stop()
+	}
+
+	// Cleanup SQLite database file
+	if tg.DbUrl != "" {
+		dbPath := strings.TrimPrefix(tg.DbUrl, "sqlite://")
+		if err := os.Remove(dbPath); err != nil && !os.IsNotExist(err) {
+			log.Printf("Failed to remove test database %s: %v", dbPath, err)
+		}
 	}
 
 	tg.Running = false
@@ -131,7 +112,7 @@ func NewTestGroup(name string, networkName string, instanceId int, dogeCorePort 
 	}
 }
 
-func (tg *TestGroup) Start() {
+func (tg *TestGroup) Start(m *testing.M) {
 	tg.Running = true
 	ctx := context.Background()
 
@@ -161,16 +142,8 @@ func (tg *TestGroup) Start() {
 		panic(err)
 	}
 
-	dbUrl := "sqlite://test" + strconv.Itoa(tg.InstanceId) + ".db"
-
-	os.Remove(dbUrl)
-
-	tokenStore, err := store.NewTokenisationStore(dbUrl, config.Config{
-		MigrationsPath: "../../../../db/migrations",
-	})
-	if err != nil {
-		panic(err)
-	}
+	// Use unique database file with timestamp to avoid conflicts
+	tokenStore := SetupTestDB()
 
 	nodeKey, err := dnet.GenerateKeyPair()
 	if err != nil {
@@ -198,7 +171,7 @@ func (tg *TestGroup) Start() {
 }
 
 func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogePort int, dogenetClient *dogenet.DogeNetClient, dogeTestInstance *dogetest.DogeTest, tokenStore *store.TokenisationStore) (*service.TokenisationService, *config.Config) {
-	os.Remove("test" + strconv.Itoa(instanceId) + ".db")
+	// Remove old test files - no longer needed as we use unique names
 
 	mappedPort, err := dogeTestInstance.Container.MappedPort(context.Background(), nat.Port(strconv.Itoa(dogePort)+"/tcp"))
 	if err != nil {
@@ -207,7 +180,8 @@ func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogePo
 
 	feConfig := config.NewConfig()
 	feConfig.DogeHost = dogeTestInstance.Host
-	feConfig.DatabaseURL = "sqlite://test" + strconv.Itoa(instanceId) + ".db"
+	// Use the same tokenStore that was passed in, don't create a new DB URL
+	// feConfig.DatabaseURL is not needed since we're using the passed tokenStore
 	feConfig.DogePort = mappedPort.Port()
 	feConfig.DogeUser = "test"
 	feConfig.DogePassword = "test"
@@ -406,99 +380,102 @@ func StartDogenetInstance(ctx context.Context, feKey dnet.KeyPair, image string,
 	return dogenetClient, dogenetA, nil
 }
 
-// func WriteMintToCore(dogeTest *dogetest.DogeTest, addressBook *dogetest.AddressBook, mintResponse *rpc.CreateMintResponse) error {
-// 	unspent, err := dogeTest.Rpc.ListUnspent(addressBook.Addresses[0].Address)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+func WriteMintToCore(dogeTest *dogetest.DogeTest, addressBook *dogetest.AddressBook, mintResponse *rpc.CreateMintResponse) error {
+	unspent, err := dogeTest.Rpc.ListUnspent(addressBook.Addresses[0].Address)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// 	if len(unspent) == 0 {
-// 		return fmt.Errorf("no unspent outputs found")
-// 	}
+	if len(unspent) == 0 {
+		return fmt.Errorf("no unspent outputs found")
+	}
 
-// 	selectedUTXO := unspent[0]
+	selectedUTXO := unspent[0]
 
-// 	inputs := []map[string]interface{}{
-// 		{
-// 			"txid": selectedUTXO.TxID,
-// 			"vout": selectedUTXO.Vout,
-// 		},
-// 	}
+	inputs := []map[string]interface{}{
+		{
+			"txid": selectedUTXO.TxID,
+			"vout": selectedUTXO.Vout,
+		},
+	}
 
-// 	change := selectedUTXO.Amount - 0.5
+	change := selectedUTXO.Amount - 0.5
 
-// 	outputs := map[string]interface{}{
-// 		addressBook.Addresses[0].Address: change,
-// 		"data":                           mintResponse.EncodedTransactionBody,
-// 	}
+	envelope := protocol.NewMintTransactionEnvelope(mintResponse.Hash, protocol.ACTION_MINT)
+	encodedTransactionBody := envelope.Serialize()
 
-// 	createResp, err := dogeTest.Rpc.Request("createrawtransaction", []interface{}{inputs, outputs})
+	outputs := map[string]interface{}{
+		addressBook.Addresses[0].Address: change,
+		"data":                           hex.EncodeToString(encodedTransactionBody),
+	}
 
-// 	if err != nil {
-// 		log.Fatalf("Error creating raw transaction: %v", err)
-// 	}
+	createResp, err := dogeTest.Rpc.Request("createrawtransaction", []interface{}{inputs, outputs})
 
-// 	var rawTx string
+	if err != nil {
+		log.Fatalf("Error creating raw transaction: %v", err)
+	}
 
-// 	if err := json.Unmarshal(*createResp, &rawTx); err != nil {
-// 		log.Fatalf("Error parsing raw transaction: %v", err)
-// 	}
+	var rawTx string
 
-// 	// Step 3: Add OP_RETURN output to the transaction
-// 	rawTxBytes, err := hex.DecodeString(rawTx)
-// 	if err != nil {
-// 		log.Fatalf("Error decoding raw transaction hex: %v", err)
-// 	}
+	if err := json.Unmarshal(*createResp, &rawTx); err != nil {
+		log.Fatalf("Error parsing raw transaction: %v", err)
+	}
 
-// 	prevTxs := []map[string]interface{}{
-// 		{
+	// Step 3: Add OP_RETURN output to the transaction
+	rawTxBytes, err := hex.DecodeString(rawTx)
+	if err != nil {
+		log.Fatalf("Error decoding raw transaction hex: %v", err)
+	}
 
-// 			"txid":         selectedUTXO.TxID,
-// 			"vout":         selectedUTXO.Vout,
-// 			"scriptPubKey": selectedUTXO.ScriptPubKey,
-// 			"amount":       selectedUTXO.Amount,
-// 		},
-// 	}
+	prevTxs := []map[string]interface{}{
+		{
 
-// 	// Prepare privkeys (private keys for signing)
-// 	privkeys := []string{addressBook.Addresses[0].PrivateKey}
+			"txid":         selectedUTXO.TxID,
+			"vout":         selectedUTXO.Vout,
+			"scriptPubKey": selectedUTXO.ScriptPubKey,
+			"amount":       selectedUTXO.Amount,
+		},
+	}
 
-// 	signResp, err := dogeTest.Rpc.Request("signrawtransaction", []interface{}{hex.EncodeToString(rawTxBytes), prevTxs, privkeys})
-// 	if err != nil {
-// 		log.Fatalf("Error signing raw transaction: %v", err)
-// 	}
+	// Prepare privkeys (private keys for signing)
+	privkeys := []string{addressBook.Addresses[0].PrivateKey}
 
-// 	var signResult map[string]interface{}
-// 	if err := json.Unmarshal(*signResp, &signResult); err != nil {
-// 		log.Fatalf("Error parsing signed transaction: %v", err)
-// 	}
+	signResp, err := dogeTest.Rpc.Request("signrawtransaction", []interface{}{hex.EncodeToString(rawTxBytes), prevTxs, privkeys})
+	if err != nil {
+		log.Fatalf("Error signing raw transaction: %v", err)
+	}
 
-// 	signedTx, ok := signResult["hex"].(string)
-// 	if !ok {
-// 		log.Fatal("Error retrieving signed transaction hex.")
-// 	}
+	var signResult map[string]interface{}
+	if err := json.Unmarshal(*signResp, &signResult); err != nil {
+		log.Fatalf("Error parsing signed transaction: %v", err)
+	}
 
-// 	// Step 5: Broadcast the signed transaction
-// 	sendResp, err := dogeTest.Rpc.Request("sendrawtransaction", []interface{}{signedTx})
-// 	if err != nil {
-// 		log.Fatalf("Error broadcasting transaction: %v", err)
-// 	}
+	signedTx, ok := signResult["hex"].(string)
+	if !ok {
+		log.Fatal("Error retrieving signed transaction hex.")
+	}
 
-// 	var txID string
-// 	if err := json.Unmarshal(*sendResp, &txID); err != nil {
-// 		log.Fatalf("Error parsing transaction ID: %v", err)
-// 	}
+	// Step 5: Broadcast the signed transaction
+	sendResp, err := dogeTest.Rpc.Request("sendrawtransaction", []interface{}{signedTx})
+	if err != nil {
+		log.Fatalf("Error broadcasting transaction: %v", err)
+	}
 
-// 	fmt.Printf("Transaction sent successfully! TXID: %s\n", txID)
+	var txID string
+	if err := json.Unmarshal(*sendResp, &txID); err != nil {
+		log.Fatalf("Error parsing transaction ID: %v", err)
+	}
 
-// 	time.Sleep(2 * time.Second)
+	fmt.Printf("Transaction sent successfully! TXID: %s\n", txID)
 
-// 	blockies, err := dogeTest.ConfirmBlocks()
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+	time.Sleep(2 * time.Second)
 
-// 	fmt.Println("Blockies:", blockies)
+	blockies, err := dogeTest.ConfirmBlocks()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// 	return nil
-// }
+	fmt.Println("Blockies:", blockies)
+
+	return nil
+}

@@ -83,7 +83,7 @@ func SetupRpcTest(t *testing.T) (*store.TokenisationStore, *FakeGossipClient, *h
 
 	feClient := client.NewTokenisationClient(server.URL, privHex, pubHex)
 
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	return tokenisationStore, dogenetClient, mux, feClient
 }

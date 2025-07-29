@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 	"os/signal"
@@ -22,6 +23,10 @@ var testGroups []*support.TestGroup
 func TestMain(m *testing.M) {
 	// 🚀 Global setup
 	log.Println(">>> SETUP: Init resources")
+
+	if err := support.InitSharedPostgres(); err != nil {
+		panic(err)
+	}
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
@@ -46,7 +51,7 @@ func TestMain(m *testing.M) {
 
 	for _, testGroup := range testGroups {
 		log.Println("Starting test group", testGroup.Name)
-		testGroup.Start()
+		testGroup.Start(m)
 	}
 
 	log.Println("Test groups started")
@@ -101,38 +106,54 @@ func TestFractal(t *testing.T) {
 
 	feClient := client.NewTokenisationClient("http://"+feConfigA.RpcServerHost+":"+feConfigA.RpcServerPort, privHex, pubHex)
 
-	_, err = feClient.Mint(&rpc.CreateMintRequest{
+	mintRequestPayload := rpc.CreateMintRequestPayload{
+		Title:         "Test Mint",
+		FractionCount: 100,
+		Description:   "Test Description",
+		Tags:          []string{"test", "mint"},
+		Metadata: map[string]interface{}{
+			"test": "test",
+		},
+		Requirements:  map[string]interface{}{},
+		LockupOptions: map[string]interface{}{},
+		FeedURL:       "https://test.com",
+	}
+
+	mintRequest := &rpc.CreateMintRequest{
 		Address:   "testA0",
 		PublicKey: pubHex,
-		Payload: rpc.CreateMintRequestPayload{
-			Title:         "Test Mint",
-			FractionCount: 100,
-			Description:   "Test Description",
-			Tags:          []string{"test", "mint"},
-			Metadata: map[string]interface{}{
-				"test": "test",
-			},
-			Requirements:  map[string]interface{}{},
-			LockupOptions: map[string]interface{}{},
-			FeedURL:       "https://test.com",
-		},
-	})
+		Payload:   mintRequestPayload,
+	}
+
+	requestPayload, err := json.Marshal(mintRequestPayload)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	signature, err := doge.SignPayload(requestPayload, privHex)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mintRequest.Signature = signature
+
+	mintResponse, err := feClient.Mint(mintRequest)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Write mint to core (OG Node)
-	// err = support.WriteMintToCore(testGroups[0].DogeTest, testGroups[0].AddressBook, &mintResponse)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	err = support.WriteMintToCore(testGroups[0].DogeTest, testGroups[0].AddressBook, &mintResponse)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// // Write mint to core (2nd node)
-	// err = support.WriteMintToCore(testGroups[1].DogeTest, testGroups[1].AddressBook, &mintResponse)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	// Write mint to core (2nd node)
+	err = support.WriteMintToCore(testGroups[1].DogeTest, testGroups[1].AddressBook, &mintResponse)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// OG Node
 	for {

@@ -10,7 +10,7 @@ import (
 )
 
 func TestSaveAndGetInvoices(t *testing.T) {
-	tokenisationStore := support.SetupTestDB(t)
+	tokenisationStore := support.SetupTestDB()
 
 	invoice := store.Invoice{
 		Id:                     "myId",

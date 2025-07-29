@@ -17,7 +17,7 @@ import (
 )
 
 func TestHealth(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB(t)
+	tokenisationStore := test_support.SetupTestDB()
 
 	tokenisationStore.UpsertChainPosition(50, "0000000000000000000000000000000000000000000000000000000000000000", false)
 

@@ -6,3 +6,4 @@ test.toml
 config.toml
 coverage.txt
 bin
+coverage

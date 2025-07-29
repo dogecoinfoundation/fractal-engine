@@ -29,20 +29,7 @@ func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, 
 		return nil, err
 	}
 
-	if u.Scheme == "duckdb" {
-		var url string
-		if u.Host == "" {
-			url = u.Path
-		} else {
-			url = u.Host
-		}
-
-		duckdb, err := sql.Open("duckdb", url)
-		if err != nil {
-			return nil, err
-		}
-		return &TokenisationStore{DB: duckdb, backend: "duckdb", cfg: cfg}, nil
-	} else if u.Scheme == "memory" {
+	if u.Scheme == "memory" {
 		sqlite, err := sql.Open("sqlite3", ":memory:")
 		if err != nil {
 			return nil, err
@@ -69,9 +56,6 @@ func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, 
 			return nil, err
 		}
 
-		if err != nil {
-			return nil, err
-		}
 		return &TokenisationStore{DB: postgres, backend: "postgres", cfg: cfg}, nil
 	}
 
