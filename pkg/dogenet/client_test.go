@@ -1,4 +1,4 @@
-package test_dogenet
+package dogenet_test
 
 import (
 	"bufio"
@@ -41,7 +41,7 @@ func TestDogeNetClientGetNodes(t *testing.T) {
 			Identity: "testnode1",
 		},
 		{
-			Key:      "testkey2", 
+			Key:      "testkey2",
 			Addr:     "127.0.0.1:8081",
 			Identity: "testnode2",
 		},
@@ -118,7 +118,7 @@ func TestDogeNetClientAddPeerSuccess(t *testing.T) {
 		// Read and verify request body
 		body, err := io.ReadAll(r.Body)
 		assert.NilError(t, err)
-		
+
 		err = json.Unmarshal(body, &receivedPeer)
 		assert.NilError(t, err)
 
@@ -275,7 +275,7 @@ func TestDogeNetClientStartWithConn(t *testing.T) {
 	if err == nil {
 		// Send response back
 		clientConn.Write(br_buf[:])
-		
+
 		// Wait for status
 		select {
 		case status := <-statusChan:
@@ -341,7 +341,7 @@ func TestConvertToStructPBMap(t *testing.T) {
 	// This tests the helper function indirectly by testing the package
 	// We can't directly test it since it's not exported, but we can verify
 	// the DogeNetClient uses it correctly by testing the overall functionality
-	
+
 	tokenStore := test_support.SetupTestDB()
 	cfg := config.NewConfig()
 	keyPair, err := dnet.GenerateKeyPair()
@@ -349,7 +349,7 @@ func TestConvertToStructPBMap(t *testing.T) {
 	cfg.DogeNetKeyPair = keyPair
 
 	client := dogenet.NewDogeNetClient(cfg, tokenStore)
-	
+
 	// Just verify the client was created successfully - this indirectly tests
 	// that all helper functions work correctly
 	assert.Assert(t, client != nil, "Client creation should succeed")
@@ -368,11 +368,11 @@ func TestDogeNetClientFields(t *testing.T) {
 	assert.Assert(t, client.Messages != nil, "Messages channel should be set")
 	assert.Assert(t, !client.Stopping, "Stopping should be false initially")
 	assert.Assert(t, !client.Running, "Running should be false initially")
-	
+
 	// Test field manipulation
 	client.Stopping = true
 	assert.Assert(t, client.Stopping, "Should be able to set Stopping to true")
-	
+
 	client.Running = true
 	assert.Assert(t, client.Running, "Should be able to set Running to true")
 }

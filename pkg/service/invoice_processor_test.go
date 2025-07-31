@@ -1,4 +1,4 @@
-package test_service
+package service_test
 
 import (
 	"database/sql"
@@ -105,7 +105,7 @@ func TestInvoiceProcessorProcessSuccess(t *testing.T) {
 	// Verify pending token balance was created
 	tx, _ := tokenStore.DB.Begin()
 	defer tx.Rollback()
-	
+
 	pendingBalance, err := tokenStore.GetPendingTokenBalance(invoiceHash, mintHash, tx)
 	assert.NilError(t, err)
 	assert.Equal(t, int(quantity), pendingBalance.Quantity)
@@ -230,7 +230,7 @@ func TestInvoiceProcessorProcessInsufficientTokenBalance(t *testing.T) {
 	// Verify no pending token balance was created
 	tx, _ := tokenStore.DB.Begin()
 	defer tx.Rollback()
-	
+
 	_, err = tokenStore.GetPendingTokenBalance(invoiceHash, mintHash, tx)
 	assert.Assert(t, err != nil, "No pending balance should be created")
 
@@ -305,7 +305,7 @@ func TestInvoiceProcessorProcessExistingPendingBalance(t *testing.T) {
 	// Verify pending token balance still exists with original values
 	tx, _ := tokenStore.DB.Begin()
 	defer tx.Rollback()
-	
+
 	pendingBalance, err := tokenStore.GetPendingTokenBalance(invoiceHash, mintHash, tx)
 	assert.NilError(t, err)
 	assert.Equal(t, int(quantity), pendingBalance.Quantity)
@@ -378,7 +378,7 @@ func TestInvoiceProcessorProcessPartialTokenBalance(t *testing.T) {
 	// Verify no new pending token balance was created
 	tx, _ := tokenStore.DB.Begin()
 	defer tx.Rollback()
-	
+
 	_, err = tokenStore.GetPendingTokenBalance(invoiceHash, mintHash, tx)
 	assert.Assert(t, err != nil, "No new pending balance should be created")
 
@@ -456,7 +456,7 @@ func TestInvoiceProcessorEnsurePendingTokenBalanceSuccess(t *testing.T) {
 	// Verify pending token balance was created
 	tx, _ := tokenStore.DB.Begin()
 	defer tx.Rollback()
-	
+
 	pendingBalance, err := tokenStore.GetPendingTokenBalance(invoiceHash, mintHash, tx)
 	assert.NilError(t, err)
 	assert.Equal(t, int(quantity), pendingBalance.Quantity)

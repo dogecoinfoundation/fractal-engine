@@ -1,4 +1,4 @@
-package test_doge
+package doge_test
 
 import (
 	"encoding/hex"

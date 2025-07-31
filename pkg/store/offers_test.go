@@ -1,4 +1,4 @@
-package store
+package store_test
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ import (
 
 func TestOfferSaveAndGet(t *testing.T) {
 	tokenisationStore, err := store.NewTokenisationStore("memory://test.db", config.Config{
-		MigrationsPath: "../../../../db/migrations",
+		MigrationsPath: "../../db/migrations",
 	})
 	if err != nil {
 		panic(err)
