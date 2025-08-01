@@ -11,6 +11,9 @@ test:
 coverage:
 	go tool cover -func=coverage.txt
 
+coverage-html:
+	go tool cover -html=coverage.txt
+
 lint:
 	golangci-lint run --fix
 	buf lint
