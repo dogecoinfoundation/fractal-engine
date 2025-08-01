@@ -6,7 +6,13 @@ binaries:
 
 GO_TEST_EXTRA_FLAGS ?=
 test:
-	env ENV=test TZ=UTC go test ${GO_TEST_EXTRA_FLAGS} -shuffle=on -race -covermode=atomic -coverprofile=coverage.txt -count=1 -timeout=30m  ./...
+	env ENV=test TZ=UTC go test ${GO_TEST_EXTRA_FLAGS} -p 1 -covermode=count -coverprofile=coverage.txt -timeout=30m  ./...
+
+coverage:
+	go tool cover -func=coverage.txt
+
+coverage-html:
+	go tool cover -html=coverage.txt
 
 lint:
 	golangci-lint run --fix

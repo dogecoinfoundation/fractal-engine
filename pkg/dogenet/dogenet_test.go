@@ -1,4 +1,4 @@
-package test_dogenet
+package dogenet_test
 
 import (
 	"bufio"
