@@ -23,17 +23,24 @@ func (s *TokenisationStore) UpsertTokenBalance(address, mintHash string, quantit
 }
 
 func (s *TokenisationStore) UpsertPendingTokenBalance(invoiceHash, mintHash string, quantity int, onchainTransactionId string, ownerAddress string) error {
+	return s.UpsertPendingTokenBalanceWithTx(invoiceHash, mintHash, quantity, onchainTransactionId, ownerAddress, nil)
+}
+
+func (s *TokenisationStore) UpsertPendingTokenBalanceWithTx(invoiceHash, mintHash string, quantity int, onchainTransactionId string, ownerAddress string, tx *sql.Tx) error {
 	log.Println("Upserting pending token balance:", invoiceHash, mintHash, quantity, onchainTransactionId, ownerAddress)
 
-	_, err := s.DB.Exec(`
+	query := `
 	INSERT INTO pending_token_balances (invoice_hash, mint_hash, quantity, onchain_transaction_id, created_at, owner_address)
 	VALUES ($1, $2, $3, $4, $5, $6)
 	ON CONFLICT (invoice_hash, mint_hash)
 	DO UPDATE SET quantity = $3
-	`, invoiceHash, mintHash, quantity, onchainTransactionId, time.Now(), ownerAddress)
+	`
 
-	if err != nil {
-		return err
+	var err error
+	if tx != nil {
+		_, err = tx.Exec(query, invoiceHash, mintHash, quantity, onchainTransactionId, time.Now(), ownerAddress)
+	} else {
+		_, err = s.DB.Exec(query, invoiceHash, mintHash, quantity, onchainTransactionId, time.Now(), ownerAddress)
 	}
 
 	return err

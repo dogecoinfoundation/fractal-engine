@@ -118,6 +118,10 @@ func (s *TokenisationStore) GetUnconfirmedMints(offset int, limit int) ([]Mint, 
 }
 
 func (s *TokenisationStore) SaveMint(mint *MintWithoutID, ownerAddress string) (string, error) {
+	return s.SaveMintWithTx(mint, ownerAddress, nil)
+}
+
+func (s *TokenisationStore) SaveMintWithTx(mint *MintWithoutID, ownerAddress string, tx *sql.Tx) (string, error) {
 	fmt.Println("Saving mint:", mint.Hash)
 
 	id := uuid.New().String()
@@ -142,10 +146,16 @@ func (s *TokenisationStore) SaveMint(mint *MintWithoutID, ownerAddress string) (
 		return "", err
 	}
 
-	_, err = s.DB.Exec(`
+	query := `
 	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url, owner_address, public_key, block_height, transaction_hash)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, ownerAddress, mint.PublicKey, mint.BlockHeight, mint.TransactionHash)
+	`
+	
+	if tx != nil {
+		_, err = tx.Exec(query, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, ownerAddress, mint.PublicKey, mint.BlockHeight, mint.TransactionHash)
+	} else {
+		_, err = s.DB.Exec(query, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, ownerAddress, mint.PublicKey, mint.BlockHeight, mint.TransactionHash)
+	}
 
 	return id, err
 }
@@ -238,7 +248,14 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 		return err
 	}
 
-	rows, err := s.DB.Query("SELECT id, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, public_key FROM unconfirmed_mints WHERE hash = $1", onchainMessage.Hash)
+	// Start transaction for atomic operations
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.Query("SELECT id, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, public_key FROM unconfirmed_mints WHERE hash = $1", onchainMessage.Hash)
 	if err != nil {
 		return err
 	}
@@ -260,7 +277,8 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 
 	rows.Close()
 
-	id, err := s.SaveMint(&MintWithoutID{
+	// Use transaction-aware SaveMint
+	id, err := s.SaveMintWithTx(&MintWithoutID{
 		Hash:            unconfirmedMint.Hash,
 		Title:           unconfirmedMint.Title,
 		FractionCount:   unconfirmedMint.FractionCount,
@@ -275,29 +293,36 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 		FeedURL:         unconfirmedMint.FeedURL,
 		PublicKey:       unconfirmedMint.PublicKey,
 		OwnerAddress:    onchainTransaction.Address,
-	}, onchainTransaction.Address)
+	}, onchainTransaction.Address, tx)
 
 	if err != nil {
 		return err
 	}
 
 	log.Println("Saved mint:", id)
-	err = s.UpsertTokenBalance(onchainTransaction.Address, unconfirmedMint.Hash, unconfirmedMint.FractionCount)
-
+	
+	// Use transaction-aware UpsertTokenBalance
+	err = s.UpsertTokenBalanceWithTransaction(onchainTransaction.Address, unconfirmedMint.Hash, unconfirmedMint.FractionCount, tx)
 	if err != nil {
 		log.Println("error upserting token balance", err)
 		return err
 	}
 
-	_, err = s.DB.Exec("DELETE FROM unconfirmed_mints WHERE id = $1", unconfirmedMint.Id)
+	_, err = tx.Exec("DELETE FROM unconfirmed_mints WHERE id = $1", unconfirmedMint.Id)
 	if err != nil {
 		log.Println("error deleting unconfirmed mint", err)
 		return err
 	}
 
-	_, err = s.DB.Exec("DELETE FROM onchain_transactions WHERE id = $1", onchainTransaction.Id)
+	_, err = tx.Exec("DELETE FROM onchain_transactions WHERE id = $1", onchainTransaction.Id)
 	if err != nil {
 		log.Println("error deleting onchain transaction", err)
+		return err
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
 		return err
 	}
 
