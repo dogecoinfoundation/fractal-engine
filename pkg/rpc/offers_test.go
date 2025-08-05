@@ -3,6 +3,7 @@ package rpc_test
 import (
 	"testing"
 
+	"dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"gotest.tools/assert"
@@ -12,10 +13,14 @@ func TestSellOffers(t *testing.T) {
 	tokenisationStore, dogenetClient, mux, feClient := SetupRpcTest(t)
 	rpc.HandleOfferRoutes(tokenisationStore, dogenetClient, mux, config.NewConfig())
 
+	offererAddress := support.GenerateDogecoinAddress(true)
+
+	myminthash := support.GenerateRandomHash()
+
 	offer := rpc.CreateSellOfferRequest{
 		Payload: rpc.CreateSellOfferRequestPayload{
-			OffererAddress: "0x122122121212121",
-			MintHash:       "myminthash",
+			OffererAddress: offererAddress,
+			MintHash:       myminthash,
 			Quantity:       10,
 			Price:          100,
 		},
@@ -26,7 +31,7 @@ func TestSellOffers(t *testing.T) {
 		t.Fatalf("Failed to create offer: %v", err)
 	}
 
-	offers, err := tokenisationStore.GetSellOffers(0, 10, "myminthash", "0x122122121212121")
+	offers, err := tokenisationStore.GetSellOffers(0, 10, myminthash, offererAddress)
 	if err != nil {
 		t.Fatalf("Failed to get offers: %v", err)
 	}
@@ -56,7 +61,7 @@ func TestSellOffers(t *testing.T) {
 		t.Fatalf("Failed to delete offer: %v", err)
 	}
 
-	offers, err = tokenisationStore.GetSellOffers(0, 10, "myminthash", "0x122122121212121")
+	offers, err = tokenisationStore.GetSellOffers(0, 10, myminthash, offererAddress)
 	if err != nil {
 		t.Fatalf("Failed to get offers: %v", err)
 	}
@@ -69,11 +74,16 @@ func TestBuyOffers(t *testing.T) {
 	tokenisationStore, dogenetClient, mux, feClient := SetupRpcTest(t)
 	rpc.HandleOfferRoutes(tokenisationStore, dogenetClient, mux, config.NewConfig())
 
+	offererAddress := support.GenerateDogecoinAddress(true)
+	sellerAddress := support.GenerateDogecoinAddress(true)
+
+	myminthash := support.GenerateRandomHash()
+
 	offer := rpc.CreateBuyOfferRequest{
 		Payload: rpc.CreateBuyOfferRequestPayload{
-			OffererAddress: "0x122122121212121",
-			SellerAddress:  "0x122122121212121",
-			MintHash:       "myminthash",
+			OffererAddress: offererAddress,
+			SellerAddress:  sellerAddress,
+			MintHash:       myminthash,
 			Quantity:       10,
 			Price:          100,
 		},
@@ -84,7 +94,7 @@ func TestBuyOffers(t *testing.T) {
 		t.Fatalf("Failed to create offer: %v", err)
 	}
 
-	offers, err := tokenisationStore.GetBuyOffersByMintAndSellerAddress(0, 10, "myminthash", "0x122122121212121")
+	offers, err := tokenisationStore.GetBuyOffersByMintAndSellerAddress(0, 10, myminthash, sellerAddress)
 	if err != nil {
 		t.Fatalf("Failed to get offers: %v", err)
 	}
@@ -114,7 +124,7 @@ func TestBuyOffers(t *testing.T) {
 		t.Fatalf("Failed to delete offer: %v", err)
 	}
 
-	offers, err = tokenisationStore.GetBuyOffersByMintAndSellerAddress(0, 10, "myminthash", "0x122122121212121")
+	offers, err = tokenisationStore.GetBuyOffersByMintAndSellerAddress(0, 10, myminthash, sellerAddress)
 	if err != nil {
 		t.Fatalf("Failed to get offers: %v", err)
 	}

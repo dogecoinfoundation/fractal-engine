@@ -7,6 +7,7 @@ import (
 
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/validation"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -31,6 +32,27 @@ func (p *InvoiceProcessor) Process(tx store.OnChainTransaction) error {
 	err := proto.Unmarshal(tx.ActionData, &invoice)
 	if err != nil {
 		log.Println("Error unmarshalling invoice:", err)
+		return err
+	}
+	
+	// Validate protobuf content
+	if err := validation.ValidateProtobufAddress(invoice.SellOfferAddress); err != nil {
+		log.Printf("Invalid sell offer address in protobuf: %v", err)
+		return err
+	}
+	
+	if err := validation.ValidateProtobufHash(invoice.InvoiceHash); err != nil {
+		log.Printf("Invalid invoice hash in protobuf: %v", err)
+		return err
+	}
+	
+	if err := validation.ValidateProtobufHash(invoice.MintHash); err != nil {
+		log.Printf("Invalid mint hash in protobuf: %v", err)
+		return err
+	}
+	
+	if err := validation.ValidateProtobufQuantity(invoice.Quantity); err != nil {
+		log.Printf("Invalid quantity in protobuf: %v", err)
 		return err
 	}
 
@@ -94,6 +116,17 @@ func (p *InvoiceProcessor) EnsurePendingTokenBalance(tx store.OnChainTransaction
 	err := proto.Unmarshal(tx.ActionData, &invoice)
 	if err != nil {
 		log.Println("Error unmarshalling invoice:", err)
+		return false, err
+	}
+	
+	// Validate protobuf content (basic validation since full validation is done in Process)
+	if err := validation.ValidateProtobufHash(invoice.InvoiceHash); err != nil {
+		log.Printf("Invalid invoice hash in protobuf: %v", err)
+		return false, err
+	}
+	
+	if err := validation.ValidateProtobufHash(invoice.MintHash); err != nil {
+		log.Printf("Invalid mint hash in protobuf: %v", err)
 		return false, err
 	}
 

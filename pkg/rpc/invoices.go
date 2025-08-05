@@ -9,8 +9,8 @@ import (
 
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
-
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/validation"
 )
 
 type InvoiceRoutes struct {
@@ -51,26 +51,41 @@ func (ir *InvoiceRoutes) handleInvoices(w http.ResponseWriter, r *http.Request) 
 // @Router			/invoices [get]
 
 func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
-	limitStr := r.URL.Query().Get("limit")
+	limitStr := validation.SanitizeQueryParam(r.URL.Query().Get("limit"))
 	limit := 100
 
 	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l < limit {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= limit {
 			limit = l
 		}
 	}
 
-	pageStr := r.URL.Query().Get("page")
+	pageStr := validation.SanitizeQueryParam(r.URL.Query().Get("page"))
 	page := 1
 
 	if pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 && p <= 1000 { // Reasonable page limit
 			page = p
 		}
 	}
 
-	mintHash := r.URL.Query().Get("mint_hash")
-	offererAddress := r.URL.Query().Get("offerer_address")
+	mintHash := validation.SanitizeQueryParam(r.URL.Query().Get("mint_hash"))
+	offererAddress := validation.SanitizeQueryParam(r.URL.Query().Get("offerer_address"))
+	
+	// Validate parameters if provided
+	if mintHash != "" {
+		if err := validation.ValidateHash(mintHash); err != nil {
+			http.Error(w, "Invalid mint_hash format", http.StatusBadRequest)
+			return
+		}
+	}
+	
+	if offererAddress != "" {
+		if err := validation.ValidateAddress(offererAddress); err != nil {
+			http.Error(w, "Invalid offerer_address format", http.StatusBadRequest)
+			return
+		}
+	}
 
 	start := (page - 1) * limit
 	end := start + limit

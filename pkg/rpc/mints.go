@@ -13,6 +13,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/validation"
 	"github.com/gorilla/mux"
 )
 
@@ -52,11 +53,17 @@ func (mr *MintRoutes) handleMint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mr *MintRoutes) getMint(w http.ResponseWriter, r *http.Request) {
-	hash := mux.Vars(r)["hash"]
+	hash := validation.SanitizeQueryParam(mux.Vars(r)["hash"])
+	
+	// Validate hash format
+	if err := validation.ValidateHash(hash); err != nil {
+		http.Error(w, "Invalid hash format", http.StatusBadRequest)
+		return
+	}
 
 	mint, err := mr.store.GetMintByHash(hash)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "Mint not found", http.StatusNotFound)
 		return
 	}
 
@@ -79,26 +86,34 @@ func (mr *MintRoutes) getMint(w http.ResponseWriter, r *http.Request) {
 // @Failure		500		{object}	string
 // @Router			/mints [get]
 func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
-	limitStr := r.URL.Query().Get("limit")
+	limitStr := validation.SanitizeQueryParam(r.URL.Query().Get("limit"))
 	limit := 100
 
 	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l < limit {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= limit {
 			limit = l
 		}
 	}
 
-	pageStr := r.URL.Query().Get("page")
+	pageStr := validation.SanitizeQueryParam(r.URL.Query().Get("page"))
 	page := 1
 
 	if pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 && p <= 1000 { // Reasonable page limit
 			page = p
 		}
 	}
 
-	publicKey := r.URL.Query().Get("public_key")
-	includeUnconfirmed := r.URL.Query().Get("include_unconfirmed") == "true"
+	publicKey := validation.SanitizeQueryParam(r.URL.Query().Get("public_key"))
+	includeUnconfirmed := validation.SanitizeQueryParam(r.URL.Query().Get("include_unconfirmed")) == "true"
+	
+	// Validate public key format if provided
+	if publicKey != "" {
+		if err := validation.ValidatePublicKey(publicKey); err != nil {
+			http.Error(w, "Invalid public key format", http.StatusBadRequest)
+			return
+		}
+	}
 
 	start := (page - 1) * limit
 	end := start + limit

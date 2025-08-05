@@ -34,8 +34,8 @@ func main() {
 
 	flag.StringVar(&rpcServerHost, "rpc-server-host", "0.0.0.0", "RPC Server Host")
 	flag.StringVar(&rpcServerPort, "rpc-server-port", "8891", "RPC Server Port")
-	flag.StringVar(&dogeNetNetwork, "doge-net-network", "unix", "DogeNet Network")
-	flag.StringVar(&dogeNetAddress, "doge-net-address", "/tmp/dogenet.sock", "DogeNet Address")
+	flag.StringVar(&dogeNetNetwork, "doge-net-network", "tcp", "DogeNet Network")
+	flag.StringVar(&dogeNetAddress, "doge-net-address", "0.0.0.0:8086", "DogeNet Address")
 	flag.StringVar(&dogeNetWebAddress, "doge-net-web-address", "0.0.0.0:8085", "DogeNet Web Address")
 	flag.StringVar(&dogeScheme, "doge-scheme", "http", "Doge Scheme")
 	flag.StringVar(&dogeHost, "doge-host", "0.0.0.0", "Doge Host")

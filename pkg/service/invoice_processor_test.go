@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"dogecoin.org/fractal-engine/internal/test/support"
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/service"
@@ -35,9 +36,9 @@ func TestInvoiceProcessorProcessSuccess(t *testing.T) {
 	processor := service.NewInvoiceProcessor(tokenStore)
 
 	// Setup: Create mint and token balance for seller
-	mintHash := "testMint123"
-	sellerAddress := "seller123"
-	invoiceHash := "invoice123"
+	mintHash := support.GenerateRandomHash()
+	sellerAddress := support.GenerateDogecoinAddress(true)
+	invoiceHash := support.GenerateRandomHash()
 	quantity := int32(50)
 
 	// Create and match mint to establish token balance
@@ -71,8 +72,8 @@ func TestInvoiceProcessorProcessSuccess(t *testing.T) {
 	_, err = tokenStore.SaveUnconfirmedInvoice(&store.UnconfirmedInvoice{
 		Hash:                   invoiceHash,
 		PaymentAddress:         sellerAddress,
-		BuyOfferOffererAddress: "buyer123",
-		BuyOfferHash:           "buyOffer123",
+		BuyOfferOffererAddress: support.GenerateDogecoinAddress(true),
+		BuyOfferHash:           support.GenerateRandomHash(),
 		BuyOfferMintHash:       mintHash,
 		BuyOfferQuantity:       int(quantity),
 		BuyOfferPrice:          100,
@@ -117,10 +118,10 @@ func TestInvoiceProcessorProcessInvoiceNotFromSeller(t *testing.T) {
 	tokenStore := test_support.SetupTestDB()
 	processor := service.NewInvoiceProcessor(tokenStore)
 
-	mintHash := "testMint123"
-	sellerAddress := "seller123"
-	invoiceHash := "invoice123"
-	fakeSellerAddress := "fakeSeller123"
+	mintHash := support.GenerateRandomHash()
+	sellerAddress := support.GenerateDogecoinAddress(true)
+	invoiceHash := support.GenerateRandomHash()
+	fakeSellerAddress := support.GenerateDogecoinAddress(true)
 	quantity := int32(50)
 
 	// Create invoice transaction from wrong address
@@ -160,7 +161,7 @@ func TestInvoiceProcessorProcessInvalidProtobuf(t *testing.T) {
 		TxHash:     "invalidTxHash",
 		ActionType: protocol.ACTION_INVOICE,
 		ActionData: []byte("invalid protobuf data"),
-		Address:    "seller123",
+		Address:    support.GenerateDogecoinAddress(true),
 		Value:      50.0,
 	}
 
@@ -175,9 +176,9 @@ func TestInvoiceProcessorProcessInsufficientTokenBalance(t *testing.T) {
 	processor := service.NewInvoiceProcessor(tokenStore)
 
 	// Setup: Create mint with small token balance
-	mintHash := "testMint123"
-	sellerAddress := "seller123"
-	invoiceHash := "invoice123"
+	mintHash := support.GenerateRandomHash()
+	sellerAddress := support.GenerateDogecoinAddress(true)
+	invoiceHash := support.GenerateRandomHash()
 	quantity := int32(150) // More than available balance
 
 	// Create and match mint to establish small token balance (100 tokens)
@@ -246,9 +247,9 @@ func TestInvoiceProcessorProcessExistingPendingBalance(t *testing.T) {
 	processor := service.NewInvoiceProcessor(tokenStore)
 
 	// Setup: Create mint and token balance
-	mintHash := "testMint123"
-	sellerAddress := "seller123"
-	invoiceHash := "invoice123"
+	mintHash := support.GenerateRandomHash()
+	sellerAddress := support.GenerateDogecoinAddress(true)
+	invoiceHash := support.GenerateRandomHash()
 	quantity := int32(50)
 
 	// Create and match mint
@@ -318,9 +319,9 @@ func TestInvoiceProcessorProcessPartialTokenBalance(t *testing.T) {
 	processor := service.NewInvoiceProcessor(tokenStore)
 
 	// Setup: Create mint and use some tokens in existing pending balance
-	mintHash := "testMint123"
-	sellerAddress := "seller123"
-	invoiceHash := "invoice123"
+	mintHash := support.GenerateRandomHash()
+	sellerAddress := support.GenerateDogecoinAddress(true)
+	invoiceHash := support.GenerateRandomHash()
 	existingInvoiceHash := "existingInvoice123"
 	quantity := int32(60) // Will exceed available balance after existing pending
 
@@ -399,9 +400,9 @@ func TestInvoiceProcessorEnsurePendingTokenBalanceSuccess(t *testing.T) {
 	processor := service.NewInvoiceProcessor(tokenStore)
 
 	// Setup: Create mint and token balance
-	mintHash := "testMint123"
-	sellerAddress := "seller123"
-	invoiceHash := "invoice123"
+	mintHash := support.GenerateRandomHash()
+	sellerAddress := support.GenerateDogecoinAddress(true)
+	invoiceHash := support.GenerateRandomHash()
 	quantity := int32(50)
 
 	// Create and match mint
@@ -466,9 +467,9 @@ func TestInvoiceProcessorEnsurePendingTokenBalanceInsufficientBalance(t *testing
 	tokenStore := test_support.SetupTestDB()
 	processor := service.NewInvoiceProcessor(tokenStore)
 
-	mintHash := "testMint123"
-	sellerAddress := "seller123"
-	invoiceHash := "invoice123"
+	mintHash := support.GenerateRandomHash()
+	sellerAddress := support.GenerateDogecoinAddress(true)
+	invoiceHash := support.GenerateRandomHash()
 	quantity := int32(150) // More than any existing balance
 
 	// Create invoice transaction (no token balance setup)
