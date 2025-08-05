@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"dogecoin.org/fractal-engine/internal/test/support"
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/service"
@@ -28,7 +29,7 @@ func TestProcessMintTransactionMatched(t *testing.T) {
 	processor := service.NewFractalEngineProcessor(tokenStore)
 
 	// Create a mint that will be matched
-	mintHash := "mint123"
+	mintHash := support.GenerateRandomHash()
 	mintMsg := &protocol.OnChainMintMessage{
 		Hash: mintHash,
 	}
@@ -86,7 +87,7 @@ func TestProcessMintTransactionNotMatched(t *testing.T) {
 	processor := service.NewFractalEngineProcessor(tokenStore)
 
 	// Create an on-chain mint transaction without unconfirmed mint
-	mintHash := "mint456"
+	mintHash := support.GenerateRandomHash()
 	mintMsg := &protocol.OnChainMintMessage{
 		Hash: mintHash,
 	}
@@ -117,10 +118,12 @@ func TestProcessMintTransactionNotMatched(t *testing.T) {
 func TestProcessPaymentTransaction(t *testing.T) {
 	tokenStore := test_support.SetupTestDB()
 	processor := service.NewFractalEngineProcessor(tokenStore)
+	buyerAddress := support.GenerateDogecoinAddress(true)
+	sellerAddress := support.GenerateDogecoinAddress(true)
 
 	// Setup: Create a mint and invoice first
-	mintHash := "mint789"
-	invoiceHash := "invoice123"
+	mintHash := support.GenerateRandomHash()
+	invoiceHash := support.GenerateRandomHash()
 
 	// Create unconfirmed mint
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
@@ -141,7 +144,7 @@ func TestProcessPaymentTransaction(t *testing.T) {
 	// Create and process mint transaction
 	mintMsg := &protocol.OnChainMintMessage{Hash: mintHash}
 	encodedMintMsg, _ := proto.Marshal(mintMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txMint", 1, 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMintMsg, "sellerAddress", 100)
+	_, err = tokenStore.SaveOnChainTransaction("txMint", 1, 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMintMsg, sellerAddress, 100)
 	if err != nil {
 		t.Fatalf("Failed to save mint transaction: %v", err)
 	}
@@ -150,14 +153,14 @@ func TestProcessPaymentTransaction(t *testing.T) {
 	// Create unconfirmed invoice
 	_, err = tokenStore.SaveUnconfirmedInvoice(&store.UnconfirmedInvoice{
 		Hash:                   invoiceHash,
-		PaymentAddress:         "sellerAddress",
-		BuyOfferOffererAddress: "buyerAddress",
-		BuyOfferHash:           "buyOffer123",
+		PaymentAddress:         sellerAddress,
+		BuyOfferOffererAddress: buyerAddress,
+		BuyOfferHash:           support.GenerateRandomHash(),
 		BuyOfferMintHash:       mintHash,
 		BuyOfferQuantity:       50,
 		BuyOfferPrice:          100,
 		BuyOfferValue:          50,
-		SellOfferAddress:       "sellerAddress",
+		SellOfferAddress:       sellerAddress,
 	})
 	if err != nil {
 		t.Fatalf("Failed to save unconfirmed invoice: %v", err)
@@ -165,13 +168,13 @@ func TestProcessPaymentTransaction(t *testing.T) {
 
 	// Create and process invoice transaction
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: "sellerAddress",
+		SellOfferAddress: sellerAddress,
 		InvoiceHash:      invoiceHash,
 		MintHash:         mintHash,
 		Quantity:         50,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, "sellerAddress", 50)
+	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, 50)
 	if err != nil {
 		t.Fatalf("Failed to save invoice transaction: %v", err)
 	}
@@ -182,7 +185,7 @@ func TestProcessPaymentTransaction(t *testing.T) {
 		Hash: invoiceHash,
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txPayment", 3, 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, "buyerAddress", 50)
+	_, err = tokenStore.SaveOnChainTransaction("txPayment", 3, 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, 50)
 	if err != nil {
 		t.Fatalf("Failed to save payment transaction: %v", err)
 	}
@@ -194,7 +197,7 @@ func TestProcessPaymentTransaction(t *testing.T) {
 	}
 
 	// Verify buyer received tokens
-	buyerBalances, err := tokenStore.GetTokenBalances("buyerAddress", mintHash)
+	buyerBalances, err := tokenStore.GetTokenBalances(buyerAddress, mintHash)
 	if err != nil {
 		t.Fatalf("Failed to get buyer token balances: %v", err)
 	}
@@ -213,7 +216,8 @@ func TestProcessInvoiceTransaction(t *testing.T) {
 	processor := service.NewFractalEngineProcessor(tokenStore)
 
 	// Setup: Create a mint first
-	mintHash := "mintABC"
+	mintHash := support.GenerateRandomHash()
+	ownerAddress := support.GenerateDogecoinAddress(true)
 
 	// Create unconfirmed mint
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
@@ -234,22 +238,22 @@ func TestProcessInvoiceTransaction(t *testing.T) {
 	// Create and process mint transaction
 	mintMsg := &protocol.OnChainMintMessage{Hash: mintHash}
 	encodedMintMsg, _ := proto.Marshal(mintMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txMint", 1, 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMintMsg, "sellerAddress", 100)
+	_, err = tokenStore.SaveOnChainTransaction("txMint", 1, 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMintMsg, ownerAddress, 100)
 	if err != nil {
 		t.Fatalf("Failed to save mint transaction: %v", err)
 	}
 	processor.Process()
 
 	// Create invoice transaction
-	invoiceHash := "invoiceXYZ"
+	invoiceHash := support.GenerateRandomHash()
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: "sellerAddress",
+		SellOfferAddress: ownerAddress,
 		InvoiceHash:      invoiceHash,
 		MintHash:         mintHash,
 		Quantity:         30,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, "sellerAddress", 30)
+	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, ownerAddress, 30)
 	if err != nil {
 		t.Fatalf("Failed to save invoice transaction: %v", err)
 	}

@@ -372,9 +372,12 @@ func TestInvoiceMessage(t *testing.T) {
 		assert.Error(t, err, "failed to generate dogecoin keypair")
 	}
 
+	paymentAddress := support.GenerateDogecoinAddress(true)
+	buyOfferOffererAddress := support.GenerateDogecoinAddress(true)
+
 	invoicePayload := protocol.InvoicePayload{
-		PaymentAddress:         "paymentaddyzz",
-		BuyOfferOffererAddress: "buyofferoffereraddress",
+		PaymentAddress:         paymentAddress,
+		BuyOfferOffererAddress: buyOfferOffererAddress,
 		BuyOfferHash:           "buyofferhash",
 		BuyOfferMintHash:       "buyofferminthash",
 		BuyOfferQuantity:       100,

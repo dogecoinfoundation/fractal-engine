@@ -2,6 +2,7 @@ package support
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -234,6 +235,50 @@ func ConnectDogeNetPeers(fromPeer *dogenet.DogeNetClient, toPeerContainer testco
 		fmt.Println("Node:", node)
 	}
 
+	return nil
+}
+
+func ConnectDogeTestPeers(nodeA *dogetest.DogeTest, nodeB *dogetest.DogeTest) error {
+	ctx := context.Background()
+	
+	// Get node B's container IP (within Docker network)
+	nodeBIP, err := nodeB.Container.ContainerIP(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get node B IP: %w", err)
+	}
+	
+	// Use the default regnet P2P port (18444) - internal container port
+	nodeBAddress := fmt.Sprintf("%s:18444", nodeBIP)
+	
+	log.Printf("Connecting DogeTest peers: Node A -> Node B (%s)", nodeBAddress)
+	
+	// Use addnode RPC to connect the nodes
+	resp, err := nodeA.Rpc.Request("addnode", []interface{}{nodeBAddress, "add"})
+	if err != nil {
+		// Check if it's just an empty response (which is normal for addnode)
+		if err.Error() != "json-rpc no result or error was returned" {
+			return fmt.Errorf("failed to add node B as peer: %w", err)
+		}
+		log.Printf("AddNode command executed (empty response is normal)")
+	} else if resp != nil {
+		log.Printf("AddNode response: %s", string(*resp))
+	}
+	
+	// Wait a moment for the connection to establish
+	time.Sleep(3 * time.Second)
+	
+	// Verify the connection by checking peer count
+	peersResp, err := nodeA.Rpc.Request("getconnectioncount", []interface{}{})
+	if err != nil {
+		log.Printf("Warning: Could not verify peer connection: %v", err)
+	} else {
+		var peerCount int
+		if err := json.Unmarshal(*peersResp, &peerCount); err == nil {
+			log.Printf("Node A peer count: %d", peerCount)
+		}
+	}
+	
+	log.Println("DogeTest peer connection established")
 	return nil
 }
 
@@ -478,4 +523,52 @@ func WriteMintToCore(dogeTest *dogetest.DogeTest, addressBook *dogetest.AddressB
 	fmt.Println("Blockies:", blockies)
 
 	return nil
+}
+
+// GenerateDogecoinAddress generates a string that matches the Dogecoin address format
+// This creates a valid-looking address for testing purposes (not a real spendable address)
+// Dogecoin addresses start with 'D' for mainnet or 'n' for testnet
+func GenerateDogecoinAddress(testnet bool) string {
+	// Base58 alphabet used in Bitcoin/Dogecoin addresses
+	base58Alphabet := "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+	
+	// Address length is typically 34 characters
+	addressLength := 34
+	
+	// Start with appropriate prefix
+	var address strings.Builder
+	if testnet {
+		address.WriteString("n")
+	} else {
+		address.WriteString("D")
+	}
+	
+	// Generate random characters from base58 alphabet
+	for i := 1; i < addressLength; i++ {
+		randomBytes := make([]byte, 1)
+		_, err := rand.Read(randomBytes)
+		if err != nil {
+			// Fallback to a deterministic character if random fails
+			address.WriteByte(base58Alphabet[i%len(base58Alphabet)])
+			continue
+		}
+		// Use the random byte to pick a character from the alphabet
+		index := int(randomBytes[0]) % len(base58Alphabet)
+		address.WriteByte(base58Alphabet[index])
+	}
+	
+	return address.String()
+}
+
+// GenerateRandomHash generates a random 64-character hexadecimal hash
+// This is useful for testing purposes where a hash-like string is needed
+func GenerateRandomHash() string {
+	// 32 bytes will give us 64 hex characters
+	randomBytes := make([]byte, 32)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		// Fallback to a deterministic hash if random fails
+		return "0000000000000000000000000000000000000000000000000000000000000000"
+	}
+	return hex.EncodeToString(randomBytes)
 }

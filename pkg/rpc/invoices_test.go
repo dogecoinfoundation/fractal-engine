@@ -3,6 +3,7 @@ package rpc_test
 import (
 	"testing"
 
+	"dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"gotest.tools/assert"
@@ -12,15 +13,21 @@ func TestInvoices(t *testing.T) {
 	tokenisationStore, dogenetClient, mux, feClient := SetupRpcTest(t)
 	rpc.HandleInvoiceRoutes(tokenisationStore, dogenetClient, mux, config.NewConfig())
 
+	paymentAddress := support.GenerateDogecoinAddress(true)
+	buyOfferOffererAddress := support.GenerateDogecoinAddress(true)
+	sellOfferAddress := support.GenerateDogecoinAddress(true)
+
+	buyOfferMintHash := support.GenerateRandomHash()
+
 	invoice := rpc.CreateInvoiceRequest{
 		Payload: rpc.CreateInvoiceRequestPayload{
-			PaymentAddress:         "0x122122121212121",
-			BuyOfferOffererAddress: "0x122122121213333",
-			BuyOfferHash:           "0x122122121212121",
-			BuyOfferMintHash:       "0x122122121212XXX",
+			PaymentAddress:         paymentAddress,
+			BuyOfferOffererAddress: buyOfferOffererAddress,
+			BuyOfferHash:           support.GenerateRandomHash(),
+			BuyOfferMintHash:       buyOfferMintHash,
 			BuyOfferQuantity:       10,
 			BuyOfferPrice:          100,
-			SellOfferAddress:       "0x122122121212121",
+			SellOfferAddress:       sellOfferAddress,
 		},
 	}
 
@@ -29,7 +36,7 @@ func TestInvoices(t *testing.T) {
 		t.Fatalf("Failed to create invoice: %v", err)
 	}
 
-	invoices, err := tokenisationStore.GetUnconfirmedInvoices(0, 10, "0x122122121212XXX", "0x122122121213333")
+	invoices, err := tokenisationStore.GetUnconfirmedInvoices(0, 10, buyOfferMintHash, buyOfferOffererAddress)
 	if err != nil {
 		t.Fatalf("Failed to get invoices: %v", err)
 	}

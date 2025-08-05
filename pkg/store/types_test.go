@@ -6,18 +6,22 @@ import (
 	"encoding/json"
 	"testing"
 
+	"dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"gotest.tools/assert"
 )
 
 func TestInvoiceGenerateHash(t *testing.T) {
+	buyOfferOffererAddress := support.GenerateDogecoinAddress(true)
+	sellOfferAddress := support.GenerateDogecoinAddress(true)
+
 	invoice := store.UnconfirmedInvoice{
 		BuyOfferHash:           "buyOfferHash",
 		BuyOfferMintHash:       "buyOfferMintHash",
 		BuyOfferQuantity:       100,
 		BuyOfferPrice:          20,
-		BuyOfferOffererAddress: "buyOfferOffererAddress",
-		SellOfferAddress:       "sellOfferAddress",
+		BuyOfferOffererAddress: buyOfferOffererAddress,
+		SellOfferAddress:       sellOfferAddress,
 		BuyOfferValue:          30,
 		PublicKey:              "publicKey",
 	}

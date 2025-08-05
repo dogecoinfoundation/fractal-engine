@@ -12,18 +12,22 @@ import (
 func TestSaveAndGetInvoices(t *testing.T) {
 	tokenisationStore := support.SetupTestDB()
 
+	paymentAddress := support.GenerateDogecoinAddress(true)
+	offererAddress := support.GenerateDogecoinAddress(true)
+	sellOfferAddress := support.GenerateDogecoinAddress(true)
+
 	invoice := store.Invoice{
 		Id:                     "myId",
 		Hash:                   "myHash",
-		PaymentAddress:         "myPaymentAddress",
-		BuyOfferOffererAddress: "myOffererAddress",
+		PaymentAddress:         paymentAddress,
+		BuyOfferOffererAddress: offererAddress,
 		BuyOfferHash:           "myBuyOfferHash",
 		BuyOfferMintHash:       "myMintHash",
 		BuyOfferQuantity:       10,
 		BuyOfferPrice:          25,
 		CreatedAt:              time.Now(),
 		PublicKey:              "myPublicKey",
-		SellOfferAddress:       "mySellOfferAddress",
+		SellOfferAddress:       sellOfferAddress,
 		Signature:              "mySignature",
 	}
 
@@ -32,7 +36,7 @@ func TestSaveAndGetInvoices(t *testing.T) {
 		t.Fatalf("Failed to save invoice: %v", err)
 	}
 
-	invoices, err := tokenisationStore.GetInvoices(0, 10, "myMintHash", "myOffererAddress")
+	invoices, err := tokenisationStore.GetInvoices(0, 10, "myMintHash", offererAddress)
 	if err != nil {
 		t.Fatalf("Failed to get offer: %v", err)
 	}

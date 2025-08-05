@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 services:
   # balance-master:
   #   build:
@@ -38,24 +38,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  fractal-ui:
-    build:
-      context: .
-      dockerfile: Dockerfile.fractaladmin
-      args:
-        DATABASE_URL: "file:/app/data/fractal-ui.db"
-    ports:
-      - "3030:3000" 
-    environment:
-      - FRACTAL_ENGINE_URL=http://fractalengine:8891
-      - DATABASE_URL=file:/app/data/fractal-ui.db
-    volumes:
-      - sqlite-data:/app/data
-    depends_on:
-      fractalengine:
-        condition: service_healthy
-    restart: unless-stopped
-    profiles: [frontend]
+  # fractal-ui:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.fractaladmin
+  #     args:
+  #       DATABASE_URL: "file:/app/data/fractal-ui.db"
+  #   ports:
+  #     - "3030:3000"
+  #   environment:
+  #     - FRACTAL_ENGINE_URL=http://fractalengine:8891
+  #     - DATABASE_URL=file:/app/data/fractal-ui.db
+  #   volumes:
+  #     - sqlite-data:/app/data
+  #   depends_on:
+  #     fractalengine:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   profiles: [frontend]
   dogenet:
     profiles: [deps]
     build:
@@ -95,9 +95,14 @@ services:
       - doge-sock:/tmp
       - sqlite-fractalengine-data:/root/storage
     healthcheck:
-      test: [
-        "CMD", "curl", "--silent", "content-type: text/plain;", "http://127.0.0.1:8891/health"
-      ]
+      test:
+        [
+          "CMD",
+          "curl",
+          "--silent",
+          "content-type: text/plain;",
+          "http://127.0.0.1:8891/health",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -110,11 +115,19 @@ services:
     ports:
       - "22556:22556"
     healthcheck:
-      test: [
-        "CMD", "curl", "--silent", "--user", "test:test",
-        "--data-binary", "{\"jsonrpc\":\"1.0\",\"id\":\"curltest\",\"method\":\"getblockchaininfo\",\"params\":[]}",
-        "-H", "content-type: text/plain;", "http://127.0.0.1:22556"
-      ]
+      test:
+        [
+          "CMD",
+          "curl",
+          "--silent",
+          "--user",
+          "test:test",
+          "--data-binary",
+          '{"jsonrpc":"1.0","id":"curltest","method":"getblockchaininfo","params":[]}',
+          "-H",
+          "content-type: text/plain;",
+          "http://127.0.0.1:22556",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

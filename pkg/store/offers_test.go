@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/store"
 
@@ -23,9 +24,12 @@ func TestOfferSaveAndGet(t *testing.T) {
 		t.Fatalf("Failed to migrate: %v", err)
 	}
 
+	offererAddress := support.GenerateDogecoinAddress(true)
+	sellerAddress := support.GenerateDogecoinAddress(true)
+
 	offer := store.BuyOfferWithoutID{
-		OffererAddress: "myOffererAddress",
-		SellerAddress:  "mySellerAddress",
+		OffererAddress: offererAddress,
+		SellerAddress:  sellerAddress,
 		MintHash:       "myminthash",
 		Quantity:       10,
 		Price:          25,
@@ -37,7 +41,7 @@ func TestOfferSaveAndGet(t *testing.T) {
 		t.Fatalf("Failed to save offer: %v", err)
 	}
 
-	offers, err := tokenisationStore.GetBuyOffersByMintAndSellerAddress(0, 10, "myminthashxxxx", "mySellerAddress")
+	offers, err := tokenisationStore.GetBuyOffersByMintAndSellerAddress(0, 10, "myminthashxxxx", sellerAddress)
 	if err != nil {
 		t.Fatalf("Failed to get offer: %v", err)
 	}
@@ -55,7 +59,7 @@ func TestOfferSaveAndGet(t *testing.T) {
 	}
 	assert.Equal(t, len(offers), 0)
 
-	offers, err = tokenisationStore.GetBuyOffersByMintAndSellerAddress(0, 10, "myminthash", "mySellerAddress")
+	offers, err = tokenisationStore.GetBuyOffersByMintAndSellerAddress(0, 10, "myminthash", sellerAddress)
 	if err != nil {
 		t.Fatalf("Failed to get offer: %v", err)
 	}
