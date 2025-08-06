@@ -1,0 +1,220 @@
+---
+title: Flows
+---
+
+## Common
+
+### DogeNet Follower
+<Mermaid
+  chart="
+  sequenceDiagram
+    participant DogNetClient as DogeNet Client
+    participant Store as Fractal Store
+
+    loop For Each New Gossiped Transaction
+        DogNetClient->>DogNetClient: Get Transaction
+        alt Is Mint Transaction
+            DogNetClient->>Store: Save Unconfirmed Mint
+        end
+        alt Is Invoice Transaction
+            DogNetClient->>Store: Save Unconfirmed Invoice
+        end
+        alt Is Sell Offer Transaction
+            DogNetClient->>Store: Save Sell Offer
+        end
+        alt Is Buy Offer Transaction
+            DogNetClient->>Store: Save Buy Offer
+        end
+    end
+ "
+/>
+
+### Onchain Transaction Follower
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Follower as Fractal Follower (Dogecoin L1)
+    participant Store as Fractal Store
+    participant DogecoinL1 as Dogecoin L1
+
+    loop For Each New Block
+        Follower->>DogecoinL1: Get Block Data
+        loop For Each Transaction in Block
+            Follower->>Follower: Check if Fractal Engine Transaction
+            alt Is Fractal Engine Transaction
+                Follower->>Store: Save Onchain Transaction
+            end
+        end
+    end
+"
+/>
+
+## Minting
+
+### Mint Creation
+<Mermaid
+  chart="
+sequenceDiagram
+    participant User as Fractal Engine User
+    participant Wallet as Dogecoin Wallet
+    participant DogecoinL1 as Dogecoin L1
+    participant API as Fractal API
+    participant TokenSvc as Tokenisation Service
+    participant StoreClient as Store Client
+    participant DogeNetClient as DogeNet Client
+
+    User->>API: Request Mint Creation
+    API->>TokenSvc: Create Mint
+    TokenSvc->>StoreClient: Save Unconfirmed Mint
+    TokenSvc->>DogeNetClient: Gossip Unconfirmed Mint
+    TokenSvc-->>API: Respond with Encoded Transaction Body
+    API-->>User: Deliver Encoded Transaction Body
+
+    User->>Wallet: Create Mint Transaction (with Encoded Body)
+    Wallet->>DogecoinL1: Broadcast Mint Transaction
+"
+/>
+
+### Onchain Transaction Confirmation
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Processor as Fractal Engine Processor
+    participant Store as Fractal Store
+
+loop Every 5 seconds
+    Processor->>Store: Fetch Onchain transactions
+    alt Is Mint Transaction
+        Processor->>Store: Match Unconfirmed Mint with Onchain Transaction
+        Processor->>Store: Save Mint
+        Processor->>Store: Update Token Balance
+        Processor->>Store: Delete Onchain Transaction
+        Processor->>Store: Delete Unconfirmed Mint
+    end
+end
+"
+/>
+
+## Invoices and Offers
+
+### Sell Offers
+<Mermaid
+  chart="
+sequenceDiagram
+    participant User as Fractal Engine User
+    participant API as Fractal API
+    participant Store as Fractal Store
+    participant DogNetClient as DogeNet Client
+
+    User->>API: Create Sell Offer
+    API->>Store: Save Sell Offer
+    API->>DogNetClient: Gossip Sell Offer
+    API-->>User: Sell Offer Created
+"
+/>
+
+### Buy Offers
+<Mermaid
+  chart="
+sequenceDiagram
+    participant User as Fractal Engine User
+    participant API as Fractal API
+    participant Store as Fractal Store
+    participant DogNetClient as DogeNet Client
+
+    User->>API: Get Sell Offers for Mint
+    API->>Store: Get Sell Offers for Mint
+    API-->>User: Sell Offers
+
+    User->>API: Create Buy Offer
+    API->>Store: Create Buy Offer
+    API->>DogNetClient: Gossip Buy Offer
+    API-->>User: Buy Offer Created
+"
+/>
+
+### Create Invoice
+<Mermaid
+  chart="
+sequenceDiagram
+    participant User as Fractal Engine User
+    participant Wallet as Dogecoin Wallet
+    participant DogecoinL1 as Dogecoin L1
+    participant API as Fractal API
+    participant TokenSvc as Tokenisation Service
+    participant StoreClient as Store Client
+    participant DogeNetClient as DogeNet Client
+
+    User->>API: Create Invoice
+    API->>TokenSvc: Create Invoice
+    TokenSvc->>StoreClient: Save Unconfirmed Invoice
+    TokenSvc->>DogeNetClient: Gossip Unconfirmed Invoice
+    TokenSvc-->>API: Respond with Encoded Transaction Body
+    API-->>User: Deliver Encoded Transaction Body
+
+    User->>Wallet: Create Invoice Transaction (with Encoded Body)
+    Wallet->>DogecoinL1: Broadcast Invoice Transaction
+"
+/>
+
+### Invoice Processing without Match
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Processor as Fractal Engine Processor
+    participant Store as Fractal Store
+
+loop Every 5 seconds
+    Processor->>Store: Fetch Onchain transactions (Invoices)
+    Processor->>Store: Check if Invoice Quantity >= (Token Balance - SUM(Pending Token Balances))
+    alt Has Token Balance
+        Processor->>Store: Create Pending Token Balance
+    end
+end
+"
+/>
+
+### Invoice Processing with Match
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Processor as Fractal Engine Processor
+    participant Store as Fractal Store
+
+loop Every 5 seconds
+    Processor->>Store: Fetch Onchain transactions (Invoices)
+    Processor->>Store: Check if Invoice Has Pending Token Balance
+    alt Has Pending Token Balance
+        Processor->>Store: Match Unconfirmed Invoice with Onchain Transaction
+        Processor->>Store: Save Invoice
+        Processor->>Store: Set Payment Address on Invoice
+        Processor->>Store: Delete Onchain Transaction
+        Processor->>Store: Delete Unconfirmed Invoice
+    end
+end
+"
+/>
+
+## Payment
+
+### Handle Payment
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Processor as Fractal Engine Processor
+    participant Store as Fractal Store
+
+loop Every 5 seconds
+    Processor->>Store: Fetch Onchain transactions (Payments)
+    alt Onchain Transaction matches Unconfirmed Payment
+        Processor->>Store: Save Payment
+        Processor->>Store: Delete Onchain Transaction
+        Processor->>Store: Delete Unconfirmed Payment
+        Processor->>Store: Update Invoice Status (Paid)
+        Processor->>Store: Remove Token Balance from Seller
+        Processor->>Store: Add Token Balance to Buyer
+        Processor->>Store: Delete Pending Token Balance
+    end
+end
+"
+/>
