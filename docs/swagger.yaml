@@ -25,6 +25,8 @@ definitions:
         type: string
       requirements:
         $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+      signature:
+        type: string
       tags:
         items:
           type: string
@@ -61,6 +63,8 @@ definitions:
     type: object
   pkg_rpc.CreateMintRequest:
     properties:
+      address:
+        type: string
       payload:
         $ref: '#/definitions/pkg_rpc.CreateMintRequestPayload'
       public_key:
@@ -80,8 +84,6 @@ definitions:
         $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
       metadata:
         $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
-      owner_address:
-        type: string
       requirements:
         $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
       tags:
@@ -93,26 +95,28 @@ definitions:
     type: object
   pkg_rpc.CreateMintResponse:
     properties:
-      encoded_transaction_body:
-        type: string
-      id:
-        type: string
-      transaction_hash:
+      hash:
         type: string
     type: object
   pkg_rpc.CreateOfferResponse:
     properties:
+      hash:
+        type: string
       id:
         type: string
     type: object
   pkg_rpc.GetHealthResponse:
     properties:
+      chain:
+        type: string
       current_block_height:
         type: integer
       latest_block_height:
         type: integer
       updated_at:
         type: string
+      wallets_enabled:
+        type: boolean
     type: object
   pkg_rpc.GetMintsResponse:
     properties:
@@ -126,6 +130,13 @@ definitions:
         type: integer
       total:
         type: integer
+    type: object
+  pkg_rpc.GetStatsResponse:
+    properties:
+      stats:
+        additionalProperties:
+          type: integer
+        type: object
     type: object
   sql.NullString:
     properties:
@@ -251,4 +262,23 @@ paths:
       summary: Create a mint
       tags:
       - mints
+  /stats:
+    get:
+      consumes:
+      - application/json
+      description: Returns the current statistics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg_rpc.GetStatsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get stats
+      tags:
+      - stats
 swagger: "2.0"

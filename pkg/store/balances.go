@@ -108,6 +108,39 @@ func (s *TokenisationStore) GetPendingTokenBalance(invoiceHash, mintHash string,
 	return PendingTokenBalance{}, errors.New("no pending token balance found")
 }
 
+func (s *TokenisationStore) GetPendingTokenBalanceForQuantity(invoiceHash, mintHash string, quantity int, tx *sql.Tx) (PendingTokenBalance, error) {
+	var rows *sql.Rows
+	var err error
+
+	if tx == nil {
+		rows, err = s.DB.Query(`
+		SELECT quantity, invoice_hash, mint_hash, owner_address FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2 and quantity = $3
+	`, invoiceHash, mintHash, quantity)
+	} else {
+		rows, err = tx.Query(`
+			SELECT quantity, invoice_hash, mint_hash, owner_address FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2 and quantity = $3
+		`, invoiceHash, mintHash, quantity)
+	}
+
+	defer rows.Close()
+
+	if err != nil {
+		return PendingTokenBalance{}, err
+	}
+
+	if rows.Next() {
+		var pendingTokenBalance PendingTokenBalance
+		err := rows.Scan(&pendingTokenBalance.Quantity, &pendingTokenBalance.InvoiceHash, &pendingTokenBalance.MintHash, &pendingTokenBalance.OwnerAddress)
+		if err != nil {
+			return PendingTokenBalance{}, err
+		}
+
+		return pendingTokenBalance, nil
+	}
+
+	return PendingTokenBalance{}, errors.New("no pending token balance found")
+}
+
 func (s *TokenisationStore) GetPendingTokenBalanceTotalForMintAndOwner(mintHash string, ownerAddress string) (int, error) {
 	rows, err := s.DB.Query(`
 		SELECT COALESCE(SUM(quantity), 0) FROM pending_token_balances WHERE mint_hash = $1 AND owner_address = $2

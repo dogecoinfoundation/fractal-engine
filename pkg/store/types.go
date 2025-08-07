@@ -61,6 +61,7 @@ type OnChainTransaction struct {
 	Id                string  `json:"id"`
 	TxHash            string  `json:"tx_hash"`
 	Height            int64   `json:"height"`
+	BlockHash         string  `json:"block_hash"`
 	ActionType        uint8   `json:"action_type"`
 	ActionVersion     uint8   `json:"action_version"`
 	ActionData        []byte  `json:"action_data"`

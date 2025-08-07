@@ -26,6 +26,14 @@ func (sr *StatRoutes) handleStats(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary		Get stats
+// @Description	Returns the current statistics
+// @Tags			stats
+// @Accept			json
+// @Produce		json
+// @Success		200		{object}	GetStatsResponse
+// @Failure		400		{object}	string
+// @Router			/stats [get]
 func (sr *StatRoutes) getStats(w http.ResponseWriter, _ *http.Request) {
 	stats, err := sr.store.GetStats()
 	if err != nil {

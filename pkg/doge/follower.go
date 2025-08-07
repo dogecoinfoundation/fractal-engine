@@ -84,7 +84,7 @@ func (f *DogeFollower) Start() error {
 
 					value := tx.VOut[0].Value.InexactFloat64()
 
-					_, err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, transactionNumber, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data, address, value)
+					_, err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, blockHash, transactionNumber, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data, address, value)
 					if err != nil {
 						log.Println("Error saving on chain transaction:", err)
 					}

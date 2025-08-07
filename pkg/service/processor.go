@@ -5,17 +5,19 @@ import (
 	"log"
 	"time"
 
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 )
 
 type FractalEngineProcessor struct {
-	store   *store.TokenisationStore
-	Running bool
+	store      *store.TokenisationStore
+	dogeClient *doge.RpcClient
+	Running    bool
 }
 
-func NewFractalEngineProcessor(store *store.TokenisationStore) *FractalEngineProcessor {
-	return &FractalEngineProcessor{store: store}
+func NewFractalEngineProcessor(store *store.TokenisationStore, dogeClient *doge.RpcClient) *FractalEngineProcessor {
+	return &FractalEngineProcessor{store: store, dogeClient: dogeClient}
 }
 
 func (p *FractalEngineProcessor) Process() error {
@@ -44,7 +46,7 @@ func (p *FractalEngineProcessor) Process() error {
 					log.Println("Matched mint:", tx.TxHash)
 				}
 			} else if tx.ActionType == protocol.ACTION_PAYMENT {
-				paymentProcessor := NewPaymentProcessor(p.store)
+				paymentProcessor := NewPaymentProcessor(p.store, p.dogeClient)
 				err = paymentProcessor.Process(tx)
 				if err != nil {
 					log.Println("Error processing payment:", err)
