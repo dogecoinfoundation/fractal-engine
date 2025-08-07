@@ -160,15 +160,13 @@ func TestProcessPaymentTransaction(t *testing.T) {
 
 	// Create unconfirmed invoice
 	_, err = tokenStore.SaveUnconfirmedInvoice(&store.UnconfirmedInvoice{
-		Hash:                   invoiceHash,
-		PaymentAddress:         sellerAddress,
-		BuyOfferOffererAddress: buyerAddress,
-		BuyOfferHash:           support.GenerateRandomHash(),
-		BuyOfferMintHash:       mintHash,
-		BuyOfferQuantity:       50,
-		BuyOfferPrice:          100,
-		BuyOfferValue:          50,
-		SellOfferAddress:       sellerAddress,
+		Hash:           invoiceHash,
+		PaymentAddress: sellerAddress,
+		BuyerAddress:   buyerAddress,
+		MintHash:       mintHash,
+		Quantity:       50,
+		Price:          100,
+		SellerAddress:  sellerAddress,
 	})
 	if err != nil {
 		t.Fatalf("Failed to save unconfirmed invoice: %v", err)
@@ -176,10 +174,10 @@ func TestProcessPaymentTransaction(t *testing.T) {
 
 	// Create and process invoice transaction
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: sellerAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         50,
+		SellerAddress: sellerAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      50,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, 50)
@@ -193,7 +191,7 @@ func TestProcessPaymentTransaction(t *testing.T) {
 		Hash: invoiceHash,
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txPayment", 3, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, 50)
+	_, err = tokenStore.SaveOnChainTransaction("txPayment", 3, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, 5000)
 	if err != nil {
 		t.Fatalf("Failed to save payment transaction: %v", err)
 	}
@@ -257,10 +255,10 @@ func TestProcessInvoiceTransaction(t *testing.T) {
 	// Create invoice transaction
 	invoiceHash := support.GenerateRandomHash()
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: ownerAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         30,
+		SellerAddress: ownerAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      30,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, ownerAddress, 30)

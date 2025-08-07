@@ -70,25 +70,23 @@ func TestInvoiceProcessorProcessSuccess(t *testing.T) {
 
 	// Create unconfirmed invoice
 	_, err = tokenStore.SaveUnconfirmedInvoice(&store.UnconfirmedInvoice{
-		Hash:                   invoiceHash,
-		PaymentAddress:         sellerAddress,
-		BuyOfferOffererAddress: support.GenerateDogecoinAddress(true),
-		BuyOfferHash:           support.GenerateRandomHash(),
-		BuyOfferMintHash:       mintHash,
-		BuyOfferQuantity:       int(quantity),
-		BuyOfferPrice:          100,
-		BuyOfferValue:          50.0,
-		CreatedAt:              time.Now(),
-		SellOfferAddress:       sellerAddress,
+		Hash:           invoiceHash,
+		PaymentAddress: sellerAddress,
+		BuyerAddress:   support.GenerateDogecoinAddress(true),
+		MintHash:       mintHash,
+		Quantity:       int(quantity),
+		Price:          100,
+		CreatedAt:      time.Now(),
+		SellerAddress:  sellerAddress,
 	})
 	assert.NilError(t, err)
 
 	// Create invoice transaction
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: sellerAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         quantity,
+		SellerAddress: sellerAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      quantity,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	invoiceTxId, err := tokenStore.SaveOnChainTransaction("invoiceTx", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, float64(quantity))
@@ -126,10 +124,10 @@ func TestInvoiceProcessorProcessInvoiceNotFromSeller(t *testing.T) {
 
 	// Create invoice transaction from wrong address
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: sellerAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         quantity,
+		SellerAddress: sellerAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      quantity,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	invoiceTxId, err := tokenStore.SaveOnChainTransaction("invoiceTx", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, fakeSellerAddress, float64(quantity)) // Wrong address
@@ -210,10 +208,10 @@ func TestInvoiceProcessorProcessInsufficientTokenBalance(t *testing.T) {
 
 	// Create invoice transaction requesting more tokens than available
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: sellerAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         quantity, // 150 > 100 available
+		SellerAddress: sellerAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      quantity, // 150 > 100 available
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	invoiceTxId, err := tokenStore.SaveOnChainTransaction("invoiceTx", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, float64(quantity))
@@ -285,10 +283,10 @@ func TestInvoiceProcessorProcessExistingPendingBalance(t *testing.T) {
 
 	// Create invoice transaction
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: sellerAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         quantity,
+		SellerAddress: sellerAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      quantity,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	invoiceTxId, err := tokenStore.SaveOnChainTransaction("invoiceTx", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, float64(quantity))
@@ -358,10 +356,10 @@ func TestInvoiceProcessorProcessPartialTokenBalance(t *testing.T) {
 
 	// Create invoice transaction requesting 60 tokens (50 available after existing pending)
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: sellerAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         quantity,
+		SellerAddress: sellerAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      quantity,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	invoiceTxId, err := tokenStore.SaveOnChainTransaction("invoiceTx", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, float64(quantity))
@@ -434,10 +432,10 @@ func TestInvoiceProcessorEnsurePendingTokenBalanceSuccess(t *testing.T) {
 
 	// Create invoice transaction
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: sellerAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         quantity,
+		SellerAddress: sellerAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      quantity,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	invoiceTx := store.OnChainTransaction{
@@ -474,10 +472,10 @@ func TestInvoiceProcessorEnsurePendingTokenBalanceInsufficientBalance(t *testing
 
 	// Create invoice transaction (no token balance setup)
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: sellerAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         quantity,
+		SellerAddress: sellerAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      quantity,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	invoiceTxId, err := tokenStore.SaveOnChainTransaction("invoiceTx", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, float64(quantity))

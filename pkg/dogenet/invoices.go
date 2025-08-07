@@ -16,13 +16,12 @@ func (c *DogeNetClient) GossipUnconfirmedInvoice(record store.UnconfirmedInvoice
 	invoiceMessage := protocol.InvoiceMessage{
 		Id: record.Id,
 		Payload: &protocol.InvoicePayload{
-			PaymentAddress:         record.PaymentAddress,
-			BuyOfferOffererAddress: record.BuyOfferOffererAddress,
-			BuyOfferHash:           record.BuyOfferHash,
-			BuyOfferMintHash:       record.BuyOfferMintHash,
-			BuyOfferQuantity:       int32(record.BuyOfferQuantity),
-			BuyOfferPrice:          int32(record.BuyOfferPrice),
-			SellOfferAddress:       record.SellOfferAddress,
+			PaymentAddress: record.PaymentAddress,
+			MintHash:       record.MintHash,
+			BuyerAddress:   record.BuyerAddress,
+			Quantity:       int32(record.Quantity),
+			Price:          int32(record.Price),
+			SellerAddress:  record.SellerAddress,
 		},
 		CreatedAt: timestamppb.New(record.CreatedAt),
 	}
@@ -85,24 +84,23 @@ func (c *DogeNetClient) recvInvoice(msg dnet.Message) {
 		return
 	}
 
-	if address != invoice.Payload.SellOfferAddress {
+	if address != invoice.Payload.SellerAddress {
 		log.Println("Sell offer address does not match public key")
 		return
 	}
 
 	invoiceWithoutID := store.UnconfirmedInvoice{
-		PaymentAddress:         invoice.Payload.PaymentAddress,
-		BuyOfferOffererAddress: invoice.Payload.BuyOfferOffererAddress,
-		BuyOfferHash:           invoice.Payload.BuyOfferHash,
-		BuyOfferMintHash:       invoice.Payload.BuyOfferMintHash,
-		BuyOfferQuantity:       int(invoice.Payload.BuyOfferQuantity),
-		BuyOfferPrice:          int(invoice.Payload.BuyOfferPrice),
-		CreatedAt:              invoice.CreatedAt.AsTime(),
-		Hash:                   invoice.Hash,
-		Id:                     invoice.Id,
-		PublicKey:              envelope.PublicKey,
-		SellOfferAddress:       invoice.Payload.SellOfferAddress,
-		Signature:              envelope.Signature,
+		PaymentAddress: invoice.Payload.PaymentAddress,
+		MintHash:       invoice.Payload.MintHash,
+		BuyerAddress:   invoice.Payload.BuyerAddress,
+		Quantity:       int(invoice.Payload.Quantity),
+		Price:          int(invoice.Payload.Price),
+		CreatedAt:      invoice.CreatedAt.AsTime(),
+		Hash:           invoice.Hash,
+		Id:             invoice.Id,
+		PublicKey:      envelope.PublicKey,
+		SellerAddress:  invoice.Payload.SellerAddress,
+		Signature:      envelope.Signature,
 	}
 
 	id, err := c.store.SaveUnconfirmedInvoice(&invoiceWithoutID)

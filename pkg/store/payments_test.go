@@ -35,7 +35,7 @@ func TestMatchPaymentSuccess(t *testing.T) {
 	sellerAddress := test_support.GenerateDogecoinAddress(true)
 	buyerAddress := test_support.GenerateDogecoinAddress(true)
 	quantity := 50
-	value := 50.0
+	value := 50.0 * 100
 
 	// Step 1: Create and match mint
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
@@ -66,24 +66,22 @@ func TestMatchPaymentSuccess(t *testing.T) {
 
 	// Step 2: Create and match invoice
 	_, err = tokenStore.SaveUnconfirmedInvoice(&store.UnconfirmedInvoice{
-		Hash:                   invoiceHash,
-		PaymentAddress:         sellerAddress,
-		BuyOfferOffererAddress: buyerAddress,
-		BuyOfferHash:           "buyOffer123",
-		BuyOfferMintHash:       mintHash,
-		BuyOfferQuantity:       quantity,
-		BuyOfferPrice:          100,
-		BuyOfferValue:          value,
-		CreatedAt:              time.Now(),
-		SellOfferAddress:       sellerAddress,
+		Hash:           invoiceHash,
+		PaymentAddress: sellerAddress,
+		BuyerAddress:   buyerAddress,
+		MintHash:       mintHash,
+		Quantity:       quantity,
+		Price:          100,
+		CreatedAt:      time.Now(),
+		SellerAddress:  sellerAddress,
 	})
 	assert.NilError(t, err)
 
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellOfferAddress: sellerAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         int32(quantity),
+		SellerAddress: sellerAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      int32(quantity),
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	invoiceTxId, err := tokenStore.SaveOnChainTransaction("invoiceTx", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, float64(quantity))
@@ -117,7 +115,9 @@ func TestMatchPaymentSuccess(t *testing.T) {
 
 	// Test MatchPayment
 	invoice, err := tokenStore.MatchPayment(*paymentTx)
-	tokenStore.ProcessPayment(*paymentTx, invoice)
+	assert.NilError(t, err)
+
+	err = tokenStore.ProcessPayment(*paymentTx, invoice)
 	assert.NilError(t, err)
 
 	// Verify results
@@ -211,19 +211,17 @@ func TestMatchPaymentValueMismatch(t *testing.T) {
 	invoiceHash := "testInvoice123"
 	buyerAddress := test_support.GenerateDogecoinAddress(true)
 	sellerAddress := test_support.GenerateDogecoinAddress(true)
-
+	mintHash := test_support.GenerateRandomHash()
 	// Create invoice with specific value
 	actualInvoice := &store.Invoice{
-		Hash:                   invoiceHash,
-		PaymentAddress:         sellerAddress,
-		BuyOfferOffererAddress: buyerAddress,
-		BuyOfferHash:           "buyOffer123",
-		BuyOfferMintHash:       "mint123",
-		BuyOfferQuantity:       50,
-		BuyOfferPrice:          100,
-		BuyOfferValue:          50.0, // Expected value
-		CreatedAt:              time.Now(),
-		SellOfferAddress:       sellerAddress,
+		Hash:           invoiceHash,
+		PaymentAddress: sellerAddress,
+		MintHash:       mintHash,
+		BuyerAddress:   buyerAddress,
+		Quantity:       50,
+		Price:          100,
+		CreatedAt:      time.Now(),
+		SellerAddress:  sellerAddress,
 	}
 	_, err := tokenStore.SaveInvoice(actualInvoice)
 	assert.NilError(t, err)
@@ -256,16 +254,14 @@ func TestMatchPaymentPendingBalanceMismatch(t *testing.T) {
 
 	// Create invoice
 	actualInvoice := &store.Invoice{
-		Hash:                   invoiceHash,
-		PaymentAddress:         sellerAddress,
-		BuyOfferOffererAddress: buyerAddress,
-		BuyOfferHash:           "buyOffer123",
-		BuyOfferMintHash:       mintHash,
-		BuyOfferQuantity:       50, // Expected quantity
-		BuyOfferPrice:          100,
-		BuyOfferValue:          50.0,
-		CreatedAt:              time.Now(),
-		SellOfferAddress:       sellerAddress,
+		Hash:           invoiceHash,
+		PaymentAddress: sellerAddress,
+		BuyerAddress:   buyerAddress,
+		MintHash:       mintHash,
+		Quantity:       50, // Expected quantity
+		Price:          100,
+		CreatedAt:      time.Now(),
+		SellerAddress:  sellerAddress,
 	}
 	_, err := tokenStore.SaveInvoice(actualInvoice)
 	assert.NilError(t, err)
@@ -280,7 +276,7 @@ func TestMatchPaymentPendingBalanceMismatch(t *testing.T) {
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
 
-	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, 50.0)
+	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, 5000.0)
 	assert.NilError(t, err)
 
 	txs, err := tokenStore.GetOnChainTransactions(0, 10)
@@ -289,6 +285,8 @@ func TestMatchPaymentPendingBalanceMismatch(t *testing.T) {
 	assert.Assert(t, paymentTx != nil)
 
 	invoice, err := tokenStore.MatchPayment(*paymentTx)
+	assert.NilError(t, err)
+
 	err = tokenStore.ProcessPayment(*paymentTx, invoice)
 	assert.ErrorContains(t, err, "no pending token balance found")
 }
@@ -302,16 +300,14 @@ func TestMatchPaymentNoPendingBalance(t *testing.T) {
 
 	// Create invoice without pending balance
 	actualInvoice := &store.Invoice{
-		Hash:                   invoiceHash,
-		PaymentAddress:         sellerAddress,
-		BuyOfferOffererAddress: buyerAddress,
-		BuyOfferHash:           "buyOffer123",
-		BuyOfferMintHash:       "mint123",
-		BuyOfferQuantity:       50,
-		BuyOfferPrice:          100,
-		BuyOfferValue:          50.0,
-		CreatedAt:              time.Now(),
-		SellOfferAddress:       sellerAddress,
+		Hash:           invoiceHash,
+		PaymentAddress: sellerAddress,
+		BuyerAddress:   buyerAddress,
+		MintHash:       "mint123",
+		Quantity:       50,
+		Price:          100,
+		CreatedAt:      time.Now(),
+		SellerAddress:  sellerAddress,
 	}
 	_, err := tokenStore.SaveInvoice(actualInvoice)
 	assert.NilError(t, err)
@@ -331,10 +327,7 @@ func TestMatchPaymentNoPendingBalance(t *testing.T) {
 	assert.Assert(t, paymentTx != nil)
 
 	// Should fail due to missing pending balance
-	invoice, err := tokenStore.MatchPayment(*paymentTx)
-	assert.NilError(t, err)
-
-	err = tokenStore.ProcessPayment(*paymentTx, invoice)
+	_, err = tokenStore.MatchPayment(*paymentTx)
 	assert.Assert(t, err != nil, "Should fail without pending balance")
 
 	// Verify transaction was rolled back - invoice should NOT be paid

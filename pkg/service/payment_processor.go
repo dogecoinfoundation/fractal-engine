@@ -22,6 +22,7 @@ func NewPaymentProcessor(store *store.TokenisationStore, dogeClient *doge.RpcCli
 func (p *PaymentProcessor) Process(tx store.OnChainTransaction) error {
 	invoice, err := p.store.MatchPayment(tx)
 	if err != nil {
+		log.Println("Match Payment", err)
 		return err
 	}
 
@@ -31,18 +32,16 @@ func (p *PaymentProcessor) Process(tx store.OnChainTransaction) error {
 	}
 
 	if blockHeader.Confirmations < MIN_CONFIRMATIONS_REQUIRED {
+		log.Println("Minimum confirmations not met:", err)
 		return fmt.Errorf("Minimum confirmations not met: %d < %d", blockHeader.Confirmations, MIN_CONFIRMATIONS_REQUIRED)
 	}
 
 	err = p.store.ProcessPayment(tx, invoice)
 	if err != nil {
+		log.Println("ProcessPayment:", err)
 		return err
 	}
 
-	if err == nil {
-		log.Println("Matched payment:", tx.TxHash)
-		return nil
-	}
-
-	return err
+	log.Println("Matched payment:", tx.TxHash)
+	return nil
 }

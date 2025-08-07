@@ -8,7 +8,7 @@ option go_package = "pkg/protocol";
 // This is what gets written to the OP_RETURN on the L1
 message OnChainInvoiceMessage {
     int32 version = 1;
-    string sell_offer_address = 2;
+    string seller_address = 2;
     string invoice_hash = 3;
     string mint_hash = 4;
     int32 quantity = 5;
@@ -26,12 +26,11 @@ message InvoiceMessageEnvelope {
 
 message InvoicePayload {
     string payment_address = 1;
-    string buy_offer_offerer_address = 2;
-    string buy_offer_hash = 3;
-    string buy_offer_mint_hash = 4;
-    int32 buy_offer_quantity = 5;
-    int32 buy_offer_price = 6;
-    string sell_offer_address = 7;
+    string buyer_address = 2;
+    string mint_hash = 4;
+    int32 quantity = 5;
+    int32 price = 6;
+    string seller_address = 7;
 }
 
 message InvoiceMessage {
@@ -40,4 +39,3 @@ message InvoiceMessage {
     InvoicePayload payload = 3;
     google.protobuf.Timestamp created_at = 4;
 }
-
