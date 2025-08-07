@@ -7,42 +7,40 @@
         pkg-config \
         libsystemd-dev \
         && rm -rf /var/lib/apt/lists/*
-    
+
     # Set the working directory
     WORKDIR /app
-    
+
     # Clone the repo
+    ARG CACHE_BUSTER=default
+
     RUN git clone https://github.com/dogecoinfoundation/balance-master.git .
-    
+
     # Optional: checkout a specific tag or commit
     RUN git checkout main
-    
+
     # Download dependencies
     RUN go mod download
-    RUN ls
-    
+
     # Build the Go binary
     RUN go build -o balance-master ./cmd/balance-master
-    
+
     # --- Stage 2: Minimal Runtime Image ---
     FROM debian:bookworm-slim
-    
+
     # Add CA certificates if needed for HTTPS
     RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-    
+
     WORKDIR /root/
-    
+
     # Copy built binary
     COPY --from=builder /app/balance-master .
     COPY --from=builder /app/db/migrations/ /root/db/migrations/
 
-    ARG DATABASE_URL
-    ENV DATABASE_URL=${DATABASE_URL}
-    
-    EXPOSE 8899
+    ENV RPC_SERVER_PORT=default
+    ENV DOGE_PORT=default
+    ENV DOGE_HOST=default
 
     RUN mkdir -p /root/storage
-    
-    CMD ./balance-master --doge-host dogecoin --database-url ${DATABASE_URL} --migrations-path /root/db/migrations/
 
-    
+    CMD ./balance-master --doge-host ${DOGE_HOST} --doge-port ${DOGE_PORT} --migrations-path /root/db/migrations/ --rpc-server-host 0.0.0.0 --rpc-server-port ${RPC_SERVER_PORT}
