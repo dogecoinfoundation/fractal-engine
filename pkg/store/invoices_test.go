@@ -17,18 +17,17 @@ func TestSaveAndGetInvoices(t *testing.T) {
 	sellOfferAddress := support.GenerateDogecoinAddress(true)
 
 	invoice := store.Invoice{
-		Id:                     "myId",
-		Hash:                   "myHash",
-		PaymentAddress:         paymentAddress,
-		BuyOfferOffererAddress: offererAddress,
-		BuyOfferHash:           "myBuyOfferHash",
-		BuyOfferMintHash:       "myMintHash",
-		BuyOfferQuantity:       10,
-		BuyOfferPrice:          25,
-		CreatedAt:              time.Now(),
-		PublicKey:              "myPublicKey",
-		SellOfferAddress:       sellOfferAddress,
-		Signature:              "mySignature",
+		Id:             "myId",
+		Hash:           "myHash",
+		PaymentAddress: paymentAddress,
+		BuyerAddress:   offererAddress,
+		MintHash:       "myMintHash",
+		Quantity:       10,
+		Price:          25,
+		CreatedAt:      time.Now(),
+		PublicKey:      "myPublicKey",
+		SellerAddress:  sellOfferAddress,
+		Signature:      "mySignature",
 	}
 
 	id, err := tokenisationStore.SaveInvoice(&invoice)
@@ -45,10 +44,9 @@ func TestSaveAndGetInvoices(t *testing.T) {
 	assert.Equal(t, invoices[0].Id, id, "failed to match invoice id")
 	assert.Equal(t, invoices[0].Hash, invoice.Hash, "failed to match invoice hash")
 	assert.Equal(t, invoices[0].PaymentAddress, invoice.PaymentAddress, "failed to match invoice payment address")
-	assert.Equal(t, invoices[0].BuyOfferOffererAddress, invoice.BuyOfferOffererAddress, "failed to match invoice offerer address")
-	assert.Equal(t, invoices[0].BuyOfferHash, invoice.BuyOfferHash, "failed to match invoice buy offer hash")
-	assert.Equal(t, invoices[0].BuyOfferMintHash, invoice.BuyOfferMintHash, "failed to match invoice buy offer mint hash")
-	assert.Equal(t, invoices[0].BuyOfferQuantity, invoice.BuyOfferQuantity, "failed to match invoice buy offer quantity")
-	assert.Equal(t, invoices[0].BuyOfferPrice, invoice.BuyOfferPrice, "failed to match invoice buy offer price")
+	assert.Equal(t, invoices[0].BuyerAddress, invoice.BuyerAddress, "failed to match invoice offerer address")
+	assert.Equal(t, invoices[0].MintHash, invoice.MintHash, "failed to match invoice buy offer mint hash")
+	assert.Equal(t, invoices[0].Quantity, invoice.Quantity, "failed to match invoice buy offer quantity")
+	assert.Equal(t, invoices[0].Price, invoice.Price, "failed to match invoice buy offer price")
 	assert.Equal(t, invoices[0].PublicKey, invoice.PublicKey, "failed to match invoice public key")
 }

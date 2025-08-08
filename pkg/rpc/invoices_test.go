@@ -14,20 +14,19 @@ func TestInvoices(t *testing.T) {
 	rpc.HandleInvoiceRoutes(tokenisationStore, dogenetClient, mux, config.NewConfig())
 
 	paymentAddress := support.GenerateDogecoinAddress(true)
-	buyOfferOffererAddress := support.GenerateDogecoinAddress(true)
+	MintHash := support.GenerateDogecoinAddress(true)
 	sellOfferAddress := support.GenerateDogecoinAddress(true)
 
 	buyOfferMintHash := support.GenerateRandomHash()
 
 	invoice := rpc.CreateInvoiceRequest{
 		Payload: rpc.CreateInvoiceRequestPayload{
-			PaymentAddress:         paymentAddress,
-			BuyOfferOffererAddress: buyOfferOffererAddress,
-			BuyOfferHash:           support.GenerateRandomHash(),
-			BuyOfferMintHash:       buyOfferMintHash,
-			BuyOfferQuantity:       10,
-			BuyOfferPrice:          100,
-			SellOfferAddress:       sellOfferAddress,
+			PaymentAddress: paymentAddress,
+			BuyerAddress:   MintHash,
+			MintHash:       buyOfferMintHash,
+			Quantity:       10,
+			Price:          100,
+			SellerAddress:  sellOfferAddress,
 		},
 	}
 
@@ -36,7 +35,7 @@ func TestInvoices(t *testing.T) {
 		t.Fatalf("Failed to create invoice: %v", err)
 	}
 
-	invoices, err := tokenisationStore.GetUnconfirmedInvoices(0, 10, buyOfferMintHash, buyOfferOffererAddress)
+	invoices, err := tokenisationStore.GetUnconfirmedInvoices(0, 10, buyOfferMintHash, MintHash)
 	if err != nil {
 		t.Fatalf("Failed to get invoices: %v", err)
 	}
@@ -44,20 +43,18 @@ func TestInvoices(t *testing.T) {
 	assert.Equal(t, len(invoices), 1)
 	assert.Equal(t, invoices[0].Hash, invoiceResponse.Hash)
 	assert.Equal(t, invoices[0].PaymentAddress, invoice.Payload.PaymentAddress)
-	assert.Equal(t, invoices[0].BuyOfferOffererAddress, invoice.Payload.BuyOfferOffererAddress)
-	assert.Equal(t, invoices[0].BuyOfferHash, invoice.Payload.BuyOfferHash)
-	assert.Equal(t, invoices[0].BuyOfferMintHash, invoice.Payload.BuyOfferMintHash)
-	assert.Equal(t, invoices[0].BuyOfferQuantity, invoice.Payload.BuyOfferQuantity)
-	assert.Equal(t, invoices[0].BuyOfferPrice, invoice.Payload.BuyOfferPrice)
-	assert.Equal(t, invoices[0].SellOfferAddress, invoice.Payload.SellOfferAddress)
+	assert.Equal(t, invoices[0].BuyerAddress, invoice.Payload.BuyerAddress)
+	assert.Equal(t, invoices[0].MintHash, invoice.Payload.MintHash)
+	assert.Equal(t, invoices[0].Quantity, invoice.Payload.Quantity)
+	assert.Equal(t, invoices[0].Price, invoice.Payload.Price)
+	assert.Equal(t, invoices[0].SellerAddress, invoice.Payload.SellerAddress)
 
 	assert.Equal(t, len(dogenetClient.invoices), 1)
 	assert.Equal(t, dogenetClient.invoices[0].Hash, invoiceResponse.Hash)
 	assert.Equal(t, dogenetClient.invoices[0].PaymentAddress, invoice.Payload.PaymentAddress)
-	assert.Equal(t, dogenetClient.invoices[0].BuyOfferOffererAddress, invoice.Payload.BuyOfferOffererAddress)
-	assert.Equal(t, dogenetClient.invoices[0].BuyOfferHash, invoice.Payload.BuyOfferHash)
-	assert.Equal(t, dogenetClient.invoices[0].BuyOfferMintHash, invoice.Payload.BuyOfferMintHash)
-	assert.Equal(t, dogenetClient.invoices[0].BuyOfferQuantity, invoice.Payload.BuyOfferQuantity)
-	assert.Equal(t, dogenetClient.invoices[0].BuyOfferPrice, invoice.Payload.BuyOfferPrice)
-	assert.Equal(t, dogenetClient.invoices[0].SellOfferAddress, invoice.Payload.SellOfferAddress)
+	assert.Equal(t, dogenetClient.invoices[0].BuyerAddress, invoice.Payload.BuyerAddress)
+	assert.Equal(t, dogenetClient.invoices[0].MintHash, invoice.Payload.MintHash)
+	assert.Equal(t, dogenetClient.invoices[0].Quantity, invoice.Payload.Quantity)
+	assert.Equal(t, dogenetClient.invoices[0].Price, invoice.Payload.Price)
+	assert.Equal(t, dogenetClient.invoices[0].SellerAddress, invoice.Payload.SellerAddress)
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func (s *TokenisationStore) GetInvoices(offset int, limit int, mintHash string, offererAddress string) ([]Invoice, error) {
-	rows, err := s.DB.Query("SELECT id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address, public_key, signature FROM invoices WHERE buy_offer_mint_hash = $1 AND (buy_offer_offerer_address = $2 OR sell_offer_address = $2) LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
+	rows, err := s.DB.Query("SELECT id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature FROM invoices WHERE mint_hash = $1 AND (buyer_address = $2 OR seller_address = $2) LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +20,7 @@ func (s *TokenisationStore) GetInvoices(offset int, limit int, mintHash string, 
 
 	for rows.Next() {
 		var invoice Invoice
-		if err := rows.Scan(&invoice.Id, &invoice.Hash, &invoice.PaymentAddress, &invoice.BuyOfferOffererAddress, &invoice.BuyOfferHash, &invoice.BuyOfferMintHash, &invoice.BuyOfferQuantity, &invoice.BuyOfferPrice, &invoice.BuyOfferValue, &invoice.CreatedAt, &invoice.SellOfferAddress, &invoice.PublicKey, &invoice.Signature); err != nil {
+		if err := rows.Scan(&invoice.Id, &invoice.Hash, &invoice.PaymentAddress, &invoice.BuyerAddress, &invoice.MintHash, &invoice.Quantity, &invoice.Price, &invoice.CreatedAt, &invoice.SellerAddress, &invoice.PublicKey, &invoice.Signature); err != nil {
 			return nil, err
 		}
 
@@ -35,14 +35,14 @@ func (s *TokenisationStore) GetInvoices(offset int, limit int, mintHash string, 
 }
 
 func (s *TokenisationStore) CountUnconfirmedInvoices(mintHash string, offererAddress string) (int, error) {
-	row := s.DB.QueryRow("SELECT COUNT(*) FROM unconfirmed_invoices WHERE buy_offer_mint_hash = $1 AND buy_offer_offerer_address = $2", mintHash, offererAddress)
+	row := s.DB.QueryRow("SELECT COUNT(*) FROM unconfirmed_invoices WHERE mint_hash = $1 AND buyer_address = $2", mintHash, offererAddress)
 	var count int
 	err := row.Scan(&count)
 	return count, err
 }
 
 func (s *TokenisationStore) GetUnconfirmedInvoices(offset int, limit int, mintHash string, offererAddress string) ([]UnconfirmedInvoice, error) {
-	rows, err := s.DB.Query("SELECT id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address, public_key, signature FROM unconfirmed_invoices WHERE buy_offer_mint_hash = $1 AND buy_offer_offerer_address = $2 LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
+	rows, err := s.DB.Query("SELECT id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature FROM unconfirmed_invoices WHERE mint_hash = $1 AND buyer_address = $2 LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (s *TokenisationStore) GetUnconfirmedInvoices(offset int, limit int, mintHa
 
 	for rows.Next() {
 		var invoice UnconfirmedInvoice
-		if err := rows.Scan(&invoice.Id, &invoice.Hash, &invoice.PaymentAddress, &invoice.BuyOfferOffererAddress, &invoice.BuyOfferHash, &invoice.BuyOfferMintHash, &invoice.BuyOfferQuantity, &invoice.BuyOfferPrice, &invoice.BuyOfferValue, &invoice.CreatedAt, &invoice.SellOfferAddress, &invoice.PublicKey, &invoice.Signature); err != nil {
+		if err := rows.Scan(&invoice.Id, &invoice.Hash, &invoice.PaymentAddress, &invoice.BuyerAddress, &invoice.MintHash, &invoice.Quantity, &invoice.Price, &invoice.CreatedAt, &invoice.SellerAddress, &invoice.PublicKey, &invoice.Signature); err != nil {
 			return nil, err
 		}
 
@@ -70,9 +70,9 @@ func (s *TokenisationStore) SaveUnconfirmedInvoice(invoice *UnconfirmedInvoice) 
 	id := uuid.New().String()
 
 	_, err := s.DB.Exec(`
-	INSERT INTO unconfirmed_invoices (id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address, public_key, signature)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-	`, id, invoice.Hash, invoice.PaymentAddress, invoice.BuyOfferOffererAddress, invoice.BuyOfferHash, invoice.BuyOfferMintHash, invoice.BuyOfferQuantity, invoice.BuyOfferPrice, invoice.BuyOfferValue, invoice.CreatedAt, invoice.SellOfferAddress, invoice.PublicKey, invoice.Signature)
+	INSERT INTO unconfirmed_invoices (id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`, id, invoice.Hash, invoice.PaymentAddress, invoice.BuyerAddress, invoice.MintHash, invoice.Quantity, invoice.Price, invoice.CreatedAt, invoice.SellerAddress, invoice.PublicKey, invoice.Signature)
 
 	return id, err
 }
@@ -85,15 +85,15 @@ func (s *TokenisationStore) SaveInvoiceWithTx(invoice *Invoice, tx *sql.Tx) (str
 	id := uuid.New().String()
 
 	query := `
-	INSERT INTO invoices (id, hash, payment_address, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address, block_height, transaction_hash, public_key, signature)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+	INSERT INTO invoices (id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, block_height, transaction_hash, public_key, signature)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`
 
 	var err error
 	if tx != nil {
-		_, err = tx.Exec(query, id, invoice.Hash, invoice.PaymentAddress, invoice.BuyOfferOffererAddress, invoice.BuyOfferHash, invoice.BuyOfferMintHash, invoice.BuyOfferQuantity, invoice.BuyOfferPrice, invoice.BuyOfferValue, invoice.CreatedAt, invoice.SellOfferAddress, invoice.BlockHeight, invoice.TransactionHash, invoice.PublicKey, invoice.Signature)
+		_, err = tx.Exec(query, id, invoice.Hash, invoice.PaymentAddress, invoice.BuyerAddress, invoice.MintHash, invoice.Quantity, invoice.Price, invoice.CreatedAt, invoice.SellerAddress, invoice.BlockHeight, invoice.TransactionHash, invoice.PublicKey, invoice.Signature)
 	} else {
-		_, err = s.DB.Exec(query, id, invoice.Hash, invoice.PaymentAddress, invoice.BuyOfferOffererAddress, invoice.BuyOfferHash, invoice.BuyOfferMintHash, invoice.BuyOfferQuantity, invoice.BuyOfferPrice, invoice.BuyOfferValue, invoice.CreatedAt, invoice.SellOfferAddress, invoice.BlockHeight, invoice.TransactionHash, invoice.PublicKey, invoice.Signature)
+		_, err = s.DB.Exec(query, id, invoice.Hash, invoice.PaymentAddress, invoice.BuyerAddress, invoice.MintHash, invoice.Quantity, invoice.Price, invoice.CreatedAt, invoice.SellerAddress, invoice.BlockHeight, invoice.TransactionHash, invoice.PublicKey, invoice.Signature)
 	}
 
 	return id, err
@@ -146,7 +146,7 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 	}
 	defer tx.Rollback()
 
-	rows, err := tx.Query("SELECT id, hash, buy_offer_offerer_address, buy_offer_hash, buy_offer_mint_hash, buy_offer_quantity, buy_offer_price, buy_offer_value, created_at, sell_offer_address, public_key, signature FROM unconfirmed_invoices WHERE hash = $1", onchainMessage.InvoiceHash)
+	rows, err := tx.Query("SELECT id, hash, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature FROM unconfirmed_invoices WHERE hash = $1", onchainMessage.InvoiceHash)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 	var unconfirmedInvoice UnconfirmedInvoice
 	if rows.Next() {
 		if err := rows.Scan(
-			&unconfirmedInvoice.Id, &unconfirmedInvoice.Hash, &unconfirmedInvoice.BuyOfferOffererAddress, &unconfirmedInvoice.BuyOfferHash, &unconfirmedInvoice.BuyOfferMintHash, &unconfirmedInvoice.BuyOfferQuantity, &unconfirmedInvoice.BuyOfferPrice, &unconfirmedInvoice.BuyOfferValue, &unconfirmedInvoice.CreatedAt, &unconfirmedInvoice.SellOfferAddress, &unconfirmedInvoice.PublicKey, &unconfirmedInvoice.Signature); err != nil {
+			&unconfirmedInvoice.Id, &unconfirmedInvoice.Hash, &unconfirmedInvoice.BuyerAddress, &unconfirmedInvoice.MintHash, &unconfirmedInvoice.Quantity, &unconfirmedInvoice.Price, &unconfirmedInvoice.CreatedAt, &unconfirmedInvoice.SellerAddress, &unconfirmedInvoice.PublicKey, &unconfirmedInvoice.Signature); err != nil {
 			return err
 		}
 	} else {
@@ -164,31 +164,29 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 
 	rows.Close()
 
-	pendingTokenBalance, err := s.GetPendingTokenBalance(unconfirmedInvoice.Hash, unconfirmedInvoice.BuyOfferMintHash, tx)
+	pendingTokenBalance, err := s.GetPendingTokenBalance(unconfirmedInvoice.Hash, unconfirmedInvoice.MintHash, tx)
 	if err != nil {
 		return err
 	}
 
-	if pendingTokenBalance.Quantity < unconfirmedInvoice.BuyOfferQuantity {
-		return fmt.Errorf("pending token balance is less than the buy offer quantity: %d < %d", pendingTokenBalance.Quantity, unconfirmedInvoice.BuyOfferQuantity)
+	if pendingTokenBalance.Quantity < unconfirmedInvoice.Quantity {
+		return fmt.Errorf("pending token balance is less than the buy offer quantity: %d < %d", pendingTokenBalance.Quantity, unconfirmedInvoice.Quantity)
 	}
 
 	// Use transaction-aware SaveInvoice
 	id, err := s.SaveInvoiceWithTx(&Invoice{
-		Hash:                   unconfirmedInvoice.Hash,
-		PaymentAddress:         unconfirmedInvoice.PaymentAddress,
-		BuyOfferOffererAddress: unconfirmedInvoice.BuyOfferOffererAddress,
-		BuyOfferHash:           unconfirmedInvoice.BuyOfferHash,
-		BuyOfferMintHash:       unconfirmedInvoice.BuyOfferMintHash,
-		BuyOfferQuantity:       unconfirmedInvoice.BuyOfferQuantity,
-		BuyOfferPrice:          unconfirmedInvoice.BuyOfferPrice,
-		CreatedAt:              unconfirmedInvoice.CreatedAt,
-		SellOfferAddress:       unconfirmedInvoice.SellOfferAddress,
-		BuyOfferValue:          unconfirmedInvoice.BuyOfferValue,
-		PublicKey:              unconfirmedInvoice.PublicKey,
-		Signature:              unconfirmedInvoice.Signature,
-		BlockHeight:            onchainTransaction.Height,
-		TransactionHash:        onchainTransaction.TxHash,
+		Hash:            unconfirmedInvoice.Hash,
+		PaymentAddress:  unconfirmedInvoice.PaymentAddress,
+		BuyerAddress:    unconfirmedInvoice.BuyerAddress,
+		MintHash:        unconfirmedInvoice.MintHash,
+		Quantity:        unconfirmedInvoice.Quantity,
+		Price:           unconfirmedInvoice.Price,
+		CreatedAt:       unconfirmedInvoice.CreatedAt,
+		SellerAddress:   unconfirmedInvoice.SellerAddress,
+		PublicKey:       unconfirmedInvoice.PublicKey,
+		Signature:       unconfirmedInvoice.Signature,
+		BlockHeight:     onchainTransaction.Height,
+		TransactionHash: onchainTransaction.TxHash,
 	}, tx)
 
 	if err != nil {

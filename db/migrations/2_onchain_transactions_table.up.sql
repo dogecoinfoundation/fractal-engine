@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS onchain_transactions (
     id TEXT PRIMARY KEY,
     tx_hash TEXT NOT NULL,
     block_height BIGINT NOT NULL,
+    block_hash TEXT NOT NULL,
     transaction_number INTEGER NOT NULL,
     action_type TEXT NOT NULL,
     action_version INTEGER NOT NULL,

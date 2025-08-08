@@ -18,10 +18,11 @@ var ownerAddress = support.GenerateDogecoinAddress(true)
 
 func TestMintMatch(t *testing.T) {
 	tokenisationStore := test_support.SetupTestDB()
+	rpcClient := support.NewTestDogeClient(t)
 
 	hash := CreateUnconfirmedMint(t, support.GenerateRandomHash(), tokenisationStore)
 
-	processor := service.NewFractalEngineProcessor(tokenisationStore)
+	processor := service.NewFractalEngineProcessor(tokenisationStore, rpcClient)
 	processor.Process()
 
 	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
@@ -29,10 +30,11 @@ func TestMintMatch(t *testing.T) {
 
 func TestInvoiceMatch(t *testing.T) {
 	tokenisationStore := test_support.SetupTestDB()
+	rpcClient := support.NewTestDogeClient(t)
 
 	hash := CreateUnconfirmedMint(t, support.GenerateRandomHash(), tokenisationStore)
 
-	processor := service.NewFractalEngineProcessor(tokenisationStore)
+	processor := service.NewFractalEngineProcessor(tokenisationStore, rpcClient)
 	processor.Process()
 
 	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
@@ -50,13 +52,13 @@ func TestInvoiceMatch(t *testing.T) {
 	CreateOnChainInvoiceMessage(t, txHash3, 1, 1, ownerAddress, ownerAddress, invoiceHash2, hash, 90, tokenisationStore)
 	processor.Process()
 
-	SaveUnconfirmedInvoice(t, ownerAddress, buyerAddress, invoiceHash, hash, 50, 100, tokenisationStore)
+	SaveUnconfirmedInvoice(t, ownerAddress, buyerAddress, invoiceHash, hash, 50, tokenisationStore)
 	processor.Process()
 
 	AssertTokenBalance(t, ownerAddress, hash, 100, tokenisationStore)
 	AssertPendingTokenBalance(t, invoiceHash, hash, 50, tokenisationStore)
 
-	CreateOnChainPaymentMessage(t, txHash4, invoiceHash, ownerAddress, 1, 1, 100, tokenisationStore)
+	CreateOnChainPaymentMessage(t, txHash4, invoiceHash, ownerAddress, 1, 1, 50*100, tokenisationStore)
 	processor.Process()
 
 	AssertTokenBalance(t, buyerAddress, hash, 50, tokenisationStore)
@@ -65,10 +67,11 @@ func TestInvoiceMatch(t *testing.T) {
 
 func TestInvoiceMatchEarlierBlockHeightAndTransactionNumber(t *testing.T) {
 	tokenisationStore := test_support.SetupTestDB()
+	rpcClient := support.NewTestDogeClient(t)
 
 	hash := CreateUnconfirmedMint(t, support.GenerateRandomHash(), tokenisationStore)
 
-	processor := service.NewFractalEngineProcessor(tokenisationStore)
+	processor := service.NewFractalEngineProcessor(tokenisationStore, rpcClient)
 	processor.Process()
 
 	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
@@ -91,10 +94,11 @@ func TestInvoiceMatchEarlierBlockHeightAndTransactionNumber(t *testing.T) {
 
 func TestPaymentIsLessThanExpected(t *testing.T) {
 	tokenisationStore := test_support.SetupTestDB()
+	rpcClient := support.NewTestDogeClient(t)
 
 	hash := CreateUnconfirmedMint(t, support.GenerateRandomHash(), tokenisationStore)
 
-	processor := service.NewFractalEngineProcessor(tokenisationStore)
+	processor := service.NewFractalEngineProcessor(tokenisationStore, rpcClient)
 	processor.Process()
 
 	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
@@ -105,7 +109,7 @@ func TestPaymentIsLessThanExpected(t *testing.T) {
 	txHash3 := support.GenerateDogecoinAddress(true)
 
 	CreateOnChainInvoiceMessage(t, txHash2, 3, 1, ownerAddress, ownerAddress, invoiceHash, hash, 50, tokenisationStore)
-	SaveUnconfirmedInvoice(t, ownerAddress, buyerAddress, invoiceHash, hash, 50, 75, tokenisationStore)
+	SaveUnconfirmedInvoice(t, ownerAddress, buyerAddress, invoiceHash, hash, 50, tokenisationStore)
 
 	processor.Process()
 
@@ -120,11 +124,12 @@ func TestPaymentIsLessThanExpected(t *testing.T) {
 
 func TestInvoiceTimesOutAfter14BlockDays(t *testing.T) {
 	tokenisationStore := test_support.SetupTestDB()
+	rpcClient := support.NewTestDogeClient(t)
 
 	hash := CreateUnconfirmedMint(t, support.GenerateRandomHash(), tokenisationStore)
 
 	invoiceTimeoutProcessor := service.NewInvoiceTimeoutProcessor(tokenisationStore)
-	processor := service.NewFractalEngineProcessor(tokenisationStore)
+	processor := service.NewFractalEngineProcessor(tokenisationStore, rpcClient)
 	processor.Process()
 
 	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
@@ -144,10 +149,11 @@ func TestInvoiceTimesOutAfter14BlockDays(t *testing.T) {
 
 func TestInvoiceCreationNotFromSeller(t *testing.T) {
 	tokenisationStore := test_support.SetupTestDB()
+	rpcClient := support.NewTestDogeClient(t)
 
 	hash := CreateUnconfirmedMint(t, support.GenerateRandomHash(), tokenisationStore)
 
-	processor := service.NewFractalEngineProcessor(tokenisationStore)
+	processor := service.NewFractalEngineProcessor(tokenisationStore, rpcClient)
 	processor.Process()
 
 	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
@@ -213,24 +219,22 @@ func CreateOnChainPaymentMessage(t *testing.T, trxnHash string, invoiceHash stri
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, blockHeight, trxnNo, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedMessage3, ownerAddress, value)
+	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, blockHeight, "blockHash", trxnNo, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedMessage3, ownerAddress, value)
 	if err != nil {
 		t.Fatalf("Failed to save on chain transaction: %v", err)
 	}
 }
 
-func SaveUnconfirmedInvoice(t *testing.T, ownerAddress string, buyerAddress string, invoiceHash string, mintHash string, quantity int, totalValue int, tokenisationStore *store.TokenisationStore) {
+func SaveUnconfirmedInvoice(t *testing.T, ownerAddress string, buyerAddress string, invoiceHash string, mintHash string, quantity int, tokenisationStore *store.TokenisationStore) {
 	_, err := tokenisationStore.SaveUnconfirmedInvoice(&store.UnconfirmedInvoice{
-		Hash:                   invoiceHash,
-		PaymentAddress:         ownerAddress,
-		BuyOfferOffererAddress: buyerAddress,
-		BuyOfferHash:           support.GenerateRandomHash(),
-		BuyOfferMintHash:       mintHash,
-		BuyOfferQuantity:       quantity,
-		BuyOfferPrice:          100,
-		BuyOfferValue:          float64(totalValue),
-		CreatedAt:              time.Now(),
-		SellOfferAddress:       ownerAddress,
+		Hash:           invoiceHash,
+		PaymentAddress: ownerAddress,
+		BuyerAddress:   buyerAddress,
+		MintHash:       mintHash,
+		Quantity:       quantity,
+		Price:          100,
+		CreatedAt:      time.Now(),
+		SellerAddress:  ownerAddress,
 	})
 
 	if err != nil {
@@ -241,10 +245,10 @@ func SaveUnconfirmedInvoice(t *testing.T, ownerAddress string, buyerAddress stri
 
 func CreateOnChainInvoiceMessage(t *testing.T, trxnHash string, blockHeight int64, trxnNo int, ownerAddress string, sellOfferAddress string, invoiceHash string, mintHash string, quantity int, tokenisationStore *store.TokenisationStore) {
 	message := protocol.OnChainInvoiceMessage{
-		SellOfferAddress: sellOfferAddress,
-		InvoiceHash:      invoiceHash,
-		MintHash:         mintHash,
-		Quantity:         int32(quantity),
+		SellerAddress: sellOfferAddress,
+		InvoiceHash:   invoiceHash,
+		MintHash:      mintHash,
+		Quantity:      int32(quantity),
 	}
 
 	encodedMessage, err := proto.Marshal(&message)
@@ -252,7 +256,7 @@ func CreateOnChainInvoiceMessage(t *testing.T, trxnHash string, blockHeight int6
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, blockHeight, trxnNo, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedMessage, ownerAddress, float64(quantity))
+	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, blockHeight, "blockHash", trxnNo, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedMessage, ownerAddress, float64(quantity))
 	if err != nil {
 		t.Fatalf("Failed to save on chain transaction: %v", err)
 	}
@@ -308,7 +312,7 @@ func CreateUnconfirmedMint(t *testing.T, trxnHash string, tokenisationStore *sto
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, 1, 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMessage, ownerAddress, 100)
+	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMessage, ownerAddress, 100)
 	if err != nil {
 		t.Fatalf("Failed to save on chain transaction: %v", err)
 	}

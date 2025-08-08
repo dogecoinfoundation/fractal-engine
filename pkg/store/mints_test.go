@@ -7,8 +7,8 @@ import (
 	"dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"gotest.tools/assert"
 	"google.golang.org/protobuf/proto"
+	"gotest.tools/assert"
 )
 
 func TestSaveMint(t *testing.T) {
@@ -87,7 +87,7 @@ func TestGetMints(t *testing.T) {
 	// Save multiple mints
 	for i := 0; i < 5; i++ {
 		mint := &store.MintWithoutID{
-			Hash:          string(rune(i + 65)) + "hash",
+			Hash:          string(rune(i+65)) + "hash",
 			Title:         string(rune(i+65)) + " Mint",
 			FractionCount: (i + 1) * 100,
 			Description:   "Test mint " + string(rune(i+65)),
@@ -319,7 +319,7 @@ func TestMatchMint(t *testing.T) {
 	assert.NilError(t, err)
 
 	// Save onchain transaction
-	txId, err := db.SaveOnChainTransaction("matchTxHash", 1000, 1, protocol.ACTION_MINT, 1, actionData, "addr", 0)
+	txId, err := db.SaveOnChainTransaction("matchTxHash", 1000, "blockHash", 1, protocol.ACTION_MINT, 1, actionData, "addr", 0)
 	assert.NilError(t, err)
 
 	// Create OnChainTransaction
@@ -372,7 +372,7 @@ func TestMatchUnconfirmedMint(t *testing.T) {
 	assert.NilError(t, err)
 
 	// Save onchain transaction
-	txId, err := db.SaveOnChainTransaction("confirmTxHash", 2000, 1, protocol.ACTION_MINT, 1, actionData, "confirmedAddr", 0)
+	txId, err := db.SaveOnChainTransaction("confirmTxHash", 2000, "blockHash", 1, protocol.ACTION_MINT, 1, actionData, "confirmedAddr", 0)
 	assert.NilError(t, err)
 
 	// Create OnChainTransaction

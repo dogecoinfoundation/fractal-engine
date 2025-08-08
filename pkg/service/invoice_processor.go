@@ -34,31 +34,31 @@ func (p *InvoiceProcessor) Process(tx store.OnChainTransaction) error {
 		log.Println("Error unmarshalling invoice:", err)
 		return err
 	}
-	
+
 	// Validate protobuf content
-	if err := validation.ValidateProtobufAddress(invoice.SellOfferAddress); err != nil {
+	if err := validation.ValidateProtobufAddress(invoice.SellerAddress); err != nil {
 		log.Printf("Invalid sell offer address in protobuf: %v", err)
 		return err
 	}
-	
+
 	if err := validation.ValidateProtobufHash(invoice.InvoiceHash); err != nil {
 		log.Printf("Invalid invoice hash in protobuf: %v", err)
 		return err
 	}
-	
+
 	if err := validation.ValidateProtobufHash(invoice.MintHash); err != nil {
 		log.Printf("Invalid mint hash in protobuf: %v", err)
 		return err
 	}
-	
+
 	if err := validation.ValidateProtobufQuantity(invoice.Quantity); err != nil {
 		log.Printf("Invalid quantity in protobuf: %v", err)
 		return err
 	}
 
-	if tx.Address != invoice.SellOfferAddress {
+	if tx.Address != invoice.SellerAddress {
 		log.Println("Invoice not from seller, discarding")
-		
+
 		// Start transaction for atomic removal
 		dbTx, err := p.store.DB.Begin()
 		if err != nil {
@@ -118,13 +118,13 @@ func (p *InvoiceProcessor) EnsurePendingTokenBalance(tx store.OnChainTransaction
 		log.Println("Error unmarshalling invoice:", err)
 		return false, err
 	}
-	
+
 	// Validate protobuf content (basic validation since full validation is done in Process)
 	if err := validation.ValidateProtobufHash(invoice.InvoiceHash); err != nil {
 		log.Printf("Invalid invoice hash in protobuf: %v", err)
 		return false, err
 	}
-	
+
 	if err := validation.ValidateProtobufHash(invoice.MintHash); err != nil {
 		log.Printf("Invalid mint hash in protobuf: %v", err)
 		return false, err
@@ -145,13 +145,13 @@ func (p *InvoiceProcessor) EnsurePendingTokenBalance(tx store.OnChainTransaction
 		return true, nil
 	}
 
-	tokenBalances, err := p.store.GetTokenBalances(invoice.SellOfferAddress, invoice.MintHash)
+	tokenBalances, err := p.store.GetTokenBalances(invoice.SellerAddress, invoice.MintHash)
 	if err != nil {
 		log.Println("Error getting token balance:", err)
 		return false, err
 	}
 
-	pendingTokenBalanceTotal, err := p.store.GetPendingTokenBalanceTotalForMintAndOwner(invoice.MintHash, invoice.SellOfferAddress)
+	pendingTokenBalanceTotal, err := p.store.GetPendingTokenBalanceTotalForMintAndOwner(invoice.MintHash, invoice.SellerAddress)
 	if err != nil {
 		log.Println("Error getting pending token balance total:", err)
 		return false, err
@@ -166,9 +166,9 @@ func (p *InvoiceProcessor) EnsurePendingTokenBalance(tx store.OnChainTransaction
 
 	if tokenBalanceAvailable >= int(invoice.Quantity) {
 		log.Println("Token balance is enough")
-		
+
 		// Use transaction-aware UpsertPendingTokenBalance
-		err = p.store.UpsertPendingTokenBalanceWithTx(invoice.InvoiceHash, invoice.MintHash, int(invoice.Quantity), tx.Id, invoice.SellOfferAddress, dbTx)
+		err = p.store.UpsertPendingTokenBalanceWithTx(invoice.InvoiceHash, invoice.MintHash, int(invoice.Quantity), tx.Id, invoice.SellerAddress, dbTx)
 		if err != nil {
 			log.Println("Error inserting pending token balance:", err)
 			return false, err

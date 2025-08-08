@@ -71,7 +71,7 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 
 	mintHash := validation.SanitizeQueryParam(r.URL.Query().Get("mint_hash"))
 	offererAddress := validation.SanitizeQueryParam(r.URL.Query().Get("offerer_address"))
-	
+
 	// Validate parameters if provided
 	if mintHash != "" {
 		if err := validation.ValidateHash(mintHash); err != nil {
@@ -79,7 +79,7 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	
+
 	if offererAddress != "" {
 		if err := validation.ValidateAddress(offererAddress); err != nil {
 			http.Error(w, "Invalid offerer_address format", http.StatusBadRequest)
@@ -141,7 +141,7 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	count, err := ir.store.CountUnconfirmedInvoices(request.Payload.BuyOfferMintHash, request.Payload.BuyOfferOffererAddress)
+	count, err := ir.store.CountUnconfirmedInvoices(request.Payload.MintHash, request.Payload.BuyerAddress)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -153,15 +153,14 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newInvoiceWithoutId := &store.UnconfirmedInvoice{
-		BuyOfferHash:           request.Payload.BuyOfferHash,
-		BuyOfferMintHash:       request.Payload.BuyOfferMintHash,
-		BuyOfferQuantity:       request.Payload.BuyOfferQuantity,
-		BuyOfferPrice:          request.Payload.BuyOfferPrice,
-		BuyOfferOffererAddress: request.Payload.BuyOfferOffererAddress,
-		PaymentAddress:         request.Payload.PaymentAddress,
-		CreatedAt:              time.Now(),
-		SellOfferAddress:       request.Payload.SellOfferAddress,
-		PublicKey:              request.PublicKey,
+		MintHash:       request.Payload.MintHash,
+		Quantity:       request.Payload.Quantity,
+		Price:          request.Payload.Price,
+		BuyerAddress:   request.Payload.BuyerAddress,
+		PaymentAddress: request.Payload.PaymentAddress,
+		CreatedAt:      time.Now(),
+		SellerAddress:  request.Payload.SellerAddress,
+		PublicKey:      request.PublicKey,
 	}
 
 	newInvoiceWithoutId.Hash, err = newInvoiceWithoutId.GenerateHash()

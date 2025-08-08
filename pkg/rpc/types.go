@@ -365,13 +365,12 @@ type CreateInvoiceRequest struct {
 }
 
 type CreateInvoiceRequestPayload struct {
-	PaymentAddress         string `json:"payment_address"`
-	BuyOfferOffererAddress string `json:"buy_offer_offerer_address"`
-	BuyOfferHash           string `json:"buy_offer_hash"`
-	BuyOfferMintHash       string `json:"buy_offer_mint_hash"`
-	BuyOfferQuantity       int    `json:"buy_offer_quantity"`
-	BuyOfferPrice          int    `json:"buy_offer_price"`
-	SellOfferAddress       string `json:"sell_offer_address"`
+	PaymentAddress string `json:"payment_address"`
+	BuyerAddress   string `json:"buyer_address"`
+	MintHash       string `json:"mint_hash"`
+	Quantity       int    `json:"quantity"`
+	Price          int    `json:"price"`
+	SellerAddress  string `json:"seller_address"`
 }
 
 func (req *CreateInvoiceRequest) Validate() error {
@@ -379,27 +378,23 @@ func (req *CreateInvoiceRequest) Validate() error {
 		return fmt.Errorf("invalid payment_address: %w", err)
 	}
 
-	if err := validation.ValidateAddress(req.Payload.BuyOfferOffererAddress); err != nil {
-		return fmt.Errorf("invalid buy_offer_offerer_address: %w", err)
+	if err := validation.ValidateAddress(req.Payload.BuyerAddress); err != nil {
+		return fmt.Errorf("invalid buyer_address: %w", err)
 	}
 
-	if err := validation.ValidateAddress(req.Payload.SellOfferAddress); err != nil {
-		return fmt.Errorf("invalid sell_offer_address: %w", err)
+	if err := validation.ValidateAddress(req.Payload.SellerAddress); err != nil {
+		return fmt.Errorf("invalid seller_address: %w", err)
 	}
 
-	if err := validation.ValidateHash(req.Payload.BuyOfferHash); err != nil {
-		return fmt.Errorf("invalid buy_offer_hash: %w", err)
+	if err := validation.ValidateHash(req.Payload.MintHash); err != nil {
+		return fmt.Errorf("invalid mint_hash: %w", err)
 	}
 
-	if err := validation.ValidateHash(req.Payload.BuyOfferMintHash); err != nil {
-		return fmt.Errorf("invalid buy_offer_mint_hash: %w", err)
-	}
-
-	if err := validation.ValidateQuantity("buy_offer_quantity", req.Payload.BuyOfferQuantity); err != nil {
+	if err := validation.ValidateQuantity("quantity", req.Payload.Quantity); err != nil {
 		return err
 	}
 
-	if err := validation.ValidatePrice("buy_offer_price", req.Payload.BuyOfferPrice); err != nil {
+	if err := validation.ValidatePrice("price", req.Payload.Price); err != nil {
 		return err
 	}
 

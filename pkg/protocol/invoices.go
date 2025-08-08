@@ -12,11 +12,11 @@ type InvoiceTransaction struct {
 
 func NewInvoiceTransactionEnvelope(hash string, sellOfferAddress string, mintHash string, quantity int32, action uint8) MessageEnvelope {
 	message := &OnChainInvoiceMessage{
-		Version:          DEFAULT_VERSION,
-		InvoiceHash:      hash,
-		SellOfferAddress: sellOfferAddress,
-		MintHash:         mintHash,
-		Quantity:         quantity,
+		Version:       DEFAULT_VERSION,
+		InvoiceHash:   hash,
+		SellerAddress: sellOfferAddress,
+		MintHash:      mintHash,
+		Quantity:      quantity,
 	}
 
 	protoBytes, err := proto.Marshal(message)

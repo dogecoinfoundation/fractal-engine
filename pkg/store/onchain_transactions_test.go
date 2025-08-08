@@ -19,7 +19,7 @@ func TestSaveOnChainTransaction(t *testing.T) {
 	address := "DTestAddress123"
 	value := 100.5
 
-	id, err := db.SaveOnChainTransaction(txHash, height, transactionNumber, actionType, actionVersion, actionData, address, value)
+	id, err := db.SaveOnChainTransaction(txHash, height, "blockHash", transactionNumber, actionType, actionVersion, actionData, address, value)
 	assert.NilError(t, err)
 	assert.Assert(t, id != "")
 
@@ -41,11 +41,11 @@ func TestGetOldOnchainTransactions(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save transactions at different block heights
-	_, err := db.SaveOnChainTransaction("tx1", 100, 1, 1, 1, []byte("data1"), "addr1", 10.0)
+	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", 10.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx2", 200, 1, 1, 1, []byte("data2"), "addr2", 20.0)
+	_, err = db.SaveOnChainTransaction("tx2", 200, "blockHash", 1, 1, 1, []byte("data2"), "addr2", 20.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx3", 300, 1, 1, 1, []byte("data3"), "addr3", 30.0)
+	_, err = db.SaveOnChainTransaction("tx3", 300, "blockHash", 1, 1, 1, []byte("data3"), "addr3", 30.0)
 	assert.NilError(t, err)
 
 	// Get transactions older than block height 250
@@ -60,11 +60,11 @@ func TestTrimOldOnChainTransactions(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save transactions at different block heights
-	_, err := db.SaveOnChainTransaction("tx1", 100, 1, 1, 1, []byte("data1"), "addr1", 10.0)
+	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", 10.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx2", 200, 1, 1, 1, []byte("data2"), "addr2", 20.0)
+	_, err = db.SaveOnChainTransaction("tx2", 200, "blockHash", 1, 1, 1, []byte("data2"), "addr2", 20.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx3", 300, 1, 1, 1, []byte("data3"), "addr3", 30.0)
+	_, err = db.SaveOnChainTransaction("tx3", 300, "blockHash", 1, 1, 1, []byte("data3"), "addr3", 30.0)
 	assert.NilError(t, err)
 
 	// Trim transactions older than block height 250
@@ -82,7 +82,7 @@ func TestRemoveOnChainTransaction(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save a transaction
-	id, err := db.SaveOnChainTransaction("tx1", 100, 1, 1, 1, []byte("data1"), "addr1", 10.0)
+	id, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", 10.0)
 	assert.NilError(t, err)
 
 	// Remove the transaction
@@ -99,11 +99,11 @@ func TestCountOnChainTransactions(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save transactions at different block heights
-	_, err := db.SaveOnChainTransaction("tx1", 100, 1, 1, 1, []byte("data1"), "addr1", 10.0)
+	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", 10.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx2", 100, 2, 1, 1, []byte("data2"), "addr2", 20.0)
+	_, err = db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 1, 1, []byte("data2"), "addr2", 20.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx3", 200, 1, 1, 1, []byte("data3"), "addr3", 30.0)
+	_, err = db.SaveOnChainTransaction("tx3", 200, "blockHash", 1, 1, 1, []byte("data3"), "addr3", 30.0)
 	assert.NilError(t, err)
 
 	// Count transactions at block height 100
@@ -126,15 +126,15 @@ func TestGetOnChainTransactionsPagination(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save 5 transactions with different heights and transaction numbers
-	_, err := db.SaveOnChainTransaction("tx1", 100, 1, 1, 1, []byte("data1"), "addr1", 10.0)
+	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", 10.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx2", 100, 2, 1, 1, []byte("data2"), "addr2", 20.0)
+	_, err = db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 1, 1, []byte("data2"), "addr2", 20.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx3", 200, 1, 1, 1, []byte("data3"), "addr3", 30.0)
+	_, err = db.SaveOnChainTransaction("tx3", 200, "blockHash", 1, 1, 1, []byte("data3"), "addr3", 30.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx4", 200, 2, 1, 1, []byte("data4"), "addr4", 40.0)
+	_, err = db.SaveOnChainTransaction("tx4", 200, "blockHash", 2, 1, 1, []byte("data4"), "addr4", 40.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx5", 300, 1, 1, 1, []byte("data5"), "addr5", 50.0)
+	_, err = db.SaveOnChainTransaction("tx5", 300, "blockHash", 1, 1, 1, []byte("data5"), "addr5", 50.0)
 	assert.NilError(t, err)
 
 	// Test pagination - first page
@@ -162,13 +162,13 @@ func TestGetOnChainTransactionsOrdering(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save transactions out of order
-	_, err := db.SaveOnChainTransaction("tx1", 200, 2, 1, 1, []byte("data1"), "addr1", 10.0)
+	_, err := db.SaveOnChainTransaction("tx1", 200, "blockHash", 2, 1, 1, []byte("data1"), "addr1", 10.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx2", 100, 2, 1, 1, []byte("data2"), "addr2", 20.0)
+	_, err = db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 1, 1, []byte("data2"), "addr2", 20.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx3", 200, 1, 1, 1, []byte("data3"), "addr3", 30.0)
+	_, err = db.SaveOnChainTransaction("tx3", 200, "blockHash", 1, 1, 1, []byte("data3"), "addr3", 30.0)
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx4", 100, 1, 1, 1, []byte("data4"), "addr4", 40.0)
+	_, err = db.SaveOnChainTransaction("tx4", 100, "blockHash", 1, 1, 1, []byte("data4"), "addr4", 40.0)
 	assert.NilError(t, err)
 
 	// Get all transactions and verify ordering
@@ -187,12 +187,12 @@ func TestOnChainTransactionEdgeCases(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Test with empty action data
-	id, err := db.SaveOnChainTransaction("tx1", 100, 1, 1, 1, []byte{}, "addr1", 0.0)
+	id, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte{}, "addr1", 0.0)
 	assert.NilError(t, err)
 	assert.Assert(t, id != "")
 
 	// Test with zero value
-	id2, err := db.SaveOnChainTransaction("tx2", 100, 2, 0, 0, []byte("data"), "addr2", 0.0)
+	id2, err := db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 0, 0, []byte("data"), "addr2", 0.0)
 	assert.NilError(t, err)
 	assert.Assert(t, id2 != "")
 

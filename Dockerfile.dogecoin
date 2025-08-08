@@ -1,10 +1,18 @@
 FROM debian:latest
-RUN apt update && apt upgrade -y && apt install -y curl gpg ca-certificates tar dirmngr
+RUN apt update && apt upgrade -y && apt install -y curl gpg ca-certificates tar dirmngr gettext-base netcat-traditional
 RUN curl -o dogecoin.tar.gz -Lk https://github.com/dogecoin/dogecoin/releases/download/v1.14.9/dogecoin-1.14.9-x86_64-linux-gnu.tar.gz
 RUN tar -xvf dogecoin.tar.gz
 RUN rm dogecoin.tar.gz
 RUN install -m 0755 -o root -g root -t /usr/local/bin dogecoin-1.14.9/bin/*
-EXPOSE 22556
 
-COPY regtest.conf /dogecoin.conf
-CMD ["dogecoind", "-printtoconsole", "-regtest", "-reindex-chainstate", "-min", "-splash=0", "-conf=/dogecoin.conf"]
+# Set default environment variables
+ENV RPC_USER=test
+ENV RPC_PASSWORD=test
+ENV RPC_PORT=22556
+
+# Port will be exposed via docker-compose
+
+COPY regtest.conf /regtest.conf.template
+CMD envsubst < /regtest.conf.template > /dogecoin.conf && \
+    echo "Generated dogecoin.conf:" && cat /dogecoin.conf && \
+    dogecoind -printtoconsole -regtest -reindex-chainstate -min -splash=0 -conf=/dogecoin.conf

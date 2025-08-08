@@ -12,29 +12,25 @@ import (
 )
 
 func TestInvoiceGenerateHash(t *testing.T) {
-	buyOfferOffererAddress := support.GenerateDogecoinAddress(true)
+	MintHash := support.GenerateDogecoinAddress(true)
 	sellOfferAddress := support.GenerateDogecoinAddress(true)
 
 	invoice := store.UnconfirmedInvoice{
-		BuyOfferHash:           "buyOfferHash",
-		BuyOfferMintHash:       "buyOfferMintHash",
-		BuyOfferQuantity:       100,
-		BuyOfferPrice:          20,
-		BuyOfferOffererAddress: buyOfferOffererAddress,
-		SellOfferAddress:       sellOfferAddress,
-		BuyOfferValue:          30,
-		PublicKey:              "publicKey",
+		MintHash:      "buyOfferMintHash",
+		Quantity:      100,
+		Price:         20,
+		BuyerAddress:  MintHash,
+		SellerAddress: sellOfferAddress,
+		PublicKey:     "publicKey",
 	}
 
 	inputHash := store.UnconfirmedInvoiceHash{
-		BuyOfferHash:           invoice.BuyOfferHash,
-		BuyOfferMintHash:       invoice.BuyOfferMintHash,
-		BuyOfferQuantity:       invoice.BuyOfferQuantity,
-		BuyOfferPrice:          invoice.BuyOfferPrice,
-		BuyOfferOffererAddress: invoice.BuyOfferOffererAddress,
-		SellOfferAddress:       invoice.SellOfferAddress,
-		BuyOfferValue:          invoice.BuyOfferValue,
-		PublicKey:              invoice.PublicKey,
+		MintHash:      invoice.MintHash,
+		Quantity:      invoice.Quantity,
+		Price:         invoice.Price,
+		BuyerAddress:  invoice.BuyerAddress,
+		SellerAddress: invoice.SellerAddress,
+		PublicKey:     invoice.PublicKey,
 	}
 
 	invoiceBytes, err := json.Marshal(inputHash)

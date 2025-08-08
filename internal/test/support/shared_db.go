@@ -112,7 +112,7 @@ func SetupTestDBShared() *store.TokenisationStore {
 
 	log.Printf("Using shared database: %s\n", newConnStr)
 
-	paths := []string{"../../../db/migrations", "../../db/migrations", "../../../../db/migrations"}
+	paths := []string{"db/migrations", "../db/migrations", "../../db/migrations", "../../../db/migrations", "../../../../db/migrations", "../../../../../db/migrations"}
 
 	var validPath string
 

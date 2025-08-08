@@ -29,7 +29,7 @@ func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetCl
 	follower := doge.NewFollower(cfg, tokenStore)
 
 	// trimmerService := NewTrimmerService(20160, 100, tokenStore, dogeClient)
-	processor := NewFractalEngineProcessor(tokenStore)
+	processor := NewFractalEngineProcessor(tokenStore, dogeClient)
 	healthService := health.NewHealthService(dogeClient, tokenStore)
 
 	return &TokenisationService{

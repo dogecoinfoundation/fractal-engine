@@ -7,36 +7,44 @@
         pkg-config \
         libsystemd-dev \
         && rm -rf /var/lib/apt/lists/*
-    
+
     # Set the working directory
     WORKDIR /app
-    
+
     # Clone the repo
     RUN git clone https://github.com/Dogebox-WG/dogenet.git .
-    
+
     # Optional: checkout a specific tag or commit
     # RUN git checkout <tag-or-commit>
-    
+
     # Download dependencies
-    RUN go mod download
+    # Set Go environment
+ENV CGO_ENABLED=1
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GOSUMDB=sum.golang.org
+
+# Download dependencies using cache mount
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
     RUN ls
-    
-    # Build the Go binary
-    RUN go build -o dogenet ./cmd/dogenet
-    
+
+    # Build the Go binary using cache mount
+    RUN --mount=type=cache,target=/go/pkg/mod \
+        go build -o dogenet ./cmd/dogenet
+
     # --- Stage 2: Minimal Runtime Image ---
     FROM debian:bookworm-slim
-    
+
     # Add CA certificates if needed for HTTPS
     RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-    
+
     WORKDIR /root/
-    
+
     # Copy built binary
     COPY --from=builder /app/dogenet .
-    
+
     EXPOSE 8085
-    
+
     RUN ./dogenet genkey dev-key
     RUN ./dogenet genkey ident-key ident-pub
 
@@ -44,6 +52,10 @@
 
     ARG DOGE_NET_HANDLER
     ENV DOGE_NET_HANDLER=unix:///tmp/dogenet.sock
-    
-    CMD export KEY=$(cat dev-key) && export IDENT=$(cat ident-pub) && ./dogenet --local --public 0.0.0.0 --handler $DOGE_NET_HANDLER
-    
+
+    ENV DOGENET_WEB_PORT=8085
+
+    ENV DOGENET_BIND_HOST=0.0.0.0
+    ENV DOGENET_BIND_PORT=42000
+
+    CMD export KEY=$(cat dev-key) && export IDENT=$(cat ident-pub) && ./dogenet --local --public 0.0.0.0 --handler $DOGE_NET_HANDLER --web 0.0.0.0:${DOGENET_WEB_PORT} --bind ${DOGENET_BIND_HOST}:${DOGENET_BIND_PORT}
