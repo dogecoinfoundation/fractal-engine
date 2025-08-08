@@ -18,11 +18,19 @@
     # RUN git checkout <tag-or-commit>
     
     # Download dependencies
-    RUN go mod download
+    # Set Go environment
+ENV CGO_ENABLED=1
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GOSUMDB=sum.golang.org
+
+# Download dependencies using cache mount
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
     RUN ls
     
-    # Build the Go binary
-    RUN go build -o dogenet ./cmd/dogenet
+    # Build the Go binary using cache mount
+    RUN --mount=type=cache,target=/go/pkg/mod \
+        go build -o dogenet ./cmd/dogenet
     
     # --- Stage 2: Minimal Runtime Image ---
     FROM debian:bookworm-slim

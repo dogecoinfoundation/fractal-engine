@@ -207,14 +207,14 @@ func StartBalanceMasterInstance(networkName string, port int, dogePort int, inst
 	balanceMasterContainerRequest := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
 			Context:    absPathContext,
-			Dockerfile: "Dockerfile.balance-master",
-			KeepImage:  false,
+			Dockerfile: "Dockerfile.balancemaster",
+			KeepImage:  true, // Keep image to avoid rebuilding
 			BuildArgs: map[string]*string{
 				"CACHE_BUSTER": &cacheBuster,
 			},
 		},
 		Networks: []string{
-			instanceId,
+			networkName,
 		},
 		Name:         "balance-master-" + instanceId,
 		ExposedPorts: []string{strconv.Itoa(port) + "/tcp"},
@@ -397,7 +397,7 @@ func (lc *StdoutLogConsumer) Accept(l testcontainers.Log) {
 		lc.PubKey = strings.Trim(pubKey, "\n")
 	}
 
-	// log.Println(content)
+	log.Println(content)
 }
 
 func StartDogenetInstance(ctx context.Context, feKey dnet.KeyPair, image string, instanceId string, webPort string, port string, gossipPort string, networkName string, logConsumer *StdoutLogConsumer, tokenisationStore *store.TokenisationStore) (*dogenet.DogeNetClient, testcontainers.Container, error) {
