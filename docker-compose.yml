@@ -54,15 +54,21 @@ services:
   dogenet:
     profiles: [deps]
     build:
+      no_cache: true
       context: .
       dockerfile: Dockerfile.dogenet
+      args:
+        - CACHE_BUST=${CACHE_BUST}
     container_name: dogenet-${INSTANCE_ID:-1}
     environment:
       - DOGE_NET_HANDLER=$DOGE_NET_HANDLER
       - RPC_PORT=${DOGE_PORT}
+      - DOGENET_WEB_PORT=${DOGENET_WEB_PORT}
+      - DOGENET_BIND_PORT=${DOGENET_BIND_PORT}
     ports:
       - "${DOGENET_PORT:-8085}:8085"
       - "${DOGENET_WEB_PORT:-8086}:8086"
+      - "${DOGENET_BIND_PORT}:${DOGENET_BIND_PORT}"
     volumes:
       - doge-sock:/tmp
     networks:

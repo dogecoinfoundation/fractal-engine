@@ -4,6 +4,7 @@
 INSTANCE_ID=${1:-1}
 PROFILES=${2:-"deps,fractal"}
 PROJECT_NAME="fractal-stack-${INSTANCE_ID}"
+CACHE_BUST=$RANDOM
 
 # Port ranges - each instance gets a block of 100 ports
 BASE_PORT=$((8000 + (INSTANCE_ID * 100)))
@@ -14,6 +15,7 @@ DOGENET_WEB_PORT=$((BASE_PORT + 4))
 BALANCE_MASTER_PORT=$((BASE_PORT + 5))
 POSTGRES_PORT=$((BASE_PORT + 6))
 DOGENET_HANDLER_PORT=$((BASE_PORT + 7))
+DOGENET_BIND_PORT=$((42000 + INSTANCE_ID))
 # Subnet ranges - each instance gets a unique subnet
 SUBNET_BASE=$((100 + INSTANCE_ID))
 SUBNET="192.168.${SUBNET_BASE}.0/24"
@@ -44,7 +46,9 @@ echo "Ports: Doge=${DOGE_PORT}, Fractal=${FRACTAL_PORT}, DogeNet=${DOGENET_PORT}
 echo "Subnet: ${SUBNET}"
 echo "Using Go module cache: $(go env GOMODCACHE)"
 
-# Run docker-compose with custom project name, profiles, and ports
+# Run docker-compose with custom project name, profiles, and port
+DOGENET_BIND_PORT=${DOGENET_BIND_PORT} \
+CACHE_BUST=${CACHE_BUST} \
 DOGE_NET_NETWORK=tcp \
 DOGE_NET_ADDRESS=${DOGENET_IP}:${DOGENET_HANDLER_PORT} \
 DOGE_NET_HANDLER="${DOGENET_IP}:${DOGENET_HANDLER_PORT}" \
