@@ -120,6 +120,7 @@ func TestStack(t *testing.T) {
 	stackA := NewStackConfig(1, "regtest")
 	stackB := NewStackConfig(2, "regtest")
 
+	// Check for nodes, if doesnt exist, then add peer.
 	err := stackA.DogeNetClient.AddPeer(dogenet.AddPeer{
 		Key:  stackB.DogeNetPubKey,
 		Addr: stackB.DogeNetHost + ":" + strconv.Itoa(stackB.DogeNetBindPort),
@@ -128,13 +129,9 @@ func TestStack(t *testing.T) {
 		panic(err)
 	}
 
-	// Connect DogeNet Peers
-	// err = fromPeer.AddPeer(dogenet.AddPeer{
-	// 	Key:  logConsumerB.PubKey,
-	// 	Addr: peerAddressB,
-	// })
-
-	// log.Println(stackA.DogeNetPubKey)
+	// TODO : Connect DogeCoin Peers
+	//
+	// TODO : End to end test scenarios.
 }
 
 func populateStackHosts(stackConfig *StackConfig, cli *client.Client) {
