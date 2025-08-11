@@ -1,0 +1,644 @@
+---
+title: Database & Store Layer
+description: Comprehensive documentation for the Fractal Engine database schema and store layer architecture
+---
+
+# Database Architecture & Store Layer
+
+This document provides comprehensive documentation for the Fractal Engine database schema and store layer architecture.
+
+## Database Architecture Overview
+
+The Fractal Engine uses a multi-tier data persistence architecture designed for tokenization operations on the Dogecoin blockchain:
+
+### Core Components
+
+- **Database Abstraction Layer**: [`pkg/store/store.go`](file:///home/danielw/code/doge/fractal-engine/pkg/store/store.go) - Main store implementation with migration management
+- **Type System**: [`pkg/store/types.go`](file:///home/danielw/code/doge/fractal-engine/pkg/store/types.go) - Go structs mapped to database schema
+- **Migration System**: [`db/migrations/`](file:///home/danielw/code/doge/fractal-engine/db/migrations/) - SQL schema evolution management
+- **Entity Operations**: Specialized CRUD modules for each domain entity
+
+### Supported Database Backends
+
+The system supports three database backends with automatic driver selection:
+
+- **SQLite** - Development and testing (`sqlite://path/to/db.sqlite`)
+- **PostgreSQL** - Production deployments (`postgres://user:pass@host/db`)
+- **In-Memory** - Testing and ephemeral use (`memory://`)
+
+## Complete Schema Documentation
+
+### Core Tables
+
+#### `chain_position` - Blockchain Synchronization
+```sql
+CREATE TABLE IF NOT EXISTS chain_position (
+    id INTEGER PRIMARY KEY,
+    block_height BIGINT NOT NULL,
+    block_hash TEXT NOT NULL,
+    waiting_for_next_hash BOOLEAN NOT NULL DEFAULT FALSE
+);
+```
+
+**Purpose**: Tracks the current blockchain synchronization state for the engine.
+
+**Key Fields**:
+- `block_height` - Current synced block height
+- `block_hash` - Hash of the current synced block
+- `waiting_for_next_hash` - Flag indicating if sync is waiting for next block
+
+#### `onchain_transactions` - Blockchain Transaction Data
+```sql
+CREATE TABLE IF NOT EXISTS onchain_transactions (
+    id TEXT PRIMARY KEY,
+    tx_hash TEXT NOT NULL,
+    block_height BIGINT NOT NULL,
+    block_hash TEXT NOT NULL,
+    transaction_number INTEGER NOT NULL,
+    action_type TEXT NOT NULL,
+    action_version INTEGER NOT NULL,
+    action_data BYTEA NOT NULL,
+    address TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    value DOUBLE PRECISION NOT NULL
+);
+```
+
+**Purpose**: Stores parsed on-chain transaction data relevant to tokenization operations.
+
+**Key Fields**:
+- `action_type` - Type of tokenization action (mint, invoice, etc.)
+- `action_data` - Protobuf-encoded action payload
+- `value` - Transaction value in DOGE
+
+#### `mints` and `unconfirmed_mints` - Token Definitions
+```sql
+CREATE TABLE IF NOT EXISTS mints (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    fraction_count INTEGER NOT NULL,
+    tags TEXT,
+    transaction_hash TEXT,
+    block_height INTEGER,
+    owner_address TEXT,
+    metadata TEXT,
+    hash TEXT,
+    requirements TEXT,
+    lockup_options TEXT,
+    feed_url TEXT,
+    public_key TEXT,
+    contract_of_sale TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Purpose**: Stores token mint definitions. The `mints` table contains confirmed on-chain mints, while `unconfirmed_mints` holds pending submissions.
+
+**Key Fields**:
+- `hash` - SHA-256 hash identifier for the mint
+- `fraction_count` - Total supply of fractional tokens
+- `metadata` - JSON metadata describing the token
+- `requirements` - JSON validation requirements
+- `lockup_options` - JSON lockup configuration
+- `contract_of_sale` - JSON contract terms
+
+### Trading Tables
+
+#### `buy_offers` and `sell_offers` - Market Orders
+```sql
+CREATE TABLE IF NOT EXISTS sell_offers (
+    id UUID PRIMARY KEY,
+    offerer_address TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    mint_hash TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    price INTEGER NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    public_key TEXT NOT NULL,
+    signature TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS buy_offers (
+    id UUID PRIMARY KEY,
+    offerer_address TEXT NOT NULL,
+    seller_address TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    mint_hash TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    price INTEGER NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    public_key TEXT NOT NULL,
+    signature TEXT NOT NULL
+);
+```
+
+**Purpose**: Stores buy and sell orders for tokenized assets.
+
+**Key Differences**:
+- Buy offers include `seller_address` for targeted offers
+- All offers are cryptographically signed for authenticity
+
+### Payment and Balance Tables
+
+#### `invoices` and `unconfirmed_invoices` - Payment Requests
+```sql
+CREATE TABLE IF NOT EXISTS invoices (
+    id UUID PRIMARY KEY,
+    hash TEXT NOT NULL,
+    block_height INTEGER,
+    transaction_hash TEXT,
+    payment_address TEXT,
+    buyer_address TEXT NOT NULL,
+    mint_hash TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    price INTEGER NOT NULL,
+    paid_at TIMESTAMP,
+    seller_address TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    public_key TEXT NOT NULL,
+    signature TEXT NOT NULL
+);
+```
+
+**Purpose**: Manages payment requests for token transfers.
+
+#### `token_balances` - Confirmed Token Holdings
+```sql
+CREATE TABLE IF NOT EXISTS token_balances (
+    mint_hash TEXT NOT NULL,
+    address TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+```
+
+**Purpose**: Tracks confirmed token balances by address and mint.
+
+#### `pending_token_balances` - Escrow Holdings
+```sql
+CREATE TABLE IF NOT EXISTS pending_token_balances (
+    owner_address TEXT NOT NULL,
+    invoice_hash TEXT NOT NULL,
+    mint_hash TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    onchain_transaction_id TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (invoice_hash, mint_hash)
+);
+```
+
+**Purpose**: Manages tokens held in escrow during payment processing.
+
+### System Monitoring
+
+#### `health` - System Health Metrics
+```sql
+CREATE TABLE IF NOT EXISTS health (
+    id SERIAL PRIMARY KEY,
+    current_block_height BIGINT NOT NULL,
+    latest_block_height BIGINT NOT NULL,
+    chain TEXT NOT NULL,
+    wallets_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Purpose**: Stores system health and synchronization status.
+
+## Entity Relationships and Data Flow
+
+### Core Entity Relationships
+
+```mermaid
+erDiagram
+    mints ||--o{ token_balances : "creates"
+    mints ||--o{ buy_offers : "targets"
+    mints ||--o{ sell_offers : "targets"
+    mints ||--o{ invoices : "transfers"
+    
+    buy_offers }o--|| invoices : "generates"
+    sell_offers }o--|| invoices : "generates"
+    
+    invoices ||--o{ pending_token_balances : "holds"
+    invoices }o--|| token_balances : "updates"
+    
+    onchain_transactions ||--o{ mints : "confirms"
+    onchain_transactions ||--o{ invoices : "confirms"
+    
+    chain_position ||--|| onchain_transactions : "tracks"
+```
+
+### Data Flow Patterns
+
+#### 1. Mint Creation Flow
+```
+Unconfirmed Mint → On-Chain Transaction → Confirmed Mint → Token Balance
+```
+
+#### 2. Trade Execution Flow
+```
+Sell Offer → Buy Offer → Invoice → Payment → Balance Transfer
+```
+
+#### 3. Payment Processing Flow
+```
+Invoice → Pending Balance → On-Chain Confirmation → Balance Update
+```
+
+## Database Migration System
+
+### Migration Architecture
+
+The migration system uses [golang-migrate](https://github.com/golang-migrate/migrate) with database-specific drivers:
+
+- **PostgreSQL**: Uses `postgres` driver
+- **SQLite**: Uses `sqlite` driver with SQLite-compatible SQL
+
+### Migration Files
+
+Migration files follow the pattern `{version}_{description}.{up|down}.sql`:
+
+- [`1_chain_position.up.sql`](file:///home/danielw/code/doge/fractal-engine/db/migrations/1_chain_position.up.sql) - Chain tracking table
+- [`2_onchain_transactions_table.up.sql`](file:///home/danielw/code/doge/fractal-engine/db/migrations/2_onchain_transactions_table.up.sql) - Transaction storage
+- [`3_unconfirmed_mints_table.up.sql`](file:///home/danielw/code/doge/fractal-engine/db/migrations/3_unconfirmed_mints_table.up.sql) - Pending mints
+- [`4_mints_table.up.sql`](file:///home/danielw/code/doge/fractal-engine/db/migrations/4_mints_table.up.sql) - Confirmed mints
+- [`6_offers_table.up.sql`](file:///home/danielw/code/doge/fractal-engine/db/migrations/6_offers_table.up.sql) - Trading offers
+- [`7_invoices_table.up.sql`](file:///home/danielw/code/doge/fractal-engine/db/migrations/7_invoices_table.up.sql) - Payment system
+- [`8_health.up.sql`](file:///home/danielw/code/doge/fractal-engine/db/migrations/8_health.up.sql) - Health monitoring
+
+### Running Migrations
+
+Migrations are automatically executed during application startup via [`store.Migrate()`](file:///home/danielw/code/doge/fractal-engine/pkg/store/store.go#L65-L82).
+
+## SQLite vs PostgreSQL Considerations
+
+### SQLite (Development/Testing)
+**Advantages**:
+- Zero configuration setup
+- File-based storage
+- ACID compliance
+- Full-text search support
+
+**Limitations**:
+- Single writer limitation
+- No network access
+- Limited concurrent connections
+
+**Use Cases**: Development, testing, small deployments
+
+### PostgreSQL (Production)
+**Advantages**:
+- High concurrency support
+- Advanced indexing capabilities
+- Full ACID compliance
+- Network accessibility
+- Extensive monitoring tools
+
+**Considerations**:
+- Requires dedicated database server
+- More complex configuration
+- Resource overhead
+
+**Use Cases**: Production deployments, high-load scenarios
+
+### Database-Specific SQL Differences
+
+The codebase handles differences through:
+- **Data Types**: `BYTEA` (PostgreSQL) vs `BLOB` (SQLite)
+- **UUID Types**: Native UUID support in PostgreSQL
+- **Timestamp Functions**: `CURRENT_TIMESTAMP` compatibility
+
+## Hash Generation and Indexing Strategy
+
+### Hash Generation System
+
+All primary entities use SHA-256 hashing for unique identification:
+
+```go
+// Example from types.go
+func (m *MintWithoutID) GenerateHash() (string, error) {
+    input := MintHash{
+        Title:          m.Title,
+        FractionCount:  m.FractionCount,
+        Description:    m.Description,
+        Tags:           m.Tags,
+        Metadata:       m.Metadata,
+        Requirements:   m.Requirements,
+        LockupOptions:  m.LockupOptions,
+        PublicKey:      m.PublicKey,
+        ContractOfSale: m.ContractOfSale,
+    }
+    
+    jsonBytes, err := json.Marshal(input)
+    if err != nil {
+        return "", err
+    }
+    
+    hash := sha256.Sum256(jsonBytes)
+    return hex.EncodeToString(hash[:]), nil
+}
+```
+
+### Hash-Based Entities
+
+- **Mints**: Content-based hash for deduplication
+- **Offers**: Order details hash for uniqueness
+- **Invoices**: Payment request hash for tracking
+
+### Indexing Strategy
+
+**Primary Indexes**:
+- All tables use UUID or hash-based primary keys
+- Chain position uses unique constraint on `id`
+
+**Query Optimization**:
+- Hash-based lookups for O(1) entity retrieval
+- Composite keys for relational queries
+- Timestamp indexes for chronological queries
+
+## Query Patterns and Performance Considerations
+
+### Common Query Patterns
+
+#### 1. Pagination Queries
+```go
+// Example from mints.go
+func (s *TokenisationStore) GetMints(offset int, limit int) ([]Mint, error) {
+    rows, err := s.DB.Query(
+        "SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key, contract_of_sale FROM mints LIMIT $1 OFFSET $2", 
+        limit, offset)
+    // ...
+}
+```
+
+#### 2. Hash-Based Lookups
+```go
+// Example from mints.go
+func (s *TokenisationStore) GetMintByHash(hash string) (Mint, error) {
+    rows, err := s.DB.Query(
+        "SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key, contract_of_sale FROM mints WHERE hash = $1", 
+        hash)
+    // ...
+}
+```
+
+#### 3. Transactional Operations
+```go
+// Example from mints.go - Atomic mint confirmation
+func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTransaction) error {
+    tx, err := s.DB.Begin()
+    if err != nil {
+        return err
+    }
+    defer tx.Rollback()
+    
+    // Multiple operations...
+    
+    return tx.Commit()
+}
+```
+
+### Performance Optimization Strategies
+
+#### 1. Connection Pooling
+- PostgreSQL: Automatic connection pooling via `database/sql`
+- SQLite: Single connection with serialized access
+
+#### 2. Prepared Statements
+- Used for repetitive operations
+- Reduces SQL parsing overhead
+
+#### 3. Batch Operations
+- Transaction-wrapped multi-statement operations
+- Atomic consistency for related entity updates
+
+#### 4. Query Optimization
+- Parameterized queries to prevent SQL injection
+- Efficient `LIMIT`/`OFFSET` pagination
+- Hash-based primary key lookups
+
+## Backup and Recovery Procedures
+
+### SQLite Backup Procedures
+
+#### File-Based Backup
+```bash
+# Stop the application
+cp /path/to/database.sqlite /backup/location/database_$(date +%Y%m%d_%H%M%S).sqlite
+
+# Or use SQLite's online backup
+sqlite3 /path/to/database.sqlite ".backup /backup/location/database_backup.sqlite"
+```
+
+#### Point-in-Time Recovery
+```bash
+# Restore from backup file
+cp /backup/location/database_backup.sqlite /path/to/database.sqlite
+```
+
+### PostgreSQL Backup Procedures
+
+#### Logical Backup
+```bash
+# Full database backup
+pg_dump -h localhost -U username -d fractal_engine > fractal_engine_$(date +%Y%m%d_%H%M%S).sql
+
+# Schema-only backup
+pg_dump -h localhost -U username -d fractal_engine --schema-only > schema_backup.sql
+
+# Data-only backup
+pg_dump -h localhost -U username -d fractal_engine --data-only > data_backup.sql
+```
+
+#### Continuous WAL Archiving
+```bash
+# Configure postgresql.conf
+archive_mode = on
+archive_command = 'cp %p /backup/wal_archive/%f'
+wal_level = replica
+```
+
+#### Point-in-Time Recovery
+```bash
+# Stop PostgreSQL
+pg_ctl stop
+
+# Restore base backup
+tar -xzf base_backup.tar.gz -C /postgres/data/
+
+# Configure recovery.conf
+restore_command = 'cp /backup/wal_archive/%f %p'
+recovery_target_time = '2023-01-01 12:00:00'
+
+# Start PostgreSQL in recovery mode
+pg_ctl start
+```
+
+### Automated Backup Strategies
+
+#### Cron-Based Backups
+```bash
+# Daily backup at 2 AM
+0 2 * * * /scripts/backup_database.sh
+
+# Weekly full backup
+0 1 * * 0 /scripts/full_backup_database.sh
+```
+
+#### Docker Volume Backups
+```bash
+# Backup Docker volume
+docker run --rm -v fractal_engine_data:/data -v $(pwd):/backup alpine tar czf /backup/database_backup.tar.gz /data
+```
+
+## Database Maintenance and Monitoring
+
+### Health Monitoring System
+
+The engine includes a comprehensive health monitoring system:
+
+#### Health Endpoint
+```go
+// From pkg/store/health.go
+func (s *TokenisationStore) GetHealth() (int64, int64, string, bool, time.Time, error) {
+    // Returns current/latest block heights, chain, wallets status, last update
+}
+```
+
+#### Health Metrics
+- **Block Synchronization**: Current vs latest block height
+- **Chain Status**: Active blockchain network
+- **Wallet Connectivity**: Wallet service availability
+- **Last Update**: Timestamp of last health update
+
+### Statistics and Monitoring
+
+#### Database Statistics
+```go
+// From pkg/store/stats.go
+func (s *TokenisationStore) GetStats() (map[string]int, error) {
+    stats := make(map[string]int)
+    stats["mints"] = mints
+    stats["unconfirmed_mints"] = unconfirmedMints
+    stats["onchain_transactions"] = onChainTransactions
+    return stats, nil
+}
+```
+
+#### Key Metrics
+- **Mints**: Total confirmed token mints
+- **Unconfirmed Mints**: Pending mint operations
+- **On-Chain Transactions**: Processed blockchain transactions
+
+### Maintenance Operations
+
+#### Data Cleanup
+```go
+// Example from mints.go
+func (s *TokenisationStore) TrimOldUnconfirmedMints(limit int) error {
+    sqlQuery := fmt.Sprintf("DELETE FROM unconfirmed_mints WHERE id NOT IN (SELECT id FROM unconfirmed_mints ORDER BY id DESC LIMIT %d)", limit)
+    _, err := s.DB.Exec(sqlQuery)
+    return err
+}
+```
+
+#### Routine Maintenance Tasks
+- **SQLite**: `VACUUM` and `ANALYZE` operations
+- **PostgreSQL**: `VACUUM`, `ANALYZE`, and index maintenance
+- **Log Rotation**: Application and database log management
+- **Old Data Cleanup**: Automated removal of stale unconfirmed records
+
+### Monitoring Tools Integration
+
+#### Prometheus Metrics
+Health endpoint can be monitored via HTTP health checks:
+```
+GET /health
+```
+
+#### Log Monitoring
+Database operations are logged with structured logging for monitoring integration.
+
+## Development and Testing Database Setup
+
+### Local Development Setup
+
+#### SQLite Development Database
+```bash
+# Set environment variable
+export DATABASE_URL="sqlite://./dev_database.sqlite"
+
+# Run migrations automatically on startup
+go run main.go
+```
+
+#### PostgreSQL Development Database
+```bash
+# Start PostgreSQL with Docker
+docker run --name fractal-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=fractal_engine -p 5432:5432 -d postgres:15
+
+# Set connection string
+export DATABASE_URL="postgres://postgres:password@localhost:5432/fractal_engine?sslmode=disable"
+```
+
+### Testing Database Strategy
+
+#### In-Memory Testing
+```go
+// Example from test files
+func setupTestStore() (*store.TokenisationStore, error) {
+    cfg := config.Config{MigrationsPath: "../../db/migrations"}
+    return store.NewTokenisationStore("memory://", cfg)
+}
+```
+
+#### Isolated Test Databases
+```go
+// From internal/test/support/shared_db.go
+func SetupSharedTestDB() (*store.TokenisationStore, error) {
+    // Creates isolated test database instance
+    // Automatic cleanup after tests
+}
+```
+
+### Test Data Management
+
+#### Database Cleanup
+```go
+// Example cleanup function
+func (s *TokenisationStore) ClearMints() error {
+    _, err := s.DB.Exec("DELETE FROM mints")
+    return err
+}
+```
+
+#### Test Fixtures
+Test data is generated programmatically using the type system's hash generation and validation logic.
+
+### CI/CD Integration
+
+#### Docker Compose for Testing
+```yaml
+# From docker-compose.yml
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: fractal_engine_test
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+```
+
+#### Automated Testing
+- **Migration Testing**: Validate schema changes across database backends
+- **Data Integrity**: Verify hash generation and entity relationships
+- **Performance Testing**: Query optimization validation
+- **Concurrency Testing**: Multi-connection database operations
+
+This comprehensive database documentation provides a complete reference for understanding, maintaining, and operating the Fractal Engine's data persistence layer.

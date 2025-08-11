@@ -1,0 +1,605 @@
+---
+title: "Configuration"
+description: "Comprehensive configuration guide for the Fractal Engine system"
+---
+
+# Configuration
+
+This guide provides comprehensive documentation for configuring the Fractal Engine system, including server settings, database configuration, Dogecoin node connections, DogeNet P2P networking, and business logic limits.
+
+## Configuration Overview
+
+The Fractal Engine system uses multiple configuration methods depending on the deployment context:
+
+- **Command-line flags**: Primary configuration method for the main application
+- **TOML files**: Used by CLI tools and utilities
+- **Environment variables**: Used in Docker containers and orchestrated deployments
+- **Default values**: Hard-coded fallbacks defined in the application
+
+### Configuration File Locations
+
+| Component | Configuration Method | File/Location |
+|-----------|---------------------|---------------|
+| Fractal Engine | Command-line flags | Command line arguments |
+| CLI Tools | TOML file | `config.toml` |
+| Docker Deployment | Environment variables | `docker-compose.yml`, `.env` files |
+| Dogecoin Node | Configuration file | `regtest.conf` |
+
+## Complete Configuration Reference
+
+### Server Configuration
+
+#### RPC Server Settings
+
+| Setting | Flag | Default | Description |
+|---------|------|---------|-------------|
+| **RPC Host** | `--rpc-server-host` | `0.0.0.0` | Host address for the RPC server |
+| **RPC Port** | `--rpc-server-port` | `8891` | Port for the RPC server |
+
+**Example:**
+```bash
+./fractalengine --rpc-server-host localhost --rpc-server-port 8891
+```
+
+### Database Configuration
+
+#### Database Connection
+
+| Setting | Flag | Default | Description |
+|---------|------|---------|-------------|
+| **Database URL** | `--database-url` | `postgres://fractalstore:fractalstore@localhost:5432/fractalstore?sslmode=disable` | Database connection string |
+| **Migrations Path** | `--migrations-path` | `db/migrations` | Path to database migration files |
+| **Persist Follower** | `--persist-follower` | `true` | Enable persistent follower functionality |
+
+#### Database Backends
+
+##### SQLite Configuration
+```bash
+--database-url "sqlite://fractal-engine.db"
+```
+
+**Docker Environment Variable:**
+```yaml
+environment:
+  - DATABASE_URL=sqlite:///root/storage/fractal-engine.db
+```
+
+##### PostgreSQL Configuration
+```bash
+--database-url "postgres://username:password@host:port/database?sslmode=disable"
+```
+
+**Docker Environment Variable:**
+```yaml
+environment:
+  - DATABASE_URL=postgres://fractalstore:fractalstore@fractalstore:5432/fractalstore?sslmode=disable
+```
+
+### Dogecoin Node Configuration
+
+#### Connection Settings
+
+| Setting | Flag | Default | Description |
+|---------|------|---------|-------------|
+| **Scheme** | `--doge-scheme` | `http` | Protocol scheme (http/https) |
+| **Host** | `--doge-host` | `0.0.0.0` | Dogecoin node hostname |
+| **Port** | `--doge-port` | `22556` | Dogecoin node RPC port |
+| **Username** | `--doge-user` | `test` | RPC username |
+| **Password** | `--doge-password` | `test` | RPC password |
+
+**Example:**
+```bash
+./fractalengine \
+  --doge-scheme http \
+  --doge-host localhost \
+  --doge-port 22556 \
+  --doge-user rpcuser \
+  --doge-password rpcpassword
+```
+
+#### Dogecoin Node Configuration File (`regtest.conf`)
+
+```toml
+regtest=1
+rpcuser=${RPC_USER}
+rpcpassword=${RPC_PASSWORD}
+rpcport=${RPC_PORT}
+server=1
+txindex=1
+rpcbind=0.0.0.0
+rpcallowip=0.0.0.0/0
+```
+
+### DogeNet P2P Network Configuration
+
+#### Network Settings
+
+| Setting | Flag | Default | Description |
+|---------|------|---------|-------------|
+| **Network Protocol** | `--doge-net-network` | `tcp` | Network protocol (tcp/unix) |
+| **Network Address** | `--doge-net-address` | `0.0.0.0:8086` | P2P network bind address |
+| **Web Address** | `--doge-net-web-address` | `0.0.0.0:8085` | Web interface address |
+
+**Example:**
+```bash
+./fractalengine \
+  --doge-net-network tcp \
+  --doge-net-address 0.0.0.0:8086 \
+  --doge-net-web-address 0.0.0.0:8085
+```
+
+#### Key Pair Configuration
+
+DogeNet uses automatically generated key pairs for P2P communication. Key pairs are generated at runtime and cannot be pre-configured via command-line flags.
+
+### Rate Limiting and Business Logic Limits
+
+#### API Rate Limiting
+
+| Setting | Flag | Default | Description |
+|---------|------|---------|-------------|
+| **Rate Limit** | `--api-rate-limit-per-second` | `10` | API requests per second per client |
+
+#### Business Logic Limits
+
+| Setting | Flag | Default | Description |
+|---------|------|---------|-------------|
+| **Invoice Limit** | `--invoice-limit` | `100` | Maximum invoices per mint |
+| **Buy Offer Limit** | `--buy-offer-limit` | `3` | Maximum buy offers per buyer per mint |
+| **Sell Offer Limit** | `--sell-offer-limit` | `3` | Maximum sell offers per seller per mint |
+
+**Example:**
+```bash
+./fractalengine \
+  --api-rate-limit-per-second 20 \
+  --invoice-limit 50 \
+  --buy-offer-limit 5 \
+  --sell-offer-limit 5
+```
+
+## Environment-Specific Configurations
+
+### Mainnet Configuration
+
+```bash
+./fractalengine \
+  --rpc-server-host 0.0.0.0 \
+  --rpc-server-port 8891 \
+  --doge-scheme https \
+  --doge-host mainnet-node.example.com \
+  --doge-port 22555 \
+  --doge-user ${MAINNET_RPC_USER} \
+  --doge-password ${MAINNET_RPC_PASS} \
+  --database-url "postgres://user:pass@db.example.com:5432/fractal?sslmode=require" \
+  --api-rate-limit-per-second 50 \
+  --invoice-limit 1000
+```
+
+### Testnet Configuration
+
+```bash
+./fractalengine \
+  --rpc-server-host 0.0.0.0 \
+  --rpc-server-port 8891 \
+  --doge-scheme http \
+  --doge-host testnet-node.example.com \
+  --doge-port 44555 \
+  --doge-user testuser \
+  --doge-password testpass \
+  --database-url "sqlite://testnet-fractal.db" \
+  --api-rate-limit-per-second 20
+```
+
+### Regtest Configuration (Development)
+
+```bash
+./fractalengine \
+  --rpc-server-host 0.0.0.0 \
+  --rpc-server-port 8891 \
+  --doge-scheme http \
+  --doge-host localhost \
+  --doge-port 22556 \
+  --doge-user test \
+  --doge-password test \
+  --database-url "sqlite://fractal-engine.db" \
+  --api-rate-limit-per-second 10
+```
+
+## Docker Configuration
+
+### Environment Variables
+
+When running in Docker, configuration is primarily handled through environment variables:
+
+```yaml
+# docker-compose.yml
+services:
+  fractalengine:
+    environment:
+      - DATABASE_URL=sqlite:///root/storage/fractal-engine.db
+      - DOGE_NET_ADDRESS=/tmp/dogenet.sock
+      - DOGE_NET_NETWORK=unix
+      - DOGE_PORT=22556
+      - FRACTAL_PORT=8891
+```
+
+### Docker Compose Configuration
+
+```yaml
+version: "3.8"
+services:
+  fractalengine:
+    build:
+      context: .
+      dockerfile: Dockerfile.fractalengine
+    ports:
+      - "${FRACTAL_PORT:-8891}:8891"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - DOGE_NET_ADDRESS=${DOGE_NET_ADDRESS}
+      - DOGE_NET_NETWORK=${DOGE_NET_NETWORK}
+      - DOGE_PORT=${DOGE_PORT}
+      - FRACTAL_PORT=${FRACTAL_PORT}
+    depends_on:
+      - dogecoin
+      - fractalstore
+```
+
+### Environment Variable Reference
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `sqlite:///root/storage/fractal-engine.db` | Database connection string |
+| `DOGE_NET_ADDRESS` | `/tmp/dogenet.sock` | DogeNet socket address |
+| `DOGE_NET_NETWORK` | `unix` | DogeNet protocol |
+| `DOGE_PORT` | `22556` | Dogecoin RPC port |
+| `FRACTAL_PORT` | `8891` | Fractal Engine RPC port |
+| `INSTANCE_ID` | `1` | Instance identifier for multi-instance deployments |
+| `SUBNET_BASE` | `100` | Docker network subnet base |
+
+## CLI Tool Configuration (TOML)
+
+CLI tools use TOML configuration files:
+
+### `config.toml` Structure
+
+```toml
+fractal_engine_host = "localhost"
+fractal_engine_port = "8891"
+balance_master_host = "localhost"
+balance_master_port = "8899"
+doge_scheme = "http"
+doge_host = "localhost"
+doge_port = "22556"
+doge_user = "test"
+doge_password = "test"
+key_labels = ["seller", "buyer"]
+active_key = "seller"
+```
+
+### TOML Configuration Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fractal_engine_host` | string | Fractal Engine host address |
+| `fractal_engine_port` | string | Fractal Engine port |
+| `balance_master_host` | string | Balance Master service host |
+| `balance_master_port` | string | Balance Master service port |
+| `doge_scheme` | string | Dogecoin node protocol scheme |
+| `doge_host` | string | Dogecoin node hostname |
+| `doge_port` | string | Dogecoin node port |
+| `doge_user` | string | Dogecoin RPC username |
+| `doge_password` | string | Dogecoin RPC password |
+| `key_labels` | array | Available key labels |
+| `active_key` | string | Currently active key |
+
+## Security Considerations
+
+### Secrets Management
+
+**⚠️ Important Security Guidelines:**
+
+1. **Never commit secrets to version control**
+2. **Use environment variables for sensitive data**
+3. **Rotate RPC credentials regularly**
+4. **Use SSL/TLS for production deployments**
+5. **Restrict network access with firewalls**
+
+### Production Security Checklist
+
+- [ ] Use secure RPC credentials (not default `test:test`)
+- [ ] Enable SSL/TLS for database connections (`sslmode=require`)
+- [ ] Use HTTPS for Dogecoin node connections
+- [ ] Configure proper network segmentation
+- [ ] Set appropriate rate limits
+- [ ] Monitor and log all API access
+- [ ] Regular security updates for all components
+
+### Database Security
+
+#### PostgreSQL Security
+```bash
+--database-url "postgres://user:pass@host:5432/db?sslmode=require&sslcert=client.crt&sslkey=client.key&sslrootcert=ca.crt"
+```
+
+#### SQLite Security
+- Ensure proper file permissions (600)
+- Use encrypted storage for sensitive environments
+- Regular backups with encryption
+
+## Example Configuration Files
+
+### Production Configuration
+
+**Fractal Engine (Production)**
+```bash
+#!/bin/bash
+./fractalengine \
+  --rpc-server-host 0.0.0.0 \
+  --rpc-server-port 8891 \
+  --doge-scheme https \
+  --doge-host ${DOGE_NODE_HOST} \
+  --doge-port 22555 \
+  --doge-user ${DOGE_RPC_USER} \
+  --doge-password ${DOGE_RPC_PASS} \
+  --database-url "${DATABASE_URL}" \
+  --api-rate-limit-per-second 100 \
+  --invoice-limit 1000 \
+  --buy-offer-limit 10 \
+  --sell-offer-limit 10 \
+  --persist-follower true
+```
+
+### Development Configuration
+
+**Local Development**
+```bash
+#!/bin/bash
+./fractalengine \
+  --rpc-server-host localhost \
+  --rpc-server-port 8891 \
+  --doge-scheme http \
+  --doge-host localhost \
+  --doge-port 22556 \
+  --doge-user test \
+  --doge-password test \
+  --database-url "sqlite://fractal-dev.db" \
+  --api-rate-limit-per-second 10 \
+  --invoice-limit 10 \
+  --buy-offer-limit 3 \
+  --sell-offer-limit 3
+```
+
+### Docker Development Stack
+
+**`.env` file for Docker Compose**
+```bash
+# Instance Configuration
+INSTANCE_ID=1
+SUBNET_BASE=100
+
+# Port Configuration
+FRACTAL_PORT=8891
+DOGE_PORT=22556
+POSTGRES_PORT=5432
+DOGENET_PORT=8086
+DOGENET_WEB_PORT=8085
+DOGENET_BIND_PORT=42069
+BALANCE_MASTER_PORT=8899
+
+# Network Configuration
+DOGE_NET_ADDRESS=0.0.0.0:42069
+DOGE_NET_NETWORK=tcp
+
+# Database Configuration
+DATABASE_URL=postgres://fractalstore:fractalstore@fractalstore:5432/fractalstore?sslmode=disable
+
+# DogeNet Configuration
+DOGE_NET_HANDLER=true
+```
+
+## Configuration Validation
+
+### Pre-flight Checks
+
+Before starting the Fractal Engine, validate your configuration:
+
+```bash
+# Test database connection
+psql "${DATABASE_URL}" -c "SELECT 1;"
+
+# Test Dogecoin node connection
+curl -u "${DOGE_USER}:${DOGE_PASSWORD}" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"1.0","id":"test","method":"getblockchaininfo","params":[]}' \
+  "${DOGE_SCHEME}://${DOGE_HOST}:${DOGE_PORT}/"
+
+# Verify network connectivity
+nc -zv ${DOGE_HOST} ${DOGE_PORT}
+```
+
+### Configuration Validation Script
+
+```bash
+#!/bin/bash
+# validate-config.sh
+
+set -e
+
+echo "Validating Fractal Engine configuration..."
+
+# Check required environment variables
+required_vars=(
+  "DATABASE_URL"
+  "DOGE_HOST"
+  "DOGE_PORT"
+  "DOGE_USER"
+  "DOGE_PASSWORD"
+)
+
+for var in "${required_vars[@]}"; do
+  if [[ -z "${!var}" ]]; then
+    echo "ERROR: Required variable $var is not set"
+    exit 1
+  fi
+done
+
+echo "✓ All required variables are set"
+
+# Test database connectivity
+echo "Testing database connection..."
+if command -v psql >/dev/null 2>&1; then
+  psql "${DATABASE_URL}" -c "SELECT 1;" >/dev/null
+  echo "✓ Database connection successful"
+fi
+
+# Test Dogecoin node
+echo "Testing Dogecoin node connection..."
+response=$(curl -s -u "${DOGE_USER}:${DOGE_PASSWORD}" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"1.0","id":"test","method":"getblockchaininfo","params":[]}' \
+  "${DOGE_SCHEME:-http}://${DOGE_HOST}:${DOGE_PORT}/")
+
+if echo "$response" | grep -q "result"; then
+  echo "✓ Dogecoin node connection successful"
+else
+  echo "ERROR: Failed to connect to Dogecoin node"
+  echo "Response: $response"
+  exit 1
+fi
+
+echo "✓ Configuration validation complete"
+```
+
+## Troubleshooting
+
+### Common Configuration Issues
+
+#### Database Connection Issues
+
+**Problem**: `Failed to create tokenisation store`
+```
+Solutions:
+1. Verify DATABASE_URL format
+2. Check database server status
+3. Validate credentials
+4. Ensure database exists
+5. Check network connectivity
+```
+
+**SQLite Issues**:
+```bash
+# Check file permissions
+ls -la fractal-engine.db
+
+# Check disk space
+df -h
+
+# Verify SQLite installation
+sqlite3 --version
+```
+
+**PostgreSQL Issues**:
+```bash
+# Test connection
+pg_isready -h hostname -p port -U username
+
+# Check server logs
+docker logs fractalstore-1
+```
+
+#### Dogecoin Node Connection Issues
+
+**Problem**: `Failed to connect to Dogecoin node`
+```
+Solutions:
+1. Verify node is running
+2. Check RPC credentials
+3. Validate port configuration
+4. Test network connectivity
+5. Review node logs
+```
+
+**Debug Commands**:
+```bash
+# Test RPC connectivity
+curl -u test:test \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"1.0","id":"test","method":"getblockchaininfo","params":[]}' \
+  http://localhost:22556/
+
+# Check Docker container
+docker logs dogecoin-1
+
+# Verify port binding
+netstat -tulpn | grep 22556
+```
+
+#### DogeNet P2P Issues
+
+**Problem**: DogeNet connection failures
+```
+Solutions:
+1. Check socket permissions (unix sockets)
+2. Verify port availability (TCP)
+3. Check firewall rules
+4. Validate key pair generation
+```
+
+#### Rate Limiting Issues
+
+**Problem**: API requests being rejected
+```
+Solutions:
+1. Increase rate limit values
+2. Implement client-side throttling
+3. Review API usage patterns
+4. Monitor system resources
+```
+
+### Logging and Monitoring
+
+Enable debug logging for troubleshooting:
+
+```bash
+# Add debug flags (if available)
+./fractalengine --log-level debug [other-flags...]
+
+# Monitor system resources
+htop
+iostat 1
+```
+
+### Health Checks
+
+The Fractal Engine provides health check endpoints:
+
+```bash
+# Check service health
+curl http://localhost:8891/health
+
+# Expected response: 200 OK
+```
+
+For comprehensive monitoring, implement health checks for all components:
+
+```bash
+#!/bin/bash
+# health-check.sh
+
+components=(
+  "fractalengine:8891/health"
+  "dogenet:8085/health"
+  "fractalstore:5432"
+)
+
+for component in "${components[@]}"; do
+  if curl -sf "http://${component}" >/dev/null 2>&1; then
+    echo "✓ ${component} is healthy"
+  else
+    echo "✗ ${component} is unhealthy"
+  fi
+done
+```
+
+This configuration guide provides all the necessary information to properly configure and deploy the Fractal Engine system across different environments and use cases.

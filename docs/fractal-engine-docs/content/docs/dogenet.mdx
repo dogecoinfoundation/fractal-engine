@@ -1,0 +1,608 @@
+---
+title: DogeNet P2P Network
+description: Peer-to-peer gossip networking system for decentralized distribution of tokenization data
+---
+
+# DogeNet P2P Gossip Network
+
+DogeNet is a peer-to-peer gossip networking system that enables decentralized distribution of tokenization data across the Fractal Engine network. This document provides comprehensive information about DogeNet's architecture, configuration, and operation.
+
+## Overview and Purpose
+
+DogeNet serves as the communication backbone for the Fractal Engine ecosystem, enabling nodes to share tokenization data without requiring full blockchain synchronization. The system distributes:
+
+- **Token Mints**: New token creation announcements
+- **Buy/Sell Offers**: Trading proposals between users
+- **Invoices**: Payment requests for token transactions
+
+### Key Benefits
+
+- **Decentralized**: No central coordinator required
+- **Resilient**: Network continues operating even if nodes fail
+- **Efficient**: Only relevant tokenization data is shared
+- **Secure**: All messages are cryptographically signed
+- **Real-time**: Immediate propagation of market data
+
+## Gossip Protocol Mechanics
+
+### Message Types
+
+DogeNet handles six distinct message types, each with specific purposes:
+
+| Message Type | Tag | Purpose |
+|--------------|-----|---------|
+| Mint | `TagMint` | Announce new token creation |
+| Buy Offer | `TagBuyOffer` | Broadcast buy orders |
+| Sell Offer | `TagSellOffer` | Broadcast sell orders |
+| Invoice | `TagInvoice` | Share payment requests |
+| Delete Buy Offer | `TagDeleteBuyOffer` | Cancel buy orders |
+| Delete Sell Offer | `TagDeleteSellOffer` | Cancel sell orders |
+
+### Protocol Structure
+
+#### Message Envelope Format
+
+All DogeNet messages use a standardized envelope structure:
+
+```go
+type MessageEnvelope struct {
+    Type      protocol.ActionType  // Message type identifier
+    Version   int32               // Protocol version
+    Payload   interface{}         // Message-specific data
+    PublicKey string             // Sender's public key (for signed messages)
+    Signature string             // Cryptographic signature (for signed messages)
+}
+```
+
+#### Channel and Tag System
+
+DogeNet uses the dnet protocol's channel/tag system for message routing:
+
+- **Channel**: `ChanFE` (FractalEngine) - All DogeNet messages use this channel
+- **Tags**: Specific message type identifiers for routing
+
+### Message Flow
+
+#### Outbound Messages
+
+1. **Serialize**: Convert data structures to Protocol Buffers format
+2. **Sign**: Add cryptographic signature (for offers/invoices)
+3. **Encode**: Wrap in dnet message format
+4. **Send**: Transmit via TCP socket to DogeNet daemon
+
+#### Inbound Messages
+
+1. **Receive**: Read from TCP socket
+2. **Decode**: Extract message from dnet format
+3. **Route**: Direct to appropriate handler based on tag
+4. **Verify**: Validate signatures and addresses
+5. **Process**: Store or forward message as appropriate
+
+## Node Discovery and Peer Management
+
+### Connection Management
+
+DogeNet clients connect to a local DogeNet daemon via TCP socket. The daemon handles:
+
+- **Peer Discovery**: Finding other nodes in the network
+- **Connection Pooling**: Managing connections to multiple peers
+- **Message Routing**: Forwarding messages between peers
+- **Network Health**: Monitoring connection status
+
+### HTTP Management API
+
+DogeNet provides an HTTP API for node management:
+
+#### Get Peers
+```http
+GET /peers
+```
+Returns list of connected peers:
+```json
+[
+  {
+    "pubkey": "03abc123...",
+    "address": "192.168.1.100:42069",
+    "identity": "node1"
+  }
+]
+```
+
+#### Add Peer
+```http
+POST /addpeer
+Content-Type: application/json
+
+{
+  "key": "03def456...",
+  "addr": "192.168.1.200:42069"
+}
+```
+
+### Handshake Protocol
+
+When connecting to DogeNet, clients perform a handshake:
+
+1. **Connect**: Establish TCP connection to DogeNet daemon
+2. **Bind**: Send BindMessage with client's public key and channel
+3. **Verify**: Receive and validate BindMessage response
+4. **Ready**: Begin message processing
+
+```go
+bind := dnet.BindMessage{
+    Version: 1, 
+    Chan: ChanFE, 
+    PubKey: *client.feKey.Pub
+}
+```
+
+## Network Topology and Message Propagation
+
+### Network Architecture
+
+DogeNet forms a mesh network where:
+
+- **Nodes**: Run DogeNet daemon and connect to peers
+- **Clients**: Connect to local daemon via TCP
+- **Messages**: Propagate through gossip protocol
+
+```mermaid
+graph TD
+    A[DogeNet Daemon A] --- B[DogeNet Daemon B]
+    A --- C[DogeNet Daemon C]
+    B --- C
+    B --- D[DogeNet Daemon D]
+    
+    A --- A1[Fractal Engine A]
+    B --- B1[Fractal Engine B]
+    C --- C1[Fractal Engine C]
+    D --- D1[Fractal Engine D]
+```
+
+### Message Propagation Strategy
+
+DogeNet uses epidemic-style gossip propagation:
+
+1. **Initial Broadcast**: Message originates from one node
+2. **Peer Selection**: Node selects subset of connected peers
+3. **Forward**: Send message to selected peers
+4. **Duplicate Detection**: Receiving nodes check for duplicates
+5. **Continue**: Process repeats until network saturation
+
+## Integration with Dogecoin Network
+
+### dnet Protocol
+
+DogeNet builds on the `code.dogecoin.org/gossip/dnet` library, which provides:
+
+- **Low-level Networking**: TCP socket management
+- **Message Encoding**: Binary message format
+- **Cryptography**: Key pair generation and signing
+- **Channel System**: Message routing infrastructure
+
+### Key Pair Integration
+
+DogeNet integrates with Dogecoin cryptography:
+
+```go
+// Generate DogeNet key pair
+kp, err := dnet.GenerateKeyPair()
+cfg.DogeNetKeyPair = kp
+
+// Convert to Dogecoin address for validation
+address, err := doge.PublicKeyToDogeAddress(publicKey, doge.PrefixRegtest)
+```
+
+### Address Validation
+
+All signed messages (offers, invoices) verify that:
+- Public key matches the claimed Dogecoin address
+- Signature is valid for the message payload
+- Address format is correct for the network (mainnet/regtest)
+
+## Configuration Options
+
+### Core DogeNet Settings
+
+Configure DogeNet through command-line flags or configuration struct:
+
+```go
+type Config struct {
+    DogeNetNetwork     string        // Network type (tcp)
+    DogeNetAddress     string        // DogeNet daemon address
+    DogeNetWebAddress  string        // HTTP API address
+    DogeNetKeyPair     dnet.KeyPair  // Client key pair
+}
+```
+
+### Default Configuration
+
+```go
+cfg := config.NewConfig()
+// DogeNetNetwork:    "tcp"
+// DogeNetAddress:    "0.0.0.0:42069"
+// DogeNetWebAddress: "0.0.0.0:8085"
+```
+
+### Command Line Options
+
+```bash
+# DogeNet daemon connection
+--doge-net-network=tcp
+--doge-net-address=0.0.0.0:8086
+--doge-net-web-address=0.0.0.0:8085
+
+# Rate limiting
+--api-rate-limit-per-second=10
+--invoice-limit=100
+--buy-offer-limit=3
+--sell-offer-limit=3
+```
+
+### Docker Environment Variables
+
+When running via Docker:
+
+```bash
+# DogeNet daemon settings
+DOGENET_BIND_HOST=0.0.0.0
+DOGENET_BIND_PORT=42000
+DOGENET_WEB_PORT=8085
+DOGE_NET_HANDLER=unix:///tmp/dogenet.sock
+
+# Network configuration
+DOGE_NET_ADDRESS=dogenet:42000
+DOGE_NET_NETWORK=tcp
+```
+
+## Running a DogeNet Node
+
+### Prerequisites
+
+- Go 1.24 or later
+- Access to Dogecoin RPC node
+- PostgreSQL database (for persistence)
+
+### Standalone Installation
+
+1. **Clone DogeNet daemon**:
+```bash
+git clone https://github.com/Dogebox-WG/dogenet.git
+cd dogenet
+go build -o dogenet ./cmd/dogenet
+```
+
+2. **Generate keys**:
+```bash
+./dogenet genkey dev-key
+./dogenet genkey ident-key ident-pub
+```
+
+3. **Start daemon**:
+```bash
+export KEY=$(cat dev-key)
+export IDENT=$(cat ident-pub)
+./dogenet --local --public 0.0.0.0 --handler unix:///tmp/dogenet.sock --web 0.0.0.0:8085 --bind 0.0.0.0:42000
+```
+
+### Docker Deployment
+
+Use the provided Docker setup:
+
+```bash
+# Start DogeNet dependencies
+docker compose --profile deps up dogenet
+
+# Start full Fractal Engine stack
+docker compose --profile fractal up
+```
+
+### Fractal Engine Integration
+
+Run Fractal Engine with DogeNet:
+
+```bash
+./fractal-engine \
+  --doge-net-address=127.0.0.1:42000 \
+  --doge-net-web-address=127.0.0.1:8085 \
+  --database-url="postgres://user:pass@localhost/fractal"
+```
+
+### Client Connection Example
+
+```go
+// Create DogeNet client
+cfg := config.NewConfig()
+cfg.DogeNetAddress = "127.0.0.1:42000"
+cfg.DogeNetKeyPair, _ = dnet.GenerateKeyPair()
+
+client := dogenet.NewDogeNetClient(cfg, tokenStore)
+
+// Start client
+statusChan := make(chan string)
+go client.Start(statusChan)
+
+// Wait for connection
+status := <-statusChan
+fmt.Printf("DogeNet status: %s", status)
+```
+
+## Network Security and Spam Protection
+
+### Cryptographic Security
+
+#### Message Signing
+
+All offers and invoices require cryptographic signatures:
+
+```go
+// Sign buy offer payload
+offerPayload := protocol.BuyOfferPayload{
+    OffererAddress: "DTC8Y8KEAL5V...",
+    MintHash: "abc123...",
+    Quantity: 100,
+    Price: 1000,
+}
+payloadBytes, _ := protojson.Marshal(&offerPayload)
+signature := sign(payloadBytes, privateKey)
+```
+
+#### Signature Verification
+
+Receiving nodes validate all signatures:
+
+```go
+// Verify signature matches claimed address
+err := doge.ValidateSignature(payloadBytes, publicKey, signature)
+if err != nil {
+    return fmt.Errorf("invalid signature: %w", err)
+}
+
+// Verify public key matches Dogecoin address
+address, err := doge.PublicKeyToDogeAddress(publicKey, networkPrefix)
+if address != offer.OffererAddress {
+    return fmt.Errorf("address mismatch")
+}
+```
+
+### Rate Limiting
+
+DogeNet implements several spam protection mechanisms:
+
+#### API Rate Limits
+- **Global**: 10 requests per second per client
+- **Invoices**: 100 per mint maximum
+- **Buy Offers**: 3 per buyer per mint
+- **Sell Offers**: 3 per seller per mint
+
+#### Message Validation
+- **Duplicate Detection**: Messages with identical hashes are rejected
+- **Address Validation**: All Dogecoin addresses must be valid
+- **Signature Requirements**: Offers and invoices must be properly signed
+
+### Network-Level Protection
+
+- **Connection Limits**: DogeNet daemon manages peer connections
+- **Message Size Limits**: Large messages are rejected
+- **Protocol Compliance**: Invalid message formats are dropped
+
+## Troubleshooting Common Issues
+
+### Connection Problems
+
+#### Cannot Connect to DogeNet Daemon
+
+**Symptoms**: `cannot connect: connection refused`
+
+**Solutions**:
+1. Verify DogeNet daemon is running:
+```bash
+curl http://localhost:8085/peers
+```
+
+2. Check daemon logs:
+```bash
+docker logs dogenet-1
+```
+
+3. Verify network configuration:
+```bash
+netstat -ln | grep 42000
+```
+
+#### Handshake Failures
+
+**Symptoms**: `invalid BindMessage reply`
+
+**Solutions**:
+1. Check protocol version compatibility
+2. Verify key pair generation:
+```go
+kp, err := dnet.GenerateKeyPair()
+if err != nil {
+    log.Fatalf("Key generation failed: %v", err)
+}
+```
+
+3. Ensure proper channel configuration:
+```go
+bind := dnet.BindMessage{
+    Version: 1,
+    Chan: dogenet.ChanFE,  // Must match expected channel
+    PubKey: *keyPair.Pub,
+}
+```
+
+### Message Processing Issues
+
+#### Signature Validation Failures
+
+**Symptoms**: `Error validating signature`
+
+**Debugging**:
+1. Verify message payload format:
+```go
+// Ensure consistent JSON marshaling
+payload, err := protojson.Marshal(&offerPayload)
+```
+
+2. Check address derivation:
+```go
+address, err := doge.PublicKeyToDogeAddress(publicKey, doge.PrefixRegtest)
+log.Printf("Derived address: %s, Expected: %s", address, expectedAddress)
+```
+
+3. Validate signature creation:
+```go
+signature := doge.SignMessage(payload, privateKey)
+err := doge.ValidateSignature(payload, publicKey, signature)
+```
+
+#### Missing Messages
+
+**Symptoms**: Messages not appearing in network
+
+**Debugging**:
+1. Check client status:
+```go
+err := client.CheckRunning()
+if err != nil {
+    log.Printf("DogeNet not running: %v", err)
+}
+```
+
+2. Monitor message channel:
+```go
+select {
+case msg := <-client.Messages:
+    log.Printf("Received: %s", msg.Tag)
+case <-time.After(10 * time.Second):
+    log.Printf("No messages received")
+}
+```
+
+3. Verify message encoding:
+```go
+data, err := proto.Marshal(&envelope)
+if err != nil {
+    log.Printf("Marshal error: %v", err)
+}
+encodedMsg := dnet.EncodeMessageRaw(ChanFE, TagMint, keyPair, data)
+```
+
+### Performance Issues
+
+#### High Memory Usage
+
+**Solutions**:
+1. Implement message cleanup:
+```go
+// Clean up old messages periodically
+go func() {
+    ticker := time.NewTicker(1 * time.Hour)
+    for range ticker.C {
+        store.CleanupOldMessages(time.Now().Add(-24 * time.Hour))
+    }
+}()
+```
+
+2. Monitor channel buffer:
+```go
+if len(client.Messages) > 1000 {
+    log.Println("Warning: Message channel backing up")
+}
+```
+
+#### Network Congestion
+
+**Solutions**:
+1. Increase rate limits (if appropriate):
+```bash
+--api-rate-limit-per-second=20
+```
+
+2. Monitor peer connections:
+```bash
+curl http://localhost:8085/peers | jq length
+```
+
+3. Check network latency:
+```bash
+ping dogenet-peer-address
+```
+
+### Testing and Debugging
+
+#### Running DogeNet Tests
+
+```bash
+# Unit tests
+go test ./pkg/dogenet/
+
+# Integration tests
+go test ./pkg/dogenet/ -run TestDogenet
+
+# End-to-end tests
+go test ./internal/test/e2e/dogenet/
+
+# Verbose output
+go test -v ./pkg/dogenet/
+```
+
+#### Mock Testing Setup
+
+```go
+// Create mock connection for testing
+clientConn, serverConn := net.Pipe()
+client := dogenet.NewDogeNetClient(cfg, store)
+
+// Test message flow
+go client.StartWithConn(statusChan, clientConn)
+// Send test messages via serverConn
+```
+
+#### Debug Logging
+
+Enable detailed logging:
+
+```go
+log.SetLevel(log.DebugLevel)
+log.Printf("[FE] Message details: Chan=%s, Tag=%s, Size=%d", 
+    msg.Chan, msg.Tag, len(msg.Payload))
+```
+
+### Health Monitoring
+
+#### Service Health Checks
+
+```bash
+# DogeNet daemon health
+curl http://localhost:8085/
+
+# Fractal Engine health
+curl http://localhost:8891/health
+
+# Database connectivity
+curl http://localhost:8891/health | jq .database
+```
+
+#### Performance Metrics
+
+Monitor key metrics:
+- Message throughput (messages/second)
+- Connection count
+- Memory usage
+- Network latency
+- Error rates
+
+```go
+// Example metrics collection
+type Metrics struct {
+    MessagesReceived int64
+    MessagesSent     int64
+    Errors          int64
+    LastUpdate      time.Time
+}
+```
+
+This comprehensive guide covers all aspects of DogeNet operation. For additional support, refer to the test files in [`pkg/dogenet/`](file:///home/danielw/code/doge/fractal-engine/pkg/dogenet/) and the integration examples in [`internal/test/e2e/dogenet/`](file:///home/danielw/code/doge/fractal-engine/internal/test/e2e/dogenet/).

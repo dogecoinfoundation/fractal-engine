@@ -1,0 +1,568 @@
+---
+title: Go Client Library
+description: Complete guide to using the Fractal Engine Go client library for tokenization API interactions
+---
+
+# Go Client Library
+
+The Fractal Engine Go client library provides a simple HTTP client wrapper for interacting with the tokenization API, including cryptographic signing of requests using Dogecoin private keys.
+
+## Installation
+
+Add the Fractal Engine module to your Go project:
+
+```bash
+go get dogecoin.org/fractal-engine
+```
+
+Import the client package in your Go code:
+
+```go
+import "dogecoin.org/fractal-engine/pkg/client"
+```
+
+## Basic Client Setup
+
+### Creating a Client Instance
+
+The `TokenisationClient` requires a base URL and Dogecoin keypair for request signing:
+
+```go
+package main
+
+import (
+    "fmt"
+    "dogecoin.org/fractal-engine/pkg/client"
+    "dogecoin.org/fractal-engine/pkg/doge"
+)
+
+func main() {
+    // Generate a new Dogecoin keypair (for demo/testing)
+    prefixByte := byte(0x1e) // testnet prefix
+    privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(prefixByte)
+    if err != nil {
+        panic(err)
+    }
+
+    // Create client instance
+    client := client.NewTokenisationClient(
+        "http://localhost:8080", // Fractal Engine API base URL
+        privHex,                 // Private key hex string
+        pubHex,                  // Public key hex string
+    )
+
+    fmt.Printf("Client created for address: %s\n", address)
+}
+```
+
+### Using Existing Keys
+
+If you have existing Dogecoin private and public keys:
+
+```go
+// Use your existing keys
+privKey := "your_private_key_hex"
+pubKey := "your_public_key_hex"
+
+client := client.NewTokenisationClient(
+    "https://api.fractalengine.com",
+    privKey,
+    pubKey,
+)
+```
+
+## Authentication and Request Signing
+
+The client library automatically handles cryptographic signing for all authenticated endpoints. Signed requests include:
+
+- **Public Key**: Your Dogecoin public key for verification
+- **Signature**: ECDSA signature of the request payload using your private key
+
+The signing process:
+
+1. Serializes the request payload to JSON
+2. Hashes the payload using SHA-256
+3. Signs the hash with your private key using ECDSA
+4. Includes the signature and public key in the request
+
+## API Reference
+
+### Health and Status
+
+#### Get Health Status
+
+Check the health and status of the Fractal Engine:
+
+```go
+health, err := client.GetHealth()
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Chain: %s\n", health.Chain)
+fmt.Printf("Current Block: %d\n", health.CurrentBlockHeight)
+fmt.Printf("Latest Block: %d\n", health.LatestBlockHeight)
+fmt.Printf("Wallets Enabled: %t\n", health.WalletsEnabled)
+```
+
+### Mints
+
+#### Create a Mint
+
+Create a new tokenized asset:
+
+```go
+import "dogecoin.org/fractal-engine/pkg/rpc"
+
+mintRequest := &rpc.CreateMintRequest{
+    Address:   address,     // Your Dogecoin address
+    PublicKey: pubHex,      // Your public key
+    Payload: rpc.CreateMintRequestPayload{
+        Title:         "My First Token",
+        FractionCount: 1000,
+        Description:   "A test token for demonstration",
+        Tags:          []string{"demo", "test"},
+        Metadata:      map[string]interface{}{
+            "creator": "Demo User",
+            "type":    "digital_asset",
+        },
+        Requirements: map[string]interface{}{
+            "min_age": 18,
+        },
+        LockupOptions: map[string]interface{}{
+            "lockup_period": "30d",
+        },
+        FeedURL: "https://example.com/feed.xml",
+    },
+}
+
+// Sign and send the mint request
+response, err := client.Mint(mintRequest)
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Mint created with hash: %s\n", response.Hash)
+```
+
+#### Get Mint by Hash
+
+Retrieve a specific mint by its hash:
+
+```go
+mintHash := "abc123..."
+mint, err := client.GetMintByHash(mintHash)
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Title: %s\n", mint.Mint.Title)
+fmt.Printf("Fractions: %d\n", mint.Mint.FractionCount)
+fmt.Printf("Status: %s\n", mint.Mint.Status)
+```
+
+#### List Mints
+
+Get a paginated list of mints:
+
+```go
+page := 1
+limit := 10
+publicKey := pubHex
+includeUnconfirmed := true
+
+mints, err := client.GetMints(page, limit, publicKey, includeUnconfirmed)
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Found %d mints (total: %d)\n", len(mints.Mints), mints.Total)
+for _, mint := range mints.Mints {
+    fmt.Printf("- %s: %s\n", mint.Hash, mint.Title)
+}
+```
+
+### Buy Offers
+
+#### Create Buy Offer
+
+Create an offer to buy tokens:
+
+```go
+buyOffer := &rpc.CreateBuyOfferRequest{
+    Payload: rpc.CreateBuyOfferRequestPayload{
+        OffererAddress: address,           // Your address (buyer)
+        SellerAddress:  "seller_address",  // Seller's address
+        MintHash:       "mint_hash",       // Token mint hash
+        Quantity:       10,                // Number of tokens to buy
+        Price:          1000000,           // Price in satoshis
+    },
+}
+
+response, err := client.CreateBuyOffer(buyOffer)
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Buy offer created with hash: %s\n", response.Hash)
+```
+
+#### Get Buy Offers
+
+List buy offers with optional filtering:
+
+```go
+page := 1
+limit := 10
+mintHash := "mint_hash"
+
+offers, err := client.GetBuyOffers(page, limit, mintHash)
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Found %d buy offers\n", len(offers.Offers))
+for _, offer := range offers.Offers {
+    fmt.Printf("- %d tokens at %d satoshis each\n", offer.Quantity, offer.Price)
+}
+```
+
+#### Delete Buy Offer
+
+Cancel a buy offer:
+
+```go
+deleteRequest := &rpc.DeleteBuyOfferRequest{
+    Payload: rpc.DeleteBuyOfferRequestPayload{
+        Hash: "offer_hash",
+    },
+}
+
+_, err := client.DeleteBuyOffer(deleteRequest)
+if err != nil {
+    panic(err)
+}
+
+fmt.Println("Buy offer deleted successfully")
+```
+
+### Sell Offers
+
+#### Create Sell Offer
+
+Create an offer to sell tokens:
+
+```go
+sellOffer := &rpc.CreateSellOfferRequest{
+    Payload: rpc.CreateSellOfferRequestPayload{
+        SellerAddress: address,      // Your address (seller)
+        MintHash:      "mint_hash",  // Token mint hash
+        Quantity:      5,            // Number of tokens to sell
+        Price:         2000000,      // Price in satoshis
+    },
+}
+
+response, err := client.CreateSellOffer(sellOffer)
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Sell offer created with hash: %s\n", response.Hash)
+```
+
+#### Get Sell Offers
+
+List sell offers for a specific mint:
+
+```go
+page := 1
+limit := 10
+mintHash := "mint_hash"
+
+offers, err := client.GetSellOffersByMintHash(page, limit, mintHash)
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Found %d sell offers\n", len(offers.Offers))
+```
+
+#### Delete Sell Offer
+
+Cancel a sell offer:
+
+```go
+deleteRequest := &rpc.DeleteSellOfferRequest{
+    Payload: rpc.DeleteSellOfferRequestPayload{
+        Hash: "offer_hash",
+    },
+}
+
+_, err := client.DeleteSellOffer(deleteRequest)
+if err != nil {
+    panic(err)
+}
+
+fmt.Println("Sell offer deleted successfully")
+```
+
+### Invoices
+
+#### Create Invoice
+
+Create a payment invoice for a transaction:
+
+```go
+invoice := &rpc.CreateInvoiceRequest{
+    Payload: rpc.CreateInvoiceRequestPayload{
+        PaymentAddress: "payment_address",  // Address to receive payment
+        BuyerAddress:   "buyer_address",    // Buyer's address
+        MintHash:       "mint_hash",        // Token mint hash
+        Quantity:       3,                  // Number of tokens
+        Price:          1500000,            // Price in satoshis
+        SellerAddress:  address,            // Your address (seller)
+    },
+}
+
+response, err := client.CreateInvoice(invoice)
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Invoice created with hash: %s\n", response.Hash)
+```
+
+#### Get Invoices
+
+List invoices with optional filtering:
+
+```go
+page := 1
+limit := 10
+mintHash := "mint_hash"
+offererAddress := address
+
+invoices, err := client.GetInvoices(page, limit, mintHash, offererAddress)
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Found %d invoices\n", len(invoices.Invoices))
+for _, invoice := range invoices.Invoices {
+    fmt.Printf("- Invoice %s: %d tokens for %d satoshis\n", 
+        invoice.Hash, invoice.Quantity, invoice.Price)
+}
+```
+
+### Token Balances
+
+#### Get Token Balance
+
+Query token balances for an address:
+
+```go
+userAddress := "user_address"
+mintHash := "mint_hash"
+
+balances, err := client.GetTokenBalance(userAddress, mintHash)
+if err != nil {
+    panic(err)
+}
+
+fmt.Printf("Token balances for %s:\n", userAddress)
+for _, balance := range balances {
+    fmt.Printf("- Mint %s: %d tokens\n", balance.MintHash, balance.Balance)
+}
+```
+
+### Demo Functions
+
+#### Top Up Balance (Demo Only)
+
+For testing environments, top up an address with demo funds:
+
+```go
+import "context"
+
+ctx := context.Background()
+err := client.TopUpBalance(ctx, address)
+if err != nil {
+    panic(err)
+}
+
+fmt.Println("Demo balance topped up successfully")
+```
+
+## Error Handling
+
+The client library returns descriptive errors for various failure scenarios:
+
+```go
+response, err := client.CreateBuyOffer(buyOffer)
+if err != nil {
+    switch {
+    case strings.Contains(err.Error(), "failed to create buy offer"):
+        fmt.Println("Server rejected the buy offer:", err)
+    case strings.Contains(err.Error(), "invalid signature"):
+        fmt.Println("Signature validation failed:", err)
+    default:
+        fmt.Println("Unexpected error:", err)
+    }
+    return
+}
+```
+
+### Common Error Types
+
+- **Validation Errors**: Invalid request data (addresses, amounts, etc.)
+- **Signature Errors**: Failed cryptographic signature verification
+- **Network Errors**: Connection issues with the API
+- **Server Errors**: Internal server errors (500s)
+- **Not Found Errors**: Requested resource doesn't exist (404s)
+
+## Best Practices
+
+### Key Management
+
+```go
+// Store keys securely - never hardcode in production
+// Use environment variables or secure key storage
+privKey := os.Getenv("FRACTAL_PRIVATE_KEY")
+pubKey := os.Getenv("FRACTAL_PUBLIC_KEY")
+
+if privKey == "" || pubKey == "" {
+    log.Fatal("Missing required keys in environment")
+}
+```
+
+### Error Handling
+
+```go
+// Always check for errors
+response, err := client.GetMints(1, 10, pubKey, false)
+if err != nil {
+    log.Printf("Failed to get mints: %v", err)
+    return
+}
+
+// Validate response data
+if len(response.Mints) == 0 {
+    log.Println("No mints found")
+    return
+}
+```
+
+### Pagination
+
+```go
+// Handle pagination for large datasets
+func getAllMints(client *client.TokenisationClient, pubKey string) []store.Mint {
+    var allMints []store.Mint
+    page := 1
+    limit := 50
+
+    for {
+        response, err := client.GetMints(page, limit, pubKey, false)
+        if err != nil {
+            log.Printf("Error fetching mints page %d: %v", page, err)
+            break
+        }
+
+        allMints = append(allMints, response.Mints...)
+
+        // Check if we've reached the last page
+        if len(response.Mints) < limit {
+            break
+        }
+        page++
+    }
+
+    return allMints
+}
+```
+
+## Complete Example
+
+Here's a complete example showing a typical workflow:
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "dogecoin.org/fractal-engine/pkg/client"
+    "dogecoin.org/fractal-engine/pkg/doge"
+    "dogecoin.org/fractal-engine/pkg/rpc"
+)
+
+func main() {
+    // Generate keypair for demo
+    prefixByte := byte(0x1e) // testnet
+    privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(prefixByte)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Create client
+    client := client.NewTokenisationClient(
+        "http://localhost:8080",
+        privHex,
+        pubHex,
+    )
+
+    // Check health
+    health, err := client.GetHealth()
+    if err != nil {
+        log.Fatal("Health check failed:", err)
+    }
+    fmt.Printf("Connected to %s chain\n", health.Chain)
+
+    // Create a mint
+    mint := &rpc.CreateMintRequest{
+        Address:   address,
+        PublicKey: pubHex,
+        Payload: rpc.CreateMintRequestPayload{
+            Title:         "Demo Token",
+            FractionCount: 1000,
+            Description:   "A demonstration token",
+            Tags:          []string{"demo"},
+            FeedURL:       "https://example.com/feed.xml",
+        },
+    }
+
+    mintResponse, err := client.Mint(mint)
+    if err != nil {
+        log.Fatal("Failed to create mint:", err)
+    }
+    fmt.Printf("Created mint: %s\n", mintResponse.Hash)
+
+    // Create a sell offer
+    sellOffer := &rpc.CreateSellOfferRequest{
+        Payload: rpc.CreateSellOfferRequestPayload{
+            SellerAddress: address,
+            MintHash:      mintResponse.Hash,
+            Quantity:      10,
+            Price:         1000000, // 1M satoshis
+        },
+    }
+
+    offerResponse, err := client.CreateSellOffer(sellOffer)
+    if err != nil {
+        log.Fatal("Failed to create sell offer:", err)
+    }
+    fmt.Printf("Created sell offer: %s\n", offerResponse.Hash)
+
+    // Get token balance
+    balances, err := client.GetTokenBalance(address, mintResponse.Hash)
+    if err != nil {
+        log.Fatal("Failed to get balance:", err)
+    }
+    
+    for _, balance := range balances {
+        fmt.Printf("Balance: %d tokens\n", balance.Balance)
+    }
+}
+```
+
+This example demonstrates the complete lifecycle of creating a tokenized asset, listing it for sale, and checking balances.

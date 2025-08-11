@@ -1,0 +1,140 @@
+---
+title: Create Sell Offer
+description: Create a new sell offer for tokens
+---
+
+# Create Sell Offer
+
+Creates a new sell offer for tokens you own.
+
+## Endpoint
+
+```
+POST /sell-offers
+```
+
+## Request Body
+
+```json
+{
+  "public_key": "string",
+  "signature": "string",
+  "payload": {
+    "offerer_address": "string",
+    "mint_hash": "string", 
+    "quantity": 100,
+    "price": 50000
+  }
+}
+```
+
+### Parameters
+
+- **public_key** (required): Hex-encoded public key for signature verification
+- **signature** (required): Hex-encoded DER signature of the payload
+- **payload** (required): Sell offer details object
+  - **offerer_address** (required): Address of the token seller (must own the tokens)
+  - **mint_hash** (required): Hash of the mint for which tokens are being sold
+  - **quantity** (required): Number of tokens to sell (positive integer)
+  - **price** (required): Total asking price in satoshis (positive integer)
+
+## Response
+
+### Success (201 Created)
+
+```json
+{
+  "id": "12345",
+  "hash": "abc123def456..."
+}
+```
+
+### Error Responses
+
+- **400 Bad Request**: Invalid JSON, validation failed, or sell offer limit reached
+- **500 Internal Server Error**: Server error or gossip failure
+
+## Authentication
+
+This endpoint requires a signed request. The payload must be signed with the private key corresponding to the provided public key.
+
+## Rate Limits
+
+Each user can have a maximum number of sell offers per mint (configured by `sell_offer_limit` in server config).
+
+## Example
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:8080/sell-offers" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "public_key": "03a1b2c3d4e5f6...",
+    "signature": "304502210...",
+    "payload": {
+      "offerer_address": "D1A2B3C4D5E6F7...",
+      "mint_hash": "abc123def456...",
+      "quantity": 100,
+      "price": 50000
+    }
+  }'
+```
+
+### JavaScript
+
+```javascript
+const response = await fetch('/sell-offers', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    public_key: '03a1b2c3d4e5f6...',
+    signature: '304502210...',
+    payload: {
+      offerer_address: 'D1A2B3C4D5E6F7...',
+      mint_hash: 'abc123def456...',
+      quantity: 100,
+      price: 50000
+    }
+  })
+});
+
+const offer = await response.json();
+console.log('Sell offer created:', offer.id, offer.hash);
+```
+
+### Python
+
+```python
+import requests
+
+payload = {
+    "public_key": "03a1b2c3d4e5f6...",
+    "signature": "304502210...",
+    "payload": {
+        "offerer_address": "D1A2B3C4D5E6F7...",
+        "mint_hash": "abc123def456...",
+        "quantity": 100,
+        "price": 50000
+    }
+}
+
+response = requests.post('http://localhost:8080/sell-offers', json=payload)
+offer = response.json()
+print(f"Sell offer created: {offer['id']} ({offer['hash']})")
+```
+
+## Response Fields
+
+- **id**: Unique identifier for the created sell offer
+- **hash**: Unique hash of the sell offer
+
+## Notes
+
+- The sell offer will be gossiped to other nodes in the network after creation
+- You must own the tokens you're offering to sell
+- The signature must be created by signing the JSON payload with the private key
+- Sell offers enable P2P token trading without intermediaries
+- Other users can create buy offers or invoices to purchase your tokens

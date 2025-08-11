@@ -1,0 +1,464 @@
+---
+title: CLI Tools
+description: Command-line interface for managing tokens, keys, offers, invoices, and payments in the Fractal Engine
+---
+
+# Fractal Engine CLI Tools
+
+The Fractal Engine provides a comprehensive command-line interface (CLI) for managing tokens, keys, offers, invoices, and payments. The CLI tool (`fecli`) enables users to interact with the Fractal Engine, Balance Master, and Dogecoin nodes through an intuitive command-line interface.
+
+## Installation and Setup
+
+### Building the CLI Tool
+
+To build the CLI tool from source:
+
+```bash
+go build -o fecli cmd/cli/cli.go
+```
+
+### Initial Configuration
+
+Before using the CLI, you need to initialize your configuration:
+
+```bash
+./fecli init --config-path config.toml
+```
+
+The init command will prompt you for:
+- Fractal Engine host and port (default: localhost:8891)
+- Balance Master host and port (default: localhost:8899)
+- Dogecoin RPC connection details (scheme, host, port, username, password)
+
+## Configuration Management
+
+### Configuration File Format
+
+The CLI uses a TOML configuration file with the following structure:
+
+```toml
+fractal_engine_host = "localhost"
+fractal_engine_port = "8891"
+balance_master_host = "localhost"
+balance_master_port = "8899"
+doge_scheme = "http"
+doge_host = "localhost"
+doge_port = "22556"
+doge_user = "test"
+doge_password = "test"
+key_labels = ["mykey1", "mykey2"]
+active_key = "mykey1"
+```
+
+### Environment Configuration
+
+The CLI supports different blockchain environments:
+
+- **Mainnet**: Production Dogecoin network
+- **Testnet**: Dogecoin test network for development
+- **Regtest**: Local regression test network
+
+Configure your Dogecoin connection based on your target environment:
+
+#### Mainnet Configuration
+```toml
+doge_scheme = "http"
+doge_host = "localhost"
+doge_port = "22555"
+```
+
+#### Testnet Configuration
+```toml
+doge_scheme = "http"
+doge_host = "localhost"
+doge_port = "44555"
+```
+
+#### Regtest Configuration
+```toml
+doge_scheme = "http"
+doge_host = "localhost"
+doge_port = "22556"
+```
+
+## Key Management
+
+The CLI provides secure key management using the system keyring for private key storage.
+
+### Creating Keys
+
+Generate a new cryptographic key pair for a specific blockchain:
+
+```bash
+./fecli keys create --config-path config.toml
+```
+
+This command will prompt for:
+- **Label**: A human-readable name for the key
+- **Chain**: The target blockchain (mainnet, testnet, regtest)
+
+The command generates:
+- Private key (stored securely in system keyring)
+- Public key (stored securely in system keyring)
+- Dogecoin address (stored securely in system keyring)
+
+### Listing Keys
+
+View all managed keys and their details:
+
+```bash
+./fecli keys list --config-path config.toml
+```
+
+Output includes:
+- Active key indicator (*)
+- Key label/name
+- Dogecoin address
+- Public key
+
+### Setting Active Key
+
+Change the currently active key for operations:
+
+```bash
+./fecli keys set --config-path config.toml
+```
+
+Select from your available keys using the interactive list interface.
+
+## Token Management
+
+### Listing Token Balances
+
+View your token balances for a specific mint:
+
+```bash
+./fecli tokens list --config-path config.toml
+```
+
+You'll be prompted to enter the mint hash to query balances for.
+
+## Mint Operations
+
+### Creating New Tokens
+
+Create a new token with custom parameters:
+
+```bash
+./fecli mints create --config-path config.toml
+```
+
+Required information:
+- **Title**: Token name/title
+- **Fraction Count**: Total number of token fractions
+- **Description**: Token description
+
+The command will:
+1. Create the mint record on the Fractal Engine
+2. Generate a blockchain transaction
+3. Broadcast the transaction to the Dogecoin network
+
+### Listing Mints
+
+View all tokens you've created:
+
+```bash
+./fecli mints list --config-path config.toml
+```
+
+Displays:
+- Mint hash (unique identifier)
+- Title and description
+- Fraction count
+- Block height and transaction hash
+- Creation timestamp
+- Confirmation status
+
+## Trading Operations
+
+### Sell Offers
+
+#### Creating Sell Offers
+
+List tokens for sale:
+
+```bash
+./fecli sell-offers create --config-path config.toml
+```
+
+Process:
+1. Select a token from your mints
+2. Specify quantity to sell
+3. Set price per fraction
+
+#### Listing Sell Offers
+
+View sell offers for a specific token:
+
+```bash
+./fecli sell-offers list --config-path config.toml
+```
+
+### Buy Offers
+
+#### Creating Buy Offers
+
+Make offers to purchase tokens:
+
+```bash
+./fecli buy-offers create --config-path config.toml
+```
+
+Process:
+1. Enter the mint hash
+2. Select from available sell offers
+3. Specify quantity and price
+
+#### Listing Buy Offers
+
+View your buy offers:
+
+```bash
+./fecli buy-offers list --config-path config.toml
+```
+
+### Invoices
+
+#### Creating Invoices
+
+Generate invoices for token sales:
+
+```bash
+./fecli invoices create --config-path config.toml
+```
+
+Process:
+1. Enter mint hash
+2. Select from buy offers
+3. Specify quantity and price
+4. Generate and broadcast invoice transaction
+
+#### Listing Invoices
+
+View invoices for a specific token:
+
+```bash
+./fecli invoices list --config-path config.toml
+```
+
+### Payments
+
+#### Paying Invoices
+
+Pay outstanding invoices:
+
+```bash
+./fecli payments pay-invoice --config-path config.toml
+```
+
+Process:
+1. Enter mint hash
+2. Select invoice to pay
+3. Confirm payment transaction
+
+## Health and Diagnostics
+
+### System Health Check
+
+Check the status of the Fractal Engine:
+
+```bash
+./fecli health --config-path config.toml
+```
+
+Displays:
+- Blockchain network (chain)
+- Current and latest block heights
+- Wallet functionality status
+- Last update timestamp
+
+## Command Reference
+
+### Global Flags
+
+All commands support the `--config-path` flag:
+
+```bash
+--config-path config.toml
+```
+
+Specifies the path to the configuration file (default: "config.toml").
+
+### Command Structure
+
+```
+fecli [command] [subcommand] [flags]
+```
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `init` | Initialize configuration file |
+| `keys` | Key management operations |
+| `health` | Check Fractal Engine health |
+| `mints` | Token creation and management |
+| `tokens` | View token balances |
+| `sell-offers` | Manage sell offers |
+| `buy-offers` | Manage buy offers |
+| `invoices` | Invoice operations |
+| `payments` | Payment processing |
+
+### Key Commands
+
+| Subcommand | Description |
+|------------|-------------|
+| `keys create` | Generate new key pair |
+| `keys list` | Display all keys |
+| `keys set` | Set active key |
+
+### Mint Commands
+
+| Subcommand | Description |
+|------------|-------------|
+| `mints create` | Create new token |
+| `mints list` | List your tokens |
+
+### Trading Commands
+
+| Subcommand | Description |
+|------------|-------------|
+| `sell-offers create` | Create sell offer |
+| `sell-offers list` | List sell offers |
+| `buy-offers create` | Create buy offer |
+| `buy-offers list` | List buy offers |
+| `invoices create` | Create invoice |
+| `invoices list` | List invoices |
+| `payments pay-invoice` | Pay invoice |
+
+## Security Features
+
+### Key Storage
+
+- Private keys are stored in the system keyring (not in plain text files)
+- Uses the `zalando/go-keyring` library for secure storage
+- Keys are associated with the service name "fractalengine"
+
+### Cryptographic Operations
+
+- All transactions are cryptographically signed
+- Payload signing uses the active private key
+- Supports Dogecoin's cryptographic standards
+
+### Address Tracking
+
+- New addresses are automatically tracked by Balance Master
+- UTXO management for transaction creation
+- Balance verification before operations
+
+## Troubleshooting
+
+### Common Issues
+
+#### Configuration File Not Found
+
+```
+Error: Config file not found
+```
+
+**Solution**: Run `fecli init` to create a configuration file, or specify the correct path with `--config-path`.
+
+#### Connection Errors
+
+```
+Error: Unable to connect to Fractal Engine
+```
+
+**Solutions**:
+1. Verify Fractal Engine is running
+2. Check host and port in configuration
+3. Ensure network connectivity
+
+#### Insufficient Balance
+
+```
+Error: No utxos found for address
+```
+
+**Solutions**:
+1. Ensure your address has Dogecoin balance
+2. Wait for Balance Master to sync
+3. Verify address is being tracked
+
+#### Keyring Access Errors
+
+```
+Error: Failed to access keyring
+```
+
+**Solutions**:
+1. Ensure system keyring is available
+2. Check user permissions
+3. Try recreating keys
+
+### Network-Specific Issues
+
+#### Regtest Environment
+
+For local development using regtest:
+
+1. Ensure Dogecoin Core is running in regtest mode:
+   ```bash
+   dogecoind -regtest -rpcuser=test -rpcpassword=test
+   ```
+
+2. Generate initial blocks:
+   ```bash
+   dogecoin-cli -regtest generate 101
+   ```
+
+3. Create and fund test addresses as needed
+
+#### Testnet Environment
+
+For testnet development:
+
+1. Use testnet configuration
+2. Obtain testnet DOGE from faucets
+3. Allow extra time for block confirmations
+
+### Debug Mode
+
+Some commands may have debug modes or verbose output options. Check individual command help:
+
+```bash
+./fecli [command] --help
+```
+
+## Best Practices
+
+### Key Management
+
+1. **Use descriptive labels** for keys to identify their purpose
+2. **Backup key information** securely outside the system keyring
+3. **Use different keys** for different environments (mainnet vs testnet)
+
+### Configuration Management
+
+1. **Keep separate configs** for different environments
+2. **Use version control** for configuration templates (without sensitive data)
+3. **Validate configuration** with `fecli health` after changes
+
+### Transaction Management
+
+1. **Verify balances** before creating offers or payments
+2. **Monitor transaction confirmations** on the blockchain
+3. **Keep transaction IDs** for record-keeping
+
+### Development Workflow
+
+1. **Start with regtest** for local development
+2. **Test on testnet** before mainnet deployment
+3. **Monitor logs** for error messages and debugging information
+
+For additional support and advanced usage scenarios, refer to the Fractal Engine documentation or community resources.

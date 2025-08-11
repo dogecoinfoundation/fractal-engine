@@ -1,0 +1,876 @@
+---
+title: Troubleshooting Guide
+description: Comprehensive troubleshooting procedures for diagnosing and resolving common issues across all Fractal Engine system components
+---
+
+# Fractal Engine Troubleshooting Guide
+
+This guide provides comprehensive troubleshooting procedures for diagnosing and resolving common issues across all Fractal Engine system components.
+
+## Table of Contents
+
+1. [General Troubleshooting Approach](#general-troubleshooting-approach)
+2. [System Architecture Overview](#system-architecture-overview)
+3. [Health Monitoring and Diagnostics](#health-monitoring-and-diagnostics)
+4. [Startup and Configuration Issues](#startup-and-configuration-issues)
+5. [Dogecoin Node Connectivity](#dogecoin-node-connectivity)
+6. [DogeNet P2P Network Issues](#dogenet-p2p-network-issues)
+7. [API and RPC Server Problems](#api-and-rpc-server-problems)
+8. [Database Issues](#database-issues)
+9. [Authentication and Signing Errors](#authentication-and-signing-errors)
+10. [Performance and Resource Problems](#performance-and-resource-problems)
+11. [Log Analysis and Debugging](#log-analysis-and-debugging)
+12. [Recovery Procedures](#recovery-procedures)
+13. [Common Error Messages](#common-error-messages)
+14. [Support and Further Help](#support-and-further-help)
+
+---
+
+## General Troubleshooting Approach
+
+### Systematic Diagnosis Steps
+
+1. **Check System Health**: Start with overall health status
+2. **Verify Dependencies**: Ensure all required services are running
+3. **Examine Logs**: Look for error patterns and stack traces
+4. **Test Connectivity**: Verify network connections between components
+5. **Validate Configuration**: Check configuration values and environment variables
+6. **Resource Monitoring**: Check CPU, memory, disk, and network usage
+
+### Essential Tools
+
+```bash
+# Health check endpoints
+curl http://localhost:8891/health
+curl http://localhost:8085/health
+
+# Docker container status
+docker-compose ps
+docker-compose logs [service-name]
+
+# System logs
+journalctl -f -u fractal-engine
+
+# Network connectivity
+nc -zv localhost 8891  # API server
+nc -zv localhost 22556 # Dogecoin RPC
+nc -zv localhost 5432  # PostgreSQL
+
+# Database connectivity
+psql -h localhost -p 5432 -U fractalstore -d fractalstore
+
+# CLI health check
+./bin/cli health
+```
+
+---
+
+## System Architecture Overview
+
+### Core Services
+
+| Service | Port | Function | Dependencies |
+|---------|------|----------|--------------|
+| **fractalengine** | 8891 | Main tokenization service | dogecoin, dogenet, fractalstore |
+| **dogenet** | 8085, 42000 | P2P gossip network | dogecoin |
+| **dogecoin** | 22556 | Dogecoin Core node | - |
+| **fractalstore** | 5432 | PostgreSQL database | - |
+| **balance-master** | 8899 | Balance management | dogecoin |
+
+### Service Dependencies
+
+```mermaid
+graph TD
+    A[fractalengine] --> B[dogecoin]
+    A --> C[dogenet]
+    A --> D[fractalstore]
+    E[balance-master] --> B
+    C --> B
+```
+
+---
+
+## Health Monitoring and Diagnostics
+
+### Health Check Endpoints
+
+```bash
+# Fractal Engine health
+curl -s http://localhost:8891/health | jq .
+{
+  "status": "healthy",
+  "components": {
+    "database": "connected",
+    "dogecoin_rpc": "connected",
+    "dogenet": "connected",
+    "blockchain_sync": "synced"
+  },
+  "blockchain_height": {
+    "current": 4782156,
+    "latest": 4782156
+  }
+}
+
+# DogeNet health  
+curl -s http://localhost:8085/health
+
+# Service health via CLI
+./bin/cli health
+```
+
+### Container Health Checks
+
+```bash
+# Check all service health
+docker-compose ps
+
+# Individual service logs
+docker-compose logs fractalengine
+docker-compose logs dogecoin
+docker-compose logs dogenet
+docker-compose logs fractalstore
+
+# Follow logs in real-time
+docker-compose logs -f fractalengine
+```
+
+### Health Service Monitoring
+
+The health service runs every 10 seconds and monitors:
+- Dogecoin RPC connectivity
+- Database connection status
+- Blockchain synchronization status
+- DogeNet peer connectivity
+
+---
+
+## Startup and Configuration Issues
+
+### Common Startup Problems
+
+#### Service Won't Start
+
+**Symptoms**: Container exits immediately or fails to start
+
+**Diagnosis**:
+```bash
+# Check container logs
+docker-compose logs fractalengine
+
+# Check container status
+docker-compose ps
+
+# Verify configuration
+docker-compose config
+```
+
+**Common Causes**:
+- Missing environment variables
+- Database connection failure
+- Port conflicts
+- Invalid configuration values
+
+#### Configuration Validation
+
+**Required Environment Variables**:
+```bash
+# Core configuration
+DATABASE_URL=postgresql://fractalstore:password@fractalstore:5432/fractalstore
+DOGE_HOST=dogecoin
+DOGE_PORT=22556
+DOGE_USER=test
+DOGE_PASSWORD=test
+
+# Network configuration
+RPC_SERVER_HOST=0.0.0.0
+RPC_SERVER_PORT=8891
+DOGE_NET_ADDRESS=0.0.0.0:42000
+DOGE_NET_WEB_ADDRESS=0.0.0.0:8085
+```
+
+**Configuration Defaults** (pkg/config/config.go):
+- RPC Server: `0.0.0.0:8891`
+- DogeNet: `0.0.0.0:42069` (P2P), `0.0.0.0:8085` (Web)
+- Dogecoin: `http://dogecoin:22555`
+- Database: `sqlite://fractal-engine.db`
+- Rate Limit: 10 requests/second
+
+#### Port Conflicts
+
+**Check port usage**:
+```bash
+# Linux
+ss -tulpn | grep :8891
+netstat -tulpn | grep :8891
+
+# Check Docker port bindings
+docker port fractalengine-1
+```
+
+**Default Port Assignments**:
+- 8891: Fractal Engine API
+- 8085: DogeNet Web Interface  
+- 42000: DogeNet P2P
+- 22556: Dogecoin RPC
+- 5432: PostgreSQL
+- 8899: Balance Master
+
+---
+
+## Dogecoin Node Connectivity
+
+### RPC Connection Issues
+
+#### Connection Refused
+
+**Symptoms**: 
+- "connection refused" errors
+- "dial tcp: connect: connection refused"
+
+**Diagnosis**:
+```bash
+# Test RPC connectivity
+curl -u test:test \
+  --data-binary '{"jsonrpc":"1.0","id":"test","method":"getblockchaininfo","params":[]}' \
+  -H 'content-type: text/plain;' \
+  http://localhost:22556/
+
+# Check dogecoin service status
+docker-compose logs dogecoin
+docker-compose ps dogecoin
+
+# Test internal Docker networking
+docker exec fractalengine-1 nc -zv dogecoin 22556
+```
+
+**Solutions**:
+1. Verify dogecoin service is running
+2. Check RPC credentials (default: test/test)
+3. Ensure RPC server is enabled in dogecoin configuration
+4. Verify network connectivity between containers
+
+#### Authentication Failures
+
+**Symptoms**:
+- "401 Unauthorized" responses
+- "invalid username or password"
+
+**Check Configuration**:
+```bash
+# Verify RPC credentials in config
+grep -A5 -B5 "rpcauth\|rpcuser\|rpcpassword" regtest.conf
+
+# Default credentials for regtest
+rpcuser=test
+rpcpassword=test
+```
+
+#### Blockchain Sync Issues
+
+**Symptoms**:
+- Health endpoint shows sync lag
+- "blockchain not synced" errors
+
+**Diagnosis**:
+```bash
+# Check sync status
+curl -u test:test \
+  --data-binary '{"method":"getblockchaininfo"}' \
+  http://localhost:22556/ | jq .result.blocks
+
+# Monitor sync progress
+watch -n 5 'curl -s -u test:test --data-binary "{\"method\":\"getblockchaininfo\"}" http://localhost:22556/ | jq .result'
+```
+
+---
+
+## DogeNet P2P Network Issues
+
+### Peer Connectivity Problems
+
+#### No Peer Connections
+
+**Symptoms**:
+- DogeNet web interface shows 0 peers
+- Network messages not propagating
+
+**Diagnosis**:
+```bash
+# Check DogeNet status
+curl http://localhost:8085/status
+
+# Check peer list
+curl http://localhost:8085/peers
+
+# Check DogeNet logs
+docker-compose logs dogenet
+```
+
+**Solutions**:
+1. Verify DogeNet service is running
+2. Check firewall rules for P2P port (42000)
+3. Ensure proper network configuration
+4. Check bootstrap peer connectivity
+
+#### Message Validation Errors
+
+**Symptoms**:
+- "invalid message format" errors
+- Protocol version mismatches
+
+**Common Issues**:
+- Invalid protobuf message format
+- Unsupported action types
+- Message size limits exceeded
+
+**Validation Patterns** (pkg/validation/validation.go):
+- Action types: 1 (MINT), 2 (INVOICE), 3 (PAYMENT)
+- Maximum quantities: 1,000,000,000
+- Hash format: 64-character hex strings
+- Address validation: Dogecoin mainnet/testnet formats
+
+---
+
+## API and RPC Server Problems
+
+### HTTP Server Issues
+
+#### Server Won't Start
+
+**Symptoms**:
+- "bind: address already in use"
+- Connection refused on API port
+
+**Diagnosis**:
+```bash
+# Check port binding
+ss -tulpn | grep :8891
+
+# Test API connectivity
+curl -v http://localhost:8891/health
+
+# Check server logs
+docker-compose logs fractalengine | grep -i "rpc\|server\|listen"
+```
+
+#### Rate Limiting
+
+**Symptoms**:
+- 429 Too Many Requests responses
+- API calls being throttled
+
+**Configuration**: Default rate limit is 10 requests/second per IP
+
+**Solutions**:
+1. Reduce request frequency
+2. Implement client-side rate limiting
+3. Adjust `RateLimitPerSecond` configuration if needed
+
+#### CORS Issues
+
+**Symptoms**:
+- Browser CORS errors
+- Cross-origin request failures
+
+**Default CORS Settings**:
+- Allowed origins: All (`*`)
+- Allowed methods: GET, POST, PUT, DELETE, OPTIONS
+- Allowed headers: Content-Type, Authorization
+
+### API Validation Errors
+
+#### Invalid Request Format
+
+**Common HTTP Status Codes**:
+- `400 Bad Request`: Invalid input data
+- `404 Not Found`: Resource not found  
+- `422 Unprocessable Entity`: Validation failed
+- `500 Internal Server Error`: Server error
+
+**Validation Requirements**:
+- Addresses: Valid Dogecoin format (D*, A* for mainnet; m*, n*, 2* for testnet)
+- Hashes: 64-character hexadecimal strings
+- Quantities: Positive integers ≤ 1,000,000,000
+- Titles: ≤ 100 characters, safe characters only
+- Descriptions: ≤ 1,000 characters
+
+---
+
+## Database Issues
+
+### Connection Problems
+
+#### Database Connection Failed
+
+**Symptoms**:
+- "connection refused" to PostgreSQL
+- Database authentication errors
+
+**Diagnosis**:
+```bash
+# Test database connectivity
+psql -h localhost -p 5432 -U fractalstore -d fractalstore
+
+# Check PostgreSQL service
+docker-compose logs fractalstore
+docker-compose ps fractalstore
+
+# Verify credentials
+echo $DATABASE_URL
+```
+
+**Default Database Configuration**:
+- Host: `fractalstore` (Docker) or `localhost` (local)
+- Port: `5432`
+- User: `fractalstore`
+- Database: `fractalstore`
+- Password: Set in environment
+
+#### Migration Issues
+
+**Symptoms**:
+- "migration failed" errors during startup
+- Database schema mismatches
+
+**Manual Migration**:
+```bash
+# Run migrations manually
+./bin/fractal-engine -migrate-only
+
+# Check migration status
+psql -h localhost -p 5432 -U fractalstore -d fractalstore \
+  -c "SELECT version, dirty FROM schema_migrations;"
+```
+
+**Migration Files**: Located in `db/migrations/`
+- Creates tables: chain_position, onchain_transactions, health, etc.
+- Handles schema upgrades and downgrades
+
+### SQLite vs PostgreSQL
+
+#### SQLite Issues
+
+**Default SQLite Path**: `sqlite://fractal-engine.db`
+
+**Common Problems**:
+- File permissions
+- Disk space exhaustion  
+- Concurrent access limitations
+
+#### PostgreSQL Issues
+
+**Connection String Format**:
+```
+postgresql://user:password@host:port/database
+```
+
+**Common Problems**:
+- Authentication failures
+- Network connectivity
+- Resource limits (connections, memory)
+
+---
+
+## Authentication and Signing Errors
+
+### Cryptographic Validation
+
+#### Invalid Signatures
+
+**Symptoms**:
+- "signature verification failed"
+- "invalid public key format"
+
+**Requirements**:
+- Public keys: 66-character compressed format
+- Signatures: Valid ECDSA signatures
+- Message hashing: SHA256
+
+#### Key Management Issues
+
+**Symptoms**:
+- "private key not found"
+- "key generation failed"
+
+**CLI Key Management**:
+```bash
+# Generate new keypair
+./bin/cli init
+
+# Check key status
+./bin/cli wallet-info
+
+# Import existing key
+./bin/cli import-key [private-key-hex]
+```
+
+---
+
+## Performance and Resource Problems
+
+### High CPU Usage
+
+**Monitoring**:
+```bash
+# Container resource usage
+docker stats
+
+# Process monitoring
+top -p $(docker exec fractalengine-1 pgrep fractal-engine)
+
+# CPU usage by service
+docker-compose exec fractalengine top
+```
+
+**Common Causes**:
+- High transaction volume
+- Blockchain synchronization
+- P2P message processing
+- Database queries
+
+### Memory Issues
+
+**Symptoms**:
+- Out of memory errors
+- Container restarts
+- Performance degradation
+
+**Monitoring**:
+```bash
+# Memory usage
+docker stats --no-stream
+free -h
+
+# Service-specific memory
+docker-compose exec fractalengine cat /proc/meminfo
+```
+
+### Disk Space Problems
+
+**Monitoring**:
+```bash
+# Disk usage
+df -h
+docker system df
+
+# Database size
+du -sh ./data/postgres
+du -sh ./fractal-engine.db
+```
+
+**Cleanup**:
+```bash
+# Remove unused Docker resources
+docker system prune -a
+
+# Compact SQLite database
+sqlite3 fractal-engine.db "VACUUM;"
+```
+
+### Network Performance
+
+**Bandwidth Monitoring**:
+```bash
+# Network traffic
+iftop
+netstat -i
+
+# Docker network stats
+docker network ls
+docker network inspect fractal-shared
+```
+
+---
+
+## Log Analysis and Debugging
+
+### Log Locations
+
+#### Container Logs
+```bash
+# All services
+docker-compose logs
+
+# Specific service logs
+docker-compose logs fractalengine
+docker-compose logs dogecoin
+docker-compose logs dogenet
+docker-compose logs fractalstore
+
+# Follow logs in real-time
+docker-compose logs -f [service]
+
+# Filter by time
+docker-compose logs --since 1h fractalengine
+```
+
+#### System Logs
+```bash
+# System journal
+journalctl -u docker
+journalctl -f
+
+# Application logs (if running natively)
+tail -f /var/log/fractal-engine.log
+```
+
+### Common Error Patterns
+
+#### Critical Errors (log.Fatal)
+- Configuration errors during startup
+- Database connection failures
+- Missing required dependencies
+
+#### Warning Patterns
+```
+Error getting best block hash: connection refused
+Error getting blockchain info: dial tcp
+Error upserting health: database connection lost
+```
+
+#### Debug Information
+```
+Processing transaction: [hash]
+Received DogeNet message: [type]
+Database operation completed: [table]
+```
+
+### Log Analysis Techniques
+
+```bash
+# Search for errors
+docker-compose logs fractalengine | grep -i error
+
+# Count error occurrences  
+docker-compose logs fractalengine | grep -c "Error"
+
+# Filter by severity
+docker-compose logs fractalengine | grep -E "(ERROR|FATAL|PANIC)"
+
+# Extract transaction hashes
+docker-compose logs fractalengine | grep -o "[a-f0-9]{64}"
+
+# Time-based analysis
+docker-compose logs --since "2024-01-01T10:00:00" fractalengine
+```
+
+---
+
+## Recovery Procedures
+
+### Service Recovery
+
+#### Restart Individual Services
+```bash
+# Restart specific service
+docker-compose restart fractalengine
+docker-compose restart dogecoin
+
+# Restart all services
+docker-compose restart
+
+# Force recreation
+docker-compose up --force-recreate fractalengine
+```
+
+#### Database Recovery
+
+**PostgreSQL Recovery**:
+```bash
+# Backup database
+pg_dump -h localhost -p 5432 -U fractalstore fractalstore > backup.sql
+
+# Restore from backup
+psql -h localhost -p 5432 -U fractalstore fractalstore < backup.sql
+
+# Reset migrations
+DELETE FROM schema_migrations;
+```
+
+**SQLite Recovery**:
+```bash
+# Backup SQLite database
+cp fractal-engine.db fractal-engine.db.backup
+
+# Check database integrity
+sqlite3 fractal-engine.db "PRAGMA integrity_check;"
+
+# Repair corruption
+sqlite3 fractal-engine.db ".recover" | sqlite3 recovered.db
+```
+
+#### Blockchain Resync
+
+```bash
+# Reset chain position
+./bin/cli reset-chain-position
+
+# Force blockchain resync
+rm -rf ./data/dogecoin/regtest/blocks
+rm -rf ./data/dogecoin/regtest/chainstate
+docker-compose restart dogecoin
+```
+
+### Emergency Procedures
+
+#### Complete System Reset
+
+```bash
+# Stop all services
+docker-compose down
+
+# Remove volumes (DESTRUCTIVE)
+docker-compose down -v
+docker volume prune
+
+# Rebuild and restart
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+#### Data Recovery
+
+```bash
+# Extract data from stopped containers
+docker cp fractalengine-1:/root/storage/fractal-engine.db ./recovery/
+docker cp fractalstore-1:/var/lib/postgresql/data ./recovery/postgres/
+
+# Manual database export
+docker-compose exec fractalstore pg_dumpall -U fractalstore > full_backup.sql
+```
+
+---
+
+## Common Error Messages
+
+### Database Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `connection refused` | PostgreSQL not running | Start fractalstore service |
+| `authentication failed` | Wrong credentials | Check DATABASE_URL |
+| `database does not exist` | Missing database | Run migrations |
+| `migration failed` | Schema conflict | Reset migrations |
+
+### Network Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `dial tcp: connection refused` | Service not running | Check service status |
+| `no route to host` | Network configuration | Verify Docker networks |
+| `timeout` | Service overloaded | Check resource usage |
+| `connection reset` | Service restart | Wait for service recovery |
+
+### Validation Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `invalid Dogecoin address format` | Wrong address format | Use valid D*/A* addresses |
+| `hash must be exactly 64 characters` | Invalid hash | Provide SHA256 hex hash |
+| `quantity must be greater than 0` | Invalid quantity | Use positive integers |
+| `title contains invalid characters` | Unsafe characters | Use alphanumeric + safe punctuation |
+
+### Authentication Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `signature verification failed` | Invalid signature | Check private key and message |
+| `public key must be exactly 66 characters` | Wrong key format | Use compressed public key |
+| `invalid username or password` | RPC auth failure | Verify Dogecoin RPC credentials |
+
+---
+
+## Support and Further Help
+
+### Self-Diagnosis Checklist
+
+Before seeking support, verify:
+
+- [ ] All services are running (`docker-compose ps`)
+- [ ] Health endpoints are responding
+- [ ] No port conflicts exist
+- [ ] Database is accessible
+- [ ] Dogecoin node is synced
+- [ ] Network connectivity between services
+- [ ] Sufficient disk space and memory
+- [ ] No obvious errors in logs
+
+### Diagnostic Information to Collect
+
+```bash
+# System information
+uname -a
+docker --version
+docker-compose --version
+
+# Service status
+docker-compose ps
+docker-compose logs --tail 100 fractalengine > fractalengine.log
+docker-compose logs --tail 100 dogecoin > dogecoin.log
+
+# Configuration
+docker-compose config > docker-config.yml
+env | grep -E "(DOGE|DATABASE|FRACTAL)" > environment.txt
+
+# Health status
+curl -s http://localhost:8891/health > health-status.json
+curl -s http://localhost:8085/status > dogenet-status.json
+
+# Resource usage
+docker stats --no-stream > docker-stats.txt
+df -h > disk-usage.txt
+free -h > memory-usage.txt
+```
+
+### Getting Help
+
+1. **Documentation**: Check other documentation files in `/docs/`
+2. **GitHub Issues**: Search existing issues for similar problems
+3. **Community**: Engage with the Dogecoin community
+4. **Logs**: Always include relevant log snippets when reporting issues
+
+### Contributing Improvements
+
+If you encounter issues not covered in this guide:
+
+1. Document the problem and solution
+2. Consider submitting a pull request to improve this guide
+3. Share common solutions with the community
+
+---
+
+## Appendix: Configuration Reference
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `sqlite://fractal-engine.db` | Database connection string |
+| `DOGE_HOST` | `dogecoin` | Dogecoin RPC host |
+| `DOGE_PORT` | `22555` | Dogecoin RPC port |
+| `DOGE_USER` | `test` | RPC username |
+| `DOGE_PASSWORD` | `test` | RPC password |
+| `RPC_SERVER_HOST` | `0.0.0.0` | API server bind address |
+| `RPC_SERVER_PORT` | `8891` | API server port |
+| `DOGE_NET_ADDRESS` | `0.0.0.0:42069` | DogeNet P2P address |
+| `RATE_LIMIT_PER_SECOND` | `10` | API rate limit |
+
+### Default Ports
+
+| Service | Port | Protocol | Description |
+|---------|------|----------|-------------|
+| Fractal Engine | 8891 | HTTP | Main API server |
+| DogeNet Web | 8085 | HTTP | Web interface |
+| DogeNet P2P | 42000 | TCP | Gossip network |
+| Dogecoin RPC | 22556 | HTTP | Blockchain RPC |
+| PostgreSQL | 5432 | TCP | Database |
+| Balance Master | 8899 | HTTP | Balance service |
+
+### Health Check URLs
+
+- Fractal Engine: `http://localhost:8891/health`
+- DogeNet: `http://localhost:8085/health`
+- PostgreSQL: `pg_isready -h localhost -p 5432 -U fractalstore`
+- Dogecoin: `curl -u test:test --data-binary '{"method":"getblockchaininfo"}' http://localhost:22556/`
+
+This troubleshooting guide should be updated as new issues are discovered and resolved.
