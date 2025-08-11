@@ -66,6 +66,15 @@ func (t *RpcClient) Generate(n int) ([]string, error) {
 	return result, nil
 }
 
+func (t *RpcClient) AddPeer(address string) error {
+	_, err := t.Request("addnode", []any{address, "add"})
+	if err != nil && err.Error() != "json-rpc no result or error was returned" {
+		return err
+	}
+
+	return nil
+}
+
 func (t *RpcClient) GetNewAddress() (string, error) {
 	res, err := t.Request("getnewaddress", []any{})
 	if err != nil {

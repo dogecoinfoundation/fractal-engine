@@ -2,6 +2,7 @@ package stack
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"regexp"
@@ -89,7 +90,7 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 	})
 	stackConfig.DogeClient = doge.NewRpcClient(&fecfg.Config{
 		DogeScheme:   "http",
-		DogeHost:     stackConfig.DogeHost,
+		DogeHost:     "localhost",
 		DogePort:     strconv.Itoa(stackConfig.DogePort),
 		DogeUser:     "test",
 		DogePassword: "test",
@@ -110,28 +111,43 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 	}
 
 	stackConfig.DogeNetClient = dogenet.NewDogeNetClient(&fecfg.Config{
-		DogeNetWebAddress: stackConfig.DogeNetHost + ":" + strconv.Itoa(stackConfig.DogeNetWebPort),
+		DogeNetWebAddress: "localhost" + ":" + strconv.Itoa(stackConfig.DogeNetWebPort),
 	}, tokenStore)
 
 	return stackConfig
 }
 
 func TestStack(t *testing.T) {
-	stackA := NewStackConfig(1, "regtest")
-	stackB := NewStackConfig(2, "regtest")
+	stackCount := 2
 
-	// Check for nodes, if doesnt exist, then add peer.
-	err := stackA.DogeNetClient.AddPeer(dogenet.AddPeer{
-		Key:  stackB.DogeNetPubKey,
-		Addr: stackB.DogeNetHost + ":" + strconv.Itoa(stackB.DogeNetBindPort),
-	})
-	if err != nil {
-		panic(err)
+	var stacks []*StackConfig
+	for i := 0; i < stackCount; i++ {
+		newConfig := NewStackConfig(i+1, "regtest")
+		stacks = append(stacks, &newConfig)
 	}
 
-	// TODO : Connect DogeCoin Peers
-	//
-	// TODO : End to end test scenarios.
+	for i := 0; i < len(stacks)/2; i += 2 {
+		stackA := stacks[i]
+		stackB := stacks[(i + 1)]
+
+		fmt.Println("StackA: ", stackA.Address)
+		fmt.Println("StackB: ", stackB.Address)
+
+		// Check for nodes, if doesnt exist, then add peer.
+		err := stackA.DogeNetClient.AddPeer(dogenet.AddPeer{
+			Key:  stackB.DogeNetPubKey,
+			Addr: stackB.DogeNetHost + ":" + strconv.Itoa(stackB.DogeNetBindPort),
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		err = stackA.DogeClient.AddPeer(stackB.DogeHost)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 }
 
 func populateStackHosts(stackConfig *StackConfig, cli *client.Client) {
