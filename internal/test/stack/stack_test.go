@@ -2,7 +2,6 @@ package stack
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"regexp"
@@ -118,8 +117,11 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 }
 
 func TestStack(t *testing.T) {
-	stackCount := 2
+	// stacks := makeStackConfigsAndPeer(2)
 
+}
+
+func makeStackConfigsAndPeer(stackCount int) []*StackConfig {
 	var stacks []*StackConfig
 	for i := 0; i < stackCount; i++ {
 		newConfig := NewStackConfig(i+1, "regtest")
@@ -130,9 +132,6 @@ func TestStack(t *testing.T) {
 		stackA := stacks[i]
 		stackB := stacks[(i + 1)]
 
-		fmt.Println("StackA: ", stackA.Address)
-		fmt.Println("StackB: ", stackB.Address)
-
 		// Check for nodes, if doesnt exist, then add peer.
 		err := stackA.DogeNetClient.AddPeer(dogenet.AddPeer{
 			Key:  stackB.DogeNetPubKey,
@@ -142,12 +141,10 @@ func TestStack(t *testing.T) {
 			panic(err)
 		}
 
-		err = stackA.DogeClient.AddPeer(stackB.DogeHost)
-		if err != nil {
-			panic(err)
-		}
+		stackA.DogeClient.AddPeer(stackB.DogeHost)
 	}
 
+	return stacks
 }
 
 func populateStackHosts(stackConfig *StackConfig, cli *client.Client) {

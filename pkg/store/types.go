@@ -43,18 +43,20 @@ type MintWithoutID struct {
 	PublicKey       string             `json:"public_key"`
 	OwnerAddress    string             `json:"owner_address"`
 	Signature       string             `json:"signature"`
+	ContractOfSale  StringInterfaceMap `json:"contract_of_sale"`
 }
 
 type MintHash struct {
-	Title         string             `json:"title"`
-	FractionCount int                `json:"fraction_count"`
-	Description   string             `json:"description"`
-	Tags          StringArray        `json:"tags"`
-	Metadata      StringInterfaceMap `json:"metadata"`
-	Requirements  StringInterfaceMap `json:"requirements"`
-	LockupOptions StringInterfaceMap `json:"lockup_options"`
-	OwnerAddress  string             `json:"owner_address"`
-	PublicKey     string             `json:"public_key"`
+	Title          string             `json:"title"`
+	FractionCount  int                `json:"fraction_count"`
+	Description    string             `json:"description"`
+	Tags           StringArray        `json:"tags"`
+	Metadata       StringInterfaceMap `json:"metadata"`
+	Requirements   StringInterfaceMap `json:"requirements"`
+	LockupOptions  StringInterfaceMap `json:"lockup_options"`
+	OwnerAddress   string             `json:"owner_address"`
+	PublicKey      string             `json:"public_key"`
+	ContractOfSale StringInterfaceMap `json:"contract_of_sale"`
 }
 
 type OnChainTransaction struct {
@@ -72,14 +74,15 @@ type OnChainTransaction struct {
 
 func (m *MintWithoutID) GenerateHash() (string, error) {
 	input := MintHash{
-		Title:         m.Title,
-		FractionCount: m.FractionCount,
-		Description:   m.Description,
-		Tags:          m.Tags,
-		Metadata:      m.Metadata,
-		Requirements:  m.Requirements,
-		LockupOptions: m.LockupOptions,
-		PublicKey:     m.PublicKey,
+		Title:          m.Title,
+		FractionCount:  m.FractionCount,
+		Description:    m.Description,
+		Tags:           m.Tags,
+		Metadata:       m.Metadata,
+		Requirements:   m.Requirements,
+		LockupOptions:  m.LockupOptions,
+		PublicKey:      m.PublicKey,
+		ContractOfSale: m.ContractOfSale,
 	}
 
 	// Serialize to JSON with sorted keys

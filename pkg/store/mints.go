@@ -12,14 +12,14 @@ import (
 )
 
 func (s *TokenisationStore) GetMintByHash(hash string) (Mint, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key FROM mints WHERE hash = $1", hash)
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key, contract_of_sale FROM mints WHERE hash = $1", hash)
 	if err != nil {
 		return Mint{}, err
 	}
 
 	var m Mint
 	if rows.Next() {
-		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress, &m.PublicKey); err != nil {
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress, &m.PublicKey, &m.ContractOfSale); err != nil {
 			return Mint{}, err
 		}
 	}
@@ -30,7 +30,7 @@ func (s *TokenisationStore) GetMintByHash(hash string) (Mint, error) {
 }
 
 func (s *TokenisationStore) GetMintsByPublicKey(offset int, limit int, publicKey string, includeUnconfirmed bool) ([]Mint, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key FROM mints WHERE public_key = $1 and transaction_hash is not null LIMIT $2 OFFSET $3", publicKey, limit, offset)
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key, contract_of_sale FROM mints WHERE public_key = $1 and transaction_hash is not null LIMIT $2 OFFSET $3", publicKey, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (s *TokenisationStore) GetMintsByPublicKey(offset int, limit int, publicKey
 	var mints []Mint
 	for rows.Next() {
 		var m Mint
-		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress, &m.PublicKey); err != nil {
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress, &m.PublicKey, &m.ContractOfSale); err != nil {
 			return nil, err
 		}
 		mints = append(mints, m)
@@ -50,7 +50,7 @@ func (s *TokenisationStore) GetMintsByPublicKey(offset int, limit int, publicKey
 	rows.Close()
 
 	if includeUnconfirmed {
-		rows, err = s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key FROM unconfirmed_mints WHERE public_key = $1 LIMIT $2 OFFSET $3", publicKey, limit, offset)
+		rows, err = s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key, contract_of_sale FROM unconfirmed_mints WHERE public_key = $1 LIMIT $2 OFFSET $3", publicKey, limit, offset)
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +58,7 @@ func (s *TokenisationStore) GetMintsByPublicKey(offset int, limit int, publicKey
 
 		for rows.Next() {
 			var m Mint
-			if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress, &m.PublicKey); err != nil {
+			if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress, &m.PublicKey, &m.ContractOfSale); err != nil {
 				return nil, err
 			}
 			mints = append(mints, m)
@@ -74,7 +74,7 @@ func (s *TokenisationStore) GetMintsByPublicKey(offset int, limit int, publicKey
 }
 
 func (s *TokenisationStore) GetMints(offset int, limit int) ([]Mint, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key FROM mints LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key, contract_of_sale FROM mints LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (s *TokenisationStore) GetMints(offset int, limit int) ([]Mint, error) {
 	var mints []Mint
 	for rows.Next() {
 		var m Mint
-		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress, &m.PublicKey); err != nil {
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.OwnerAddress, &m.PublicKey, &m.ContractOfSale); err != nil {
 			return nil, err
 		}
 		mints = append(mints, m)
@@ -96,7 +96,7 @@ func (s *TokenisationStore) GetMints(offset int, limit int) ([]Mint, error) {
 }
 
 func (s *TokenisationStore) GetUnconfirmedMints(offset int, limit int) ([]Mint, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, public_key FROM unconfirmed_mints LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, public_key, contract_of_sale FROM unconfirmed_mints LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (s *TokenisationStore) GetUnconfirmedMints(offset int, limit int) ([]Mint, 
 	var mints []Mint
 	for rows.Next() {
 		var m Mint
-		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.PublicKey); err != nil {
+		if err := rows.Scan(&m.Id, &m.CreatedAt, &m.Title, &m.Description, &m.FractionCount, &m.Tags, &m.Metadata, &m.Hash, &m.TransactionHash, &m.Requirements, &m.LockupOptions, &m.FeedURL, &m.PublicKey, &m.ContractOfSale); err != nil {
 			return nil, err
 		}
 		mints = append(mints, m)
@@ -141,20 +141,25 @@ func (s *TokenisationStore) SaveMintWithTx(mint *MintWithoutID, ownerAddress str
 		return "", err
 	}
 
+	contractOfSale, err := json.Marshal(mint.ContractOfSale)
+	if err != nil {
+		return "", err
+	}
+
 	tags, err := json.Marshal(mint.Tags)
 	if err != nil {
 		return "", err
 	}
 
 	query := `
-	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url, owner_address, public_key, block_height, transaction_hash)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	INSERT INTO mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url, owner_address, public_key, block_height, transaction_hash, contract_of_sale)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 	`
 	
 	if tx != nil {
-		_, err = tx.Exec(query, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, ownerAddress, mint.PublicKey, mint.BlockHeight, mint.TransactionHash)
+		_, err = tx.Exec(query, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, ownerAddress, mint.PublicKey, mint.BlockHeight, mint.TransactionHash, string(contractOfSale))
 	} else {
-		_, err = s.DB.Exec(query, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, ownerAddress, mint.PublicKey, mint.BlockHeight, mint.TransactionHash)
+		_, err = s.DB.Exec(query, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, ownerAddress, mint.PublicKey, mint.BlockHeight, mint.TransactionHash, string(contractOfSale))
 	}
 
 	return id, err
@@ -189,15 +194,20 @@ func (s *TokenisationStore) SaveUnconfirmedMint(mint *MintWithoutID) (string, er
 		return "", err
 	}
 
+	contractOfSale, err := json.Marshal(mint.ContractOfSale)
+	if err != nil {
+		return "", err
+	}
+
 	tags, err := json.Marshal(mint.Tags)
 	if err != nil {
 		return "", err
 	}
 
 	_, err = s.DB.Exec(`
-	INSERT INTO unconfirmed_mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url, public_key, owner_address, transaction_hash)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, mint.PublicKey, mint.OwnerAddress, mint.TransactionHash)
+	INSERT INTO unconfirmed_mints (id, title, description, fraction_count, tags, metadata, hash, requirements, lockup_options, feed_url, public_key, owner_address, transaction_hash, contract_of_sale)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	`, id, mint.Title, mint.Description, mint.FractionCount, string(tags), string(metadata), mint.Hash, string(requirements), string(lockupOptions), mint.FeedURL, mint.PublicKey, mint.OwnerAddress, mint.TransactionHash, string(contractOfSale))
 	log.Println("err:", err)
 
 	return id, err
@@ -255,7 +265,7 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 	}
 	defer tx.Rollback()
 
-	rows, err := tx.Query("SELECT id, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, public_key FROM unconfirmed_mints WHERE hash = $1", onchainMessage.Hash)
+	rows, err := tx.Query("SELECT id, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, public_key, contract_of_sale FROM unconfirmed_mints WHERE hash = $1", onchainMessage.Hash)
 	if err != nil {
 		return err
 	}
@@ -268,7 +278,7 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 			&unconfirmedMint.Id, &unconfirmedMint.Title, &unconfirmedMint.Description,
 			&unconfirmedMint.FractionCount, &unconfirmedMint.Tags, &unconfirmedMint.Metadata,
 			&unconfirmedMint.Hash, &unconfirmedMint.TransactionHash, &unconfirmedMint.Requirements,
-			&unconfirmedMint.LockupOptions, &unconfirmedMint.FeedURL, &unconfirmedMint.PublicKey); err != nil {
+			&unconfirmedMint.LockupOptions, &unconfirmedMint.FeedURL, &unconfirmedMint.PublicKey, &unconfirmedMint.ContractOfSale); err != nil {
 			return err
 		}
 	} else {
@@ -293,6 +303,7 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 		FeedURL:         unconfirmedMint.FeedURL,
 		PublicKey:       unconfirmedMint.PublicKey,
 		OwnerAddress:    onchainTransaction.Address,
+		ContractOfSale:  unconfirmedMint.ContractOfSale,
 	}, onchainTransaction.Address, tx)
 
 	if err != nil {

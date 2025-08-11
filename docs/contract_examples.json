@@ -1,0 +1,239 @@
+{
+  "real_estate_example": {
+    "contract_metadata": {
+      "schema_version": "1.0",
+      "asset_category": "real_estate",
+      "contract_type": "fractional_ownership",
+      "created_at": "2024-01-15T10:30:00Z"
+    },
+    "legal": {
+      "jurisdiction": "California, USA",
+      "governing_law": "California Commercial Code",
+      "contract_date": "2024-01-15T10:30:00Z",
+      "effective_date": "2024-01-20T00:00:00Z"
+    },
+    "asset": {
+      "type": "commercial_office_building",
+      "title": "Downtown SF Office Complex",
+      "description": "Premium Class A office building in SOMA district",
+      "identifiers": {
+        "primary_id": "SF-APN-123-456-789",
+        "secondary_ids": {
+          "building_id": "SOMA-TOWER-1",
+          "leed_id": "LEED-2024-001"
+        }
+      },
+      "location": {
+        "type": "physical",
+        "address": "789 Business Blvd, San Francisco, CA 94102",
+        "coordinates": {
+          "latitude": 37.7749,
+          "longitude": -122.4194
+        }
+      },
+      "specifications": {
+        "property_type": "commercial",
+        "square_footage": 50000,
+        "year_built": 2015,
+        "zoning": "commercial_office",
+        "occupancy": {
+          "current_occupancy_rate": 0.95,
+          "tenant_count": 25
+        },
+        "income": {
+          "annual_rental_income": 1200000,
+          "operating_expenses": 400000,
+          "net_operating_income": 800000
+        },
+        "certifications": ["leed_gold", "energy_star"]
+      },
+      "valuation": {
+        "current_value": 15000000,
+        "currency": "USD",
+        "valuation_date": "2024-01-10T00:00:00Z",
+        "valuation_method": "income_approach"
+      }
+    },
+    "tokenization": {
+      "total_fractions": 1000000,
+      "minimum_investment": 1000,
+      "compliance": {
+        "securities_exemption": "regulation_d",
+        "accredited_only": true
+      }
+    }
+  },
+
+  "art_example": {
+    "contract_metadata": {
+      "schema_version": "1.0",
+      "asset_category": "art",
+      "contract_type": "fractional_ownership",
+      "created_at": "2024-01-15T10:30:00Z"
+    },
+    "legal": {
+      "jurisdiction": "New York, USA",
+      "governing_law": "New York State Law",
+      "contract_date": "2024-01-15T10:30:00Z"
+    },
+    "asset": {
+      "type": "painting",
+      "title": "Les Demoiselles d'Avignon Study",
+      "description": "Original preparatory study for Picasso's famous work",
+      "identifiers": {
+        "primary_id": "PICASSO-1907-STUDY-03",
+        "secondary_ids": {
+          "catalogue_raisonne": "CR-PIC-1907-03",
+          "insurance_id": "ART-INS-2024-789"
+        }
+      },
+      "location": {
+        "type": "physical",
+        "address": "Secure Art Storage Facility, Freeport, NY",
+        "storage_requirements": "climate_controlled_vault"
+      },
+      "specifications": {
+        "artist": "Pablo Picasso",
+        "creation_year": 1907,
+        "medium": "oil_on_canvas",
+        "dimensions": {
+          "height_cm": 60.5,
+          "width_cm": 45.0,
+          "depth_cm": 2.5
+        },
+        "style": "cubism",
+        "period": "african_period",
+        "edition": {
+          "type": "original",
+          "number": "1/1"
+        },
+        "authentication": {
+          "certificate_number": "PICASSO-AUTH-2024-001",
+          "issuing_authority": "Picasso Authentication Board",
+          "authentication_date": "2024-01-05T00:00:00Z"
+        },
+        "conservation": {
+          "last_conservation": "2023-01-15T00:00:00Z",
+          "condition_report": "Excellent condition, minor age-related patina"
+        }
+      },
+      "valuation": {
+        "current_value": 5000000,
+        "currency": "USD",
+        "valuation_date": "2024-01-10T00:00:00Z",
+        "valuation_method": "market_comparison",
+        "appraiser": "Sotheby's Fine Art Appraisals"
+      }
+    },
+    "tokenization": {
+      "total_fractions": 500000,
+      "minimum_investment": 500
+    },
+    "ongoing_obligations": {
+      "insurance": ["fine_art_all_risk_coverage"],
+      "maintenance": "professional_conservation_as_needed",
+      "reporting": {
+        "frequency": "annually",
+        "requirements": ["condition_assessment", "valuation_update"]
+      }
+    }
+  },
+  "vehicle_example": {
+    "contract_metadata": {
+      "schema_version": "1.0",
+      "asset_category": "vehicle",
+      "contract_type": "fractional_ownership",
+      "created_at": "2024-01-15T10:30:00Z"
+    },
+    "legal": {
+      "jurisdiction": "Delaware, USA",
+      "governing_law": "Delaware State Law",
+      "contract_date": "2024-01-15T10:30:00Z"
+    },
+    "asset": {
+      "type": "classic_sports_car",
+      "title": "1962 Ferrari 250 GTO",
+      "description": "Extremely rare Ferrari 250 GTO with documented racing history",
+      "identifiers": {
+        "primary_id": "3851GT",
+        "secondary_ids": {
+          "chassis_number": "3851",
+          "engine_number": "3851",
+          "ferrari_serial": "0116/62"
+        }
+      },
+      "location": {
+        "type": "physical",
+        "address": "Classic Car Storage Facility, Monterey, CA",
+        "storage_requirements": "climate_controlled_garage"
+      },
+      "specifications": {
+        "make": "Ferrari",
+        "model": "250 GTO",
+        "year": 1962,
+        "vin": "3851GT",
+        "engine": {
+          "type": "V12",
+          "displacement_liters": 3.0,
+          "horsepower": 300
+        },
+        "transmission": "5_speed_manual",
+        "mileage": 45000,
+        "color": {
+          "exterior": "Rosso Corsa",
+          "interior": "Black Leather"
+        },
+        "features": [
+          "numbers_matching",
+          "original_engine",
+          "competition_history"
+        ],
+        "history": {
+          "racing_history": [
+            {
+              "event": "Le Mans 24 Hours",
+              "year": 1962,
+              "result": "2nd_place"
+            }
+          ],
+          "accident_history": [],
+          "previous_owners": 3
+        },
+        "documentation": {
+          "title_clear": true,
+          "ferrari_classiche_certified": true
+        }
+      },
+      "valuation": {
+        "current_value": 48000000,
+        "currency": "USD",
+        "valuation_date": "2024-01-10T00:00:00Z",
+        "valuation_method": "market_comparison",
+        "appraiser": "Barrett-Jackson Classic Car Appraisals"
+      }
+    },
+    "tokenization": {
+      "total_fractions": 4800000,
+      "minimum_investment": 1000
+    },
+    "ongoing_obligations": {
+      "insurance": ["collectors_car_insurance", "storage_facility_coverage"],
+      "maintenance": "annual_mechanical_inspection_and_service",
+      "reporting": {
+        "frequency": "annually",
+        "requirements": [
+          "condition_assessment",
+          "mileage_verification",
+          "maintenance_records"
+        ]
+      }
+    },
+    "additional_clauses": {
+      "asset_specific": {
+        "usage_rights": "display_only_no_driving",
+        "exhibition_calendar": "up_to_4_concours_events_per_year",
+        "maintenance_protocol": "ferrari_factory_trained_mechanics_only"
+      }
+    }
+  }
+}

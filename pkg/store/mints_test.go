@@ -25,13 +25,14 @@ func TestSaveMint(t *testing.T) {
 			String: "txHash123",
 			Valid:  true,
 		},
-		BlockHeight:   12345,
-		Requirements:  store.StringInterfaceMap{"req": "value"},
-		LockupOptions: store.StringInterfaceMap{"lockup": "option"},
-		FeedURL:       "https://example.com/feed",
-		PublicKey:     "publicKey123",
-		OwnerAddress:  "ownerAddress123",
-		Signature:     "signature123",
+		BlockHeight:    12345,
+		Requirements:   store.StringInterfaceMap{"req": "value"},
+		LockupOptions:  store.StringInterfaceMap{"lockup": "option"},
+		FeedURL:        "https://example.com/feed",
+		PublicKey:      "publicKey123",
+		OwnerAddress:   "ownerAddress123",
+		Signature:      "signature123",
+		ContractOfSale: store.StringInterfaceMap{"specification": map[string]interface{}{"key": "value"}},
 	}
 
 	id, err := db.SaveMint(mint, "ownerAddress123")
