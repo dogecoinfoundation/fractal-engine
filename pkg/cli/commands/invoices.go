@@ -217,13 +217,12 @@ func createInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 
 	invoiceRequest := rpc.CreateInvoiceRequest{
 		Payload: rpc.CreateInvoiceRequestPayload{
-			PaymentAddress:         address,
-			BuyOfferOffererAddress: selectedOffer.Offer.OffererAddress,
-			BuyOfferHash:           selectedOffer.Offer.Hash,
-			BuyOfferMintHash:       selectedOffer.Offer.MintHash,
-			BuyOfferQuantity:       quantityInt,
-			BuyOfferPrice:          priceInt,
-			SellOfferAddress:       address,
+			PaymentAddress: address,
+			BuyerAddress:   selectedOffer.Offer.OffererAddress,
+			MintHash:       selectedOffer.Offer.MintHash,
+			Quantity:       quantityInt,
+			Price:          priceInt,
+			SellerAddress:  address,
 		},
 	}
 

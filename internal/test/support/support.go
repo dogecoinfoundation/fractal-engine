@@ -23,6 +23,9 @@ import (
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/docker/go-connections/nat"
 	"github.com/dogecoinfoundation/dogetest/pkg/dogetest"
+
+	bmclient "github.com/dogecoinfoundation/balance-master/pkg/client"
+
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -33,24 +36,27 @@ func SetupTestDB() *store.TokenisationStore {
 }
 
 type TestGroup struct {
-	InstanceId       int
-	Name             string
-	LogConsumer      *StdoutLogConsumer
-	NetworkName      string
-	DogeTest         *dogetest.DogeTest
-	AddressBook      *dogetest.AddressBook
-	FeService        *service.TokenisationService
-	FeConfig         *config.Config
-	DogeNetClient    *dogenet.DogeNetClient
-	NodeKey          dnet.KeyPair
-	DogenetContainer testcontainers.Container
-	Running          bool
-	DogeCorePort     int
-	DnWebPort        int
-	DnPort           int
-	DnGossipPort     int
-	FeRpcPort        int
-	DbUrl            string // Track DB URL for cleanup
+	InstanceId             int
+	Name                   string
+	LogConsumer            *StdoutLogConsumer
+	NetworkName            string
+	DogeTest               *dogetest.DogeTest
+	AddressBook            *dogetest.AddressBook
+	FeService              *service.TokenisationService
+	FeConfig               *config.Config
+	DogeNetClient          *dogenet.DogeNetClient
+	BmClient               *bmclient.BalanceMasterClient
+	NodeKey                dnet.KeyPair
+	DogenetContainer       testcontainers.Container
+	BalanceMasterContainer testcontainers.Container
+	Running                bool
+	DogeCorePort           int
+	DnWebPort              int
+	DnPort                 int
+	DnGossipPort           int
+	FeRpcPort              int
+	BmPort                 int
+	DbUrl                  string // Track DB URL for cleanup
 }
 
 func (tg *TestGroup) Stop() {
@@ -65,6 +71,13 @@ func (tg *TestGroup) Stop() {
 		err := tg.DogenetContainer.Stop(context.Background(), nil)
 		if err != nil {
 			log.Println("Error stopping dogenet container:", err)
+		}
+	}
+
+	if tg.BalanceMasterContainer != nil {
+		err := tg.BalanceMasterContainer.Stop(context.Background(), nil)
+		if err != nil {
+			log.Println("Error stopping bm container:", err)
 		}
 	}
 
@@ -83,14 +96,14 @@ func (tg *TestGroup) Stop() {
 	tg.Running = false
 }
 
-func NewTestGroup(name string, networkName string, instanceId int, dogeCorePort int, feRpcPort int, dnWebPort int, dnPort int, dnGossipPort int) *TestGroup {
+func NewTestGroup(name string, networkName string, instanceId int, dogeCorePort int, feRpcPort int, dnWebPort int, dnPort int, dnGossipPort int, bmPort int) *TestGroup {
 	nodeKey, err := dnet.GenerateKeyPair()
 	if err != nil {
 		panic(err)
 	}
 
 	dogeTest, err := dogetest.NewDogeTest(dogetest.DogeTestConfig{
-		Host:          "localhost",
+		Host:          "0.0.0.0",
 		NetworkName:   networkName,
 		Port:          dogeCorePort,
 		LogContainers: false,
@@ -110,6 +123,7 @@ func NewTestGroup(name string, networkName string, instanceId int, dogeCorePort 
 		DnPort:       dnPort,
 		DnGossipPort: dnGossipPort,
 		FeRpcPort:    feRpcPort,
+		BmPort:       bmPort,
 	}
 }
 
@@ -159,16 +173,103 @@ func (tg *TestGroup) Start(m *testing.M) {
 		panic(err)
 	}
 
+	bmClient, balanceMasterContainer := StartBalanceMasterInstance(tg.NetworkName, tg.BmPort, tg.DogeCorePort, strconv.Itoa(tg.InstanceId))
+
 	feService, feConfig := SetupFractalEngineTestInstance(tg.InstanceId, strconv.Itoa(tg.FeRpcPort), tg.DogeCorePort, dogenetClient, tg.DogeTest, tokenStore)
 	tg.FeService = feService
 	tg.FeConfig = feConfig
 
 	tg.DogeNetClient = dogenetClient
 	tg.DogenetContainer = dogenetContainer
+	tg.BalanceMasterContainer = balanceMasterContainer
+	tg.BmClient = bmClient
 
 	go feService.Start()
 
 	feService.WaitForRunning()
+}
+
+func StartBalanceMasterInstance(networkName string, port int, dogePort int, instanceId string) (*bmclient.BalanceMasterClient, testcontainers.Container) {
+	ctx := context.Background()
+
+	logConsumer := &StdoutLogConsumer{Name: "balance-master " + instanceId}
+
+	absPathContext, err := filepath.Abs(filepath.Join(".."))
+	if err != nil {
+		panic(err)
+	}
+
+	cacheBuster := strconv.FormatInt(time.Now().UnixNano(), 10)
+	dogePortStr := strconv.Itoa(dogePort)
+	dogeHostStr := "dogecoin-" + strconv.Itoa(dogePort)
+	rpcServerPortStr := strconv.Itoa(port)
+
+	balanceMasterContainerRequest := testcontainers.ContainerRequest{
+		FromDockerfile: testcontainers.FromDockerfile{
+			Context:    absPathContext,
+			Dockerfile: "Dockerfile.balancemaster",
+			KeepImage:  true, // Keep image to avoid rebuilding
+			BuildArgs: map[string]*string{
+				"CACHE_BUSTER": &cacheBuster,
+			},
+		},
+		Networks: []string{
+			networkName,
+		},
+		Name:         "balance-master-" + instanceId,
+		ExposedPorts: []string{strconv.Itoa(port) + "/tcp"},
+		Env: map[string]string{
+			"DOGE_PORT":       dogePortStr,
+			"DOGE_HOST":       dogeHostStr,
+			"RPC_SERVER_PORT": rpcServerPortStr,
+		},
+		WaitingFor: wait.ForLog("Server is ready to handle requests at").WithStartupTimeout(10 * time.Second),
+		Mounts: testcontainers.ContainerMounts{
+			{
+				Source: testcontainers.GenericTmpfsMountSource{},
+				Target: "/root/storage",
+			},
+		},
+		LogConsumerCfg: &testcontainers.LogConsumerConfig{
+			Opts:      []testcontainers.LogProductionOption{testcontainers.WithLogProductionTimeout(10 * time.Second)},
+			Consumers: []testcontainers.LogConsumer{logConsumer},
+		},
+	}
+
+	balanceMasterContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: balanceMasterContainerRequest,
+		Started:          true,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		if balanceMasterContainer.IsRunning() {
+			break
+		}
+
+		time.Sleep(300 * time.Millisecond)
+	}
+
+	natPort, err := nat.NewPort("tcp", strconv.Itoa(port))
+	if err != nil {
+		panic(err)
+	}
+
+	mappedPort, err := balanceMasterContainer.MappedPort(ctx, natPort)
+	if err != nil {
+		panic(err)
+	}
+
+	ip, _ := balanceMasterContainer.Host(ctx)
+
+	bmClient := bmclient.NewBalanceMasterClient(&bmclient.BalanceMasterClientConfig{
+		RpcServerHost: ip,
+		RpcServerPort: mappedPort.Port(),
+	})
+
+	return bmClient, balanceMasterContainer
 }
 
 func SetupFractalEngineTestInstance(instanceId int, rpcServerPort string, dogePort int, dogenetClient *dogenet.DogeNetClient, dogeTestInstance *dogetest.DogeTest, tokenStore *store.TokenisationStore) (*service.TokenisationService, *config.Config) {
@@ -240,18 +341,18 @@ func ConnectDogeNetPeers(fromPeer *dogenet.DogeNetClient, toPeerContainer testco
 
 func ConnectDogeTestPeers(nodeA *dogetest.DogeTest, nodeB *dogetest.DogeTest) error {
 	ctx := context.Background()
-	
+
 	// Get node B's container IP (within Docker network)
 	nodeBIP, err := nodeB.Container.ContainerIP(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get node B IP: %w", err)
 	}
-	
+
 	// Use the default regnet P2P port (18444) - internal container port
 	nodeBAddress := fmt.Sprintf("%s:18444", nodeBIP)
-	
+
 	log.Printf("Connecting DogeTest peers: Node A -> Node B (%s)", nodeBAddress)
-	
+
 	// Use addnode RPC to connect the nodes
 	resp, err := nodeA.Rpc.Request("addnode", []interface{}{nodeBAddress, "add"})
 	if err != nil {
@@ -263,10 +364,10 @@ func ConnectDogeTestPeers(nodeA *dogetest.DogeTest, nodeB *dogetest.DogeTest) er
 	} else if resp != nil {
 		log.Printf("AddNode response: %s", string(*resp))
 	}
-	
+
 	// Wait a moment for the connection to establish
 	time.Sleep(3 * time.Second)
-	
+
 	// Verify the connection by checking peer count
 	peersResp, err := nodeA.Rpc.Request("getconnectioncount", []interface{}{})
 	if err != nil {
@@ -277,7 +378,7 @@ func ConnectDogeTestPeers(nodeA *dogetest.DogeTest, nodeB *dogetest.DogeTest) er
 			log.Printf("Node A peer count: %d", peerCount)
 		}
 	}
-	
+
 	log.Println("DogeTest peer connection established")
 	return nil
 }
@@ -296,7 +397,7 @@ func (lc *StdoutLogConsumer) Accept(l testcontainers.Log) {
 		lc.PubKey = strings.Trim(pubKey, "\n")
 	}
 
-	// log.Println(content)
+	log.Println(content)
 }
 
 func StartDogenetInstance(ctx context.Context, feKey dnet.KeyPair, image string, instanceId string, webPort string, port string, gossipPort string, networkName string, logConsumer *StdoutLogConsumer, tokenisationStore *store.TokenisationStore) (*dogenet.DogeNetClient, testcontainers.Container, error) {
@@ -531,10 +632,10 @@ func WriteMintToCore(dogeTest *dogetest.DogeTest, addressBook *dogetest.AddressB
 func GenerateDogecoinAddress(testnet bool) string {
 	// Base58 alphabet used in Bitcoin/Dogecoin addresses
 	base58Alphabet := "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-	
+
 	// Address length is typically 34 characters
 	addressLength := 34
-	
+
 	// Start with appropriate prefix
 	var address strings.Builder
 	if testnet {
@@ -542,7 +643,7 @@ func GenerateDogecoinAddress(testnet bool) string {
 	} else {
 		address.WriteString("D")
 	}
-	
+
 	// Generate random characters from base58 alphabet
 	for i := 1; i < addressLength; i++ {
 		randomBytes := make([]byte, 1)
@@ -556,7 +657,7 @@ func GenerateDogecoinAddress(testnet bool) string {
 		index := int(randomBytes[0]) % len(base58Alphabet)
 		address.WriteByte(base58Alphabet[index])
 	}
-	
+
 	return address.String()
 }
 

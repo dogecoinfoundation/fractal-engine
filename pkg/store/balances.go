@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 )
@@ -87,6 +88,41 @@ func (s *TokenisationStore) GetPendingTokenBalance(invoiceHash, mintHash string,
 		rows, err = tx.Query(`
 			SELECT quantity, invoice_hash, mint_hash, owner_address FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2
 		`, invoiceHash, mintHash)
+	}
+
+	defer rows.Close()
+
+	if err != nil {
+		return PendingTokenBalance{}, err
+	}
+
+	if rows.Next() {
+		var pendingTokenBalance PendingTokenBalance
+		err := rows.Scan(&pendingTokenBalance.Quantity, &pendingTokenBalance.InvoiceHash, &pendingTokenBalance.MintHash, &pendingTokenBalance.OwnerAddress)
+		if err != nil {
+			return PendingTokenBalance{}, err
+		}
+
+		return pendingTokenBalance, nil
+	}
+
+	return PendingTokenBalance{}, errors.New("no pending token balance found")
+}
+
+func (s *TokenisationStore) GetPendingTokenBalanceForQuantity(invoiceHash, mintHash string, quantity int, tx *sql.Tx) (PendingTokenBalance, error) {
+	var rows *sql.Rows
+	var err error
+
+	fmt.Println("Getting token balance", invoiceHash, mintHash, quantity)
+
+	if tx == nil {
+		rows, err = s.DB.Query(`
+		SELECT quantity, invoice_hash, mint_hash, owner_address FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2 and quantity = $3
+	`, invoiceHash, mintHash, quantity)
+	} else {
+		rows, err = tx.Query(`
+			SELECT quantity, invoice_hash, mint_hash, owner_address FROM pending_token_balances WHERE invoice_hash = $1 AND mint_hash = $2 and quantity = $3
+		`, invoiceHash, mintHash, quantity)
 	}
 
 	defer rows.Close()

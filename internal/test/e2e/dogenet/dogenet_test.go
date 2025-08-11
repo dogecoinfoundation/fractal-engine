@@ -3,7 +3,6 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	"log"
 	"testing"
 	"time"
 
@@ -250,8 +249,6 @@ func TestOffersMessage(t *testing.T) {
 		Price:          100,
 	}
 
-	log.Println("buyOfferPayload", buyOfferPayload)
-
 	payloadBytes2, err := protojson.Marshal(&buyOfferPayload)
 	if err != nil {
 		assert.Error(t, err, "failed to marshal payload")
@@ -373,16 +370,15 @@ func TestInvoiceMessage(t *testing.T) {
 	}
 
 	paymentAddress := support.GenerateDogecoinAddress(true)
-	buyOfferOffererAddress := support.GenerateDogecoinAddress(true)
+	BuyerAddress := support.GenerateDogecoinAddress(true)
 
 	invoicePayload := protocol.InvoicePayload{
-		PaymentAddress:         paymentAddress,
-		BuyOfferOffererAddress: buyOfferOffererAddress,
-		BuyOfferHash:           "buyofferhash",
-		BuyOfferMintHash:       "buyofferminthash",
-		BuyOfferQuantity:       100,
-		BuyOfferPrice:          100,
-		SellOfferAddress:       address,
+		PaymentAddress: paymentAddress,
+		BuyerAddress:   BuyerAddress,
+		MintHash:       "buyofferminthash",
+		Quantity:       100,
+		Price:          100,
+		SellerAddress:  address,
 	}
 
 	payloadBytes, err := protojson.Marshal(&invoicePayload)
@@ -396,16 +392,15 @@ func TestInvoiceMessage(t *testing.T) {
 	}
 
 	err = dogenetClientA.GossipUnconfirmedInvoice(store.UnconfirmedInvoice{
-		PaymentAddress:         invoicePayload.PaymentAddress,
-		BuyOfferOffererAddress: invoicePayload.BuyOfferOffererAddress,
-		BuyOfferHash:           invoicePayload.BuyOfferHash,
-		BuyOfferMintHash:       invoicePayload.BuyOfferMintHash,
-		BuyOfferQuantity:       int(invoicePayload.BuyOfferQuantity),
-		BuyOfferPrice:          int(invoicePayload.BuyOfferPrice),
-		SellOfferAddress:       invoicePayload.SellOfferAddress,
-		CreatedAt:              time.Now(),
-		PublicKey:              pubHex,
-		Signature:              signature,
+		PaymentAddress: invoicePayload.PaymentAddress,
+		BuyerAddress:   invoicePayload.BuyerAddress,
+		MintHash:       invoicePayload.MintHash,
+		Quantity:       int(invoicePayload.Quantity),
+		Price:          int(invoicePayload.Price),
+		SellerAddress:  invoicePayload.SellerAddress,
+		CreatedAt:      time.Now(),
+		PublicKey:      pubHex,
+		Signature:      signature,
 	})
 
 	if err != nil {
@@ -430,12 +425,11 @@ func TestInvoiceMessage(t *testing.T) {
 		}
 
 		assert.Equal(t, invoice.Payload.PaymentAddress, "paymentaddyzz")
-		assert.Equal(t, invoice.Payload.BuyOfferOffererAddress, "buyofferoffereraddress")
-		assert.Equal(t, invoice.Payload.BuyOfferHash, "buyofferhash")
-		assert.Equal(t, invoice.Payload.BuyOfferMintHash, "buyofferminthash")
-		assert.Equal(t, invoice.Payload.BuyOfferQuantity, int32(100))
-		assert.Equal(t, invoice.Payload.BuyOfferPrice, int32(100))
-		assert.Equal(t, invoice.Payload.SellOfferAddress, address)
+		assert.Equal(t, invoice.Payload.BuyerAddress, BuyerAddress)
+		assert.Equal(t, invoice.Payload.MintHash, "buyofferminthash")
+		assert.Equal(t, invoice.Payload.Quantity, int32(100))
+		assert.Equal(t, invoice.Payload.Price, int32(100))
+		assert.Equal(t, invoice.Payload.SellerAddress, address)
 	default:
 		assert.Error(t, fmt.Errorf("expected invoice message"), "expected invoice message")
 	}

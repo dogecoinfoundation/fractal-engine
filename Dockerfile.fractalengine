@@ -1,41 +1,53 @@
 
 # --- Stage 1: Clone & Build ---
-    FROM golang:1.24 as builder
+FROM golang:1.24 as builder
 
-    # Install libsystemd-dev and git
-    RUN apt-get update && apt-get install -y \
-        git \
-        pkg-config \
-        libsystemd-dev \
-        && rm -rf /var/lib/apt/lists/*
-    
-    # Set the working directory
-    WORKDIR /app
-    
-    # Clone the repo
-    COPY . .
-    
-    # Download dependencies
-    RUN go mod download
-    
-    # Build the Go binary
-    RUN go build -o fractalengine ./cmd/fractal-engine/fractal_engine.go
-    
-    # --- Stage 2: Minimal Runtime Image ---
-    FROM debian:bookworm-slim
-    
-    # Add CA certificates if needed for HTTPS
-    RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib/apt/lists/*
-    
-    WORKDIR /root/
-    
-    ARG DATABASE_URL
-    ENV DATABASE_URL=${DATABASE_URL}
+# Install libsystemd-dev and git
+RUN apt-get update && apt-get install -y \
+    git \
+    pkg-config \
+    libsystemd-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-    # Copy built binary
-    COPY --from=builder /app/fractalengine .
-    COPY --from=builder /app/db/migrations/ /root/db/migrations/
+# Set the working directory
+WORKDIR /app
 
-    EXPOSE 8891
-    
-    CMD /root/fractalengine -rpc-server-host 0.0.0.0 -rpc-server-port 8891 -doge-net-network unix -doge-net-address /tmp/dogenet.sock -doge-scheme http -doge-host dogecoin -doge-port 22556 -doge-user test -doge-password test -database-url ${DATABASE_URL} -persist-follower true
+# Clone the repo
+COPY . .
+
+# Download dependencies
+# Set Go environment
+ENV CGO_ENABLED=1
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GOSUMDB=sum.golang.org
+
+# Download dependencies using cache mount
+RUN --mount=type=cache,target=/go/pkg/mod \
+go mod download
+
+# Build the Go binary using cache mount
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go build -o fractalengine ./cmd/fractal-engine/fractal_engine.go
+
+# --- Stage 2: Minimal Runtime Image ---
+FROM debian:bookworm-slim
+
+# Add CA certificates if needed for HTTPS
+RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root/
+
+ENV DATABASE_URL=${DATABASE_URL}
+ENV DOGE_NET_NETWORK=unix
+ENV DOGE_NET_ADDRESS=/tmp/dogenet.sock
+ENV DOGE_PORT=22556
+ENV FRACTAL_PORT=8891
+
+
+# Copy built binary
+COPY --from=builder /app/fractalengine .
+COPY --from=builder /app/db/migrations/ /root/db/migrations/
+
+EXPOSE 8891
+
+CMD /root/fractalengine -rpc-server-host 0.0.0.0 -rpc-server-port ${FRACTAL_PORT} -doge-net-network ${DOGE_NET_NETWORK} -doge-net-address ${DOGE_NET_ADDRESS} -doge-scheme http -doge-host dogecoin -doge-port ${DOGE_PORT} -doge-user test -doge-password test -database-url ${DATABASE_URL} -persist-follower true

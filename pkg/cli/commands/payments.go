@@ -99,8 +99,8 @@ func payInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 	for _, invoice := range invoices.Invoices {
 		items = append(items, climodels.SelectSimpleListItem{
 			OfferId: invoice.Id,
-			Name:    "Invoice: " + invoice.Hash + " (Seller: " + invoice.SellOfferAddress + ")",
-			Desc:    "Price: " + strconv.Itoa(invoice.BuyOfferPrice) + " Qty: " + strconv.Itoa(invoice.BuyOfferQuantity),
+			Name:    "Invoice: " + invoice.Hash + " (Seller: " + invoice.SellerAddress + ")",
+			Desc:    "Price: " + strconv.Itoa(invoice.Price) + " Qty: " + strconv.Itoa(invoice.Quantity),
 		})
 	}
 
@@ -147,7 +147,7 @@ func payInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 		},
 	}
 
-	buyOfferValue := selectedInvoice.BuyOfferValue
+	buyOfferValue := float64(selectedInvoice.Quantity * selectedInvoice.Price)
 	if utxos[0].Amount < buyOfferValue {
 		log.Fatal("Insufficient balance for invoice", selectedInvoice.Hash)
 	}

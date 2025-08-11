@@ -13,5 +13,6 @@ CREATE TABLE IF NOT EXISTS unconfirmed_mints (
     lockup_options TEXT,
     feed_url TEXT,
     public_key TEXT,
+    contract_of_sale TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

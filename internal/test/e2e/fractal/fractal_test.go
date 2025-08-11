@@ -46,8 +46,8 @@ func TestMain(m *testing.M) {
 	networkName := net.Name
 
 	testGroups = []*support.TestGroup{
-		support.NewTestGroup("alpha", networkName, 0, 20000, 21000, 8086, 22555, 33070),
-		support.NewTestGroup("beta", networkName, 1, 20001, 21001, 8087, 22556, 33071),
+		support.NewTestGroup("alpha", networkName, 0, 20000, 21000, 8086, 22555, 33070, 8890),
+		support.NewTestGroup("beta", networkName, 1, 20001, 21001, 8087, 22556, 33071, 8891),
 	}
 
 	for _, testGroup := range testGroups {
@@ -105,6 +105,13 @@ TestFractal is a test that checks if the fractal engine is working correctly.
 */
 func TestFractal(t *testing.T) {
 	feConfigA := testGroups[0].FeConfig
+
+	for _, testGroup := range testGroups {
+		err := testGroup.BmClient.TrackAddress(testGroup.AddressBook.Addresses[0].Address)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	privHex, pubHex, _, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
 	if err != nil {
