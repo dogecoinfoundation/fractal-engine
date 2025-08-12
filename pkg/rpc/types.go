@@ -130,14 +130,15 @@ type CreateMintRequest struct {
 }
 
 type CreateMintRequestPayload struct {
-	Title         string                   `json:"title"`
-	FractionCount int                      `json:"fraction_count"`
-	Description   string                   `json:"description"`
-	Tags          store.StringArray        `json:"tags"`
-	Metadata      store.StringInterfaceMap `json:"metadata"`
-	Requirements  store.StringInterfaceMap `json:"requirements"`
-	LockupOptions store.StringInterfaceMap `json:"lockup_options"`
-	FeedURL       string                   `json:"feed_url"`
+	Title          string                   `json:"title"`
+	FractionCount  int                      `json:"fraction_count"`
+	Description    string                   `json:"description"`
+	Tags           store.StringArray        `json:"tags"`
+	Metadata       store.StringInterfaceMap `json:"metadata"`
+	Requirements   store.StringInterfaceMap `json:"requirements"`
+	LockupOptions  store.StringInterfaceMap `json:"lockup_options"`
+	FeedURL        string                   `json:"feed_url"`
+	ContractOfSale store.StringInterfaceMap `json:"contract_of_sale"`
 }
 
 func (req *CreateMintRequest) Validate() error {

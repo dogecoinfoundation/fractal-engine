@@ -1,0 +1,150 @@
+---
+title: List Invoices
+description: Retrieve a paginated list of invoices with optional filtering
+---
+
+# List Invoices
+
+Returns a paginated list of invoices with optional filtering by mint hash and offerer address.
+
+## Endpoint
+
+```
+GET /invoices
+```
+
+## Query Parameters
+
+- **limit** (optional): Maximum number of results per page (default: 100, max: 100)
+- **page** (optional): Page number for pagination (default: 1, max: 1000)
+- **mint_hash** (optional): Filter invoices by specific mint hash
+- **offerer_address** (optional): Filter invoices by specific offerer address
+
+## Response
+
+### Success (200 OK)
+
+```json
+{
+  "invoices": [
+    {
+      "id": "1",
+      "hash": "abc123def456...",
+      "mint_hash": "def789ghi012...",
+      "quantity": 100,
+      "price": 50000,
+      "buyer_address": "D1A2B3C4D5E6F7...",
+      "payment_address": "D8X9Y2Z3A4B5C6...",
+      "seller_address": "D9Z8Y7X6W5V4U3...",
+      "public_key": "03a1b2c3d4e5f6...",
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "limit": 100
+}
+```
+
+### Error Responses
+
+- **400 Bad Request**: Invalid parameter format (mint_hash or offerer_address)
+- **500 Internal Server Error**: Server error
+
+## Example Requests
+
+### List all invoices
+
+```bash
+curl "http://localhost:8080/invoices"
+```
+
+### List invoices with pagination
+
+```bash
+curl "http://localhost:8080/invoices?page=2&limit=50"
+```
+
+### Filter by mint hash
+
+```bash
+curl "http://localhost:8080/invoices?mint_hash=abc123def456..."
+```
+
+### Filter by offerer address
+
+```bash
+curl "http://localhost:8080/invoices?offerer_address=D1A2B3C4D5E6F7..."
+```
+
+### Combined filters
+
+```bash
+curl "http://localhost:8080/invoices?mint_hash=abc123def456...&offerer_address=D1A2B3C4D5E6F7...&page=1&limit=25"
+```
+
+## JavaScript Example
+
+```javascript
+// Get all invoices
+const response = await fetch('/invoices');
+const data = await response.json();
+
+console.log(`Found ${data.total} invoices`);
+data.invoices.forEach(invoice => {
+  console.log(`Invoice ${invoice.hash}: ${invoice.quantity} tokens for ${invoice.price} satoshis`);
+});
+
+// Get invoices for specific mint
+const mintResponse = await fetch('/invoices?mint_hash=abc123def456...');
+const mintData = await mintResponse.json();
+```
+
+## Python Example
+
+```python
+import requests
+
+# Get all invoices
+response = requests.get('http://localhost:8080/invoices')
+data = response.json()
+
+print(f"Found {data['total']} invoices")
+for invoice in data['invoices']:
+    print(f"Invoice {invoice['hash']}: {invoice['quantity']} tokens for {invoice['price']} satoshis")
+
+# Get invoices with filters
+filtered_response = requests.get('http://localhost:8080/invoices', params={
+    'mint_hash': 'abc123def456...',
+    'page': 1,
+    'limit': 50
+})
+filtered_data = filtered_response.json()
+```
+
+## Response Fields
+
+- **invoices**: Array of invoice objects
+- **total**: Total number of invoices matching the query
+- **page**: Current page number
+- **limit**: Number of results per page
+
+### Invoice Object Fields
+
+- **id**: Unique invoice identifier
+- **hash**: Unique hash of the invoice
+- **mint_hash**: Hash of the associated mint
+- **quantity**: Number of tokens being purchased
+- **price**: Total price in satoshis
+- **buyer_address**: Address of the token buyer
+- **payment_address**: Address where payment should be sent
+- **seller_address**: Address of the token seller
+- **public_key**: Public key used for signature verification
+- **created_at**: Timestamp when the invoice was created
+
+## Pagination
+
+The API uses offset-based pagination:
+- Results are returned in pages with configurable size
+- Use `page` and `limit` parameters to navigate through results
+- Maximum page limit is 1000 to prevent excessive queries

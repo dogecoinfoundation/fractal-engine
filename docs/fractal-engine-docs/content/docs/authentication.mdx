@@ -1,0 +1,728 @@
+---
+title: Authentication and Cryptographic Signing
+description: Comprehensive guide to authentication, request signing, and cryptographic security in the Fractal Engine system
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Authentication and Cryptographic Signing
+
+The Fractal Engine implements a robust cryptographic authentication system based on Dogecoin's ECDSA signature scheme. All authenticated requests must be signed with valid Dogecoin private keys and verified using the corresponding public keys.
+
+## Security Model Overview
+
+The authentication system is built on the following principles:
+
+- **Public Key Cryptography**: Uses secp256k1 elliptic curve (same as Bitcoin/Dogecoin)
+- **Message Signing**: All payloads are signed using ECDSA with SHA256 hashing
+- **Request Validation**: Server validates signatures against public keys and message payloads
+- **Address Binding**: Public keys must correspond to valid Dogecoin addresses
+- **Replay Protection**: Each request includes unique payload data preventing replay attacks
+
+### Security Architecture
+
+```mermaid
+graph TB
+    A[Client Private Key] --> B[Sign Message Payload]
+    B --> C[ECDSA Signature]
+    C --> D[HTTP Request]
+    D --> E[Server Validation]
+    E --> F[Public Key Verification]
+    F --> G[Signature Verification]
+    G --> H[Address Validation]
+    H --> I[Request Processing]
+```
+
+## Cryptographic Components
+
+### Key Generation
+
+The system uses secp256k1 elliptic curve cryptography for key generation:
+
+```go
+// Generate a new Dogecoin keypair
+privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(prefix)
+if err != nil {
+    return err
+}
+
+// prefix values:
+// 0x1E - Mainnet
+// 0x71 - Testnet  
+// 0x6f - Regtest
+```
+
+### Message Signing Process
+
+All request payloads are signed using the following process:
+
+1. **Payload Serialization**: Request payload is marshaled to JSON
+2. **SHA256 Hashing**: Payload bytes are hashed using SHA256
+3. **ECDSA Signing**: Hash is signed with private key using ECDSA
+4. **DER Encoding**: Signature is encoded in DER format
+5. **Hex Encoding**: DER signature is converted to hexadecimal string
+
+```go
+func SignPayload(payload []byte, privHex string) (string, error) {
+    // Decode private key from hex
+    privBytes, err := hex.DecodeString(privHex)
+    if err != nil {
+        return "", err
+    }
+    
+    privKey, _ := btcec.PrivKeyFromBytes(privBytes)
+    
+    // Hash the payload using SHA256
+    hash := sha256.Sum256(payload)
+    
+    // Sign the hash using ECDSA
+    signature := ecdsa.Sign(privKey, hash[:])
+    
+    // Encode signature as DER, then to hex
+    sigDER := signature.Serialize()
+    sigHex := hex.EncodeToString(sigDER)
+    
+    return sigHex, nil
+}
+```
+
+### Signature Verification
+
+The server validates signatures using the following process:
+
+1. **Public Key Validation**: Verify public key format (66-character compressed hex)
+2. **Payload Hashing**: Hash the request payload with SHA256
+3. **Signature Decoding**: Decode hex signature to DER format
+4. **ECDSA Verification**: Verify signature against hash and public key
+5. **Address Validation**: Ensure public key corresponds to a valid Dogecoin address
+
+```go
+func ValidateSignature(payload []byte, publicKey string, signature string) error {
+    // Hash message with SHA256
+    hash := sha256.Sum256(payload)
+    
+    // Decode and parse public key
+    pubKeyBytes, err := hex.DecodeString(publicKey)
+    if err != nil {
+        return errors.New("invalid public key format")
+    }
+    
+    pubKey, err := btcec.ParsePubKey(pubKeyBytes)
+    if err != nil {
+        return errors.New("failed to parse public key")
+    }
+    
+    // Decode and parse signature
+    sigBytes, err := hex.DecodeString(signature)
+    if err != nil {
+        return errors.New("invalid signature encoding")
+    }
+    
+    sig, err := ecdsa.ParseDERSignature(sigBytes)
+    if err != nil {
+        return errors.New("failed to parse DER signature")
+    }
+    
+    // Verify signature
+    if !sig.Verify(hash[:], pubKey) {
+        return errors.New("signature verification failed")
+    }
+    
+    return nil
+}
+```
+
+## Request Authentication Flow
+
+### Signed Request Structure
+
+All authenticated requests follow this structure:
+
+```json
+{
+  "public_key": "03a1b2c3d4e5f6789abcdef...",  // 66-char compressed public key
+  "signature": "304402204a1b2c3d4e5f...",        // DER-encoded ECDSA signature
+  "payload": {
+    // Request-specific data
+  }
+}
+```
+
+### Authentication Process
+
+<Tabs items={['client', 'server']} defaultIndex={0}>
+
+<Tab value="client">
+
+**Step 1: Prepare Payload**
+```go
+payload := CreateInvoiceRequestPayload{
+    PaymentAddress: "DPaymentAddress123",
+    BuyerAddress:   "DBuyerAddress456", 
+    MintHash:       "abc123...",
+    Quantity:       100,
+    Price:          50000,
+    SellerAddress:  "DSellerAddress789",
+}
+```
+
+**Step 2: Serialize to JSON**
+```go
+payloadBytes, err := json.Marshal(payload)
+if err != nil {
+    return err
+}
+```
+
+**Step 3: Sign Payload**
+```go
+signature, err := doge.SignPayload(payloadBytes, privateKeyHex)
+if err != nil {
+    return err
+}
+```
+
+**Step 4: Create Signed Request**
+```go
+request := CreateInvoiceRequest{
+    SignedRequest: SignedRequest{
+        PublicKey: publicKeyHex,
+        Signature: signature,
+    },
+    Payload: payload,
+}
+```
+
+</Tab>
+
+<Tab value="server">
+
+**Step 1: Validate Public Key Format**
+```go
+if err := validation.ValidatePublicKey(req.PublicKey); err != nil {
+    return fmt.Errorf("invalid public_key: %w", err)
+}
+```
+
+**Step 2: Serialize Payload for Verification**
+```go
+payloadBytes, err := json.Marshal(req.Payload)
+if err != nil {
+    return fmt.Errorf("invalid payload: %w", err)
+}
+```
+
+**Step 3: Validate Signature**
+```go
+if err := req.ValidateSignature(payloadBytes); err != nil {
+    return err
+}
+```
+
+**Step 4: Process Authenticated Request**
+```go
+// Request is now authenticated and can be processed
+```
+
+</Tab>
+</Tabs>
+
+## Message Formatting Standards
+
+### Payload Serialization
+
+All payloads must be serialized to JSON in a consistent manner:
+
+- **Deterministic Ordering**: JSON fields should maintain consistent ordering
+- **No Pretty Printing**: Compact JSON without extra whitespace
+- **UTF-8 Encoding**: All strings must be valid UTF-8
+- **No Null Values**: Omit fields rather than including null values
+
+### Signature Format
+
+Signatures follow strict formatting requirements:
+
+- **Encoding**: DER format encoded as hexadecimal
+- **Case**: Lowercase hexadecimal characters
+- **Length**: Variable length (typically 140-144 characters)
+- **Validation**: Must parse as valid DER signature
+
+### Public Key Format
+
+Public keys must conform to compressed format:
+
+- **Length**: Exactly 66 characters
+- **Encoding**: Hexadecimal (lowercase)
+- **Compression**: Compressed secp256k1 public key
+- **Prefix**: Starts with `02` or `03`
+
+## Key Management Best Practices
+
+### Secure Storage
+
+The CLI uses system keyring for secure private key storage:
+
+```go
+// Store private key securely
+store := keys.NewSecureStore()
+store.Save(label+"_private_key", privHex)
+store.Save(label+"_public_key", pubHex)
+store.Save(label+"_address", address)
+```
+
+### Key Rotation
+
+Regular key rotation is recommended:
+
+1. **Generate New Keypair**: Create new keys for sensitive operations
+2. **Transfer Assets**: Move tokens to new addresses
+3. **Update Applications**: Configure new keys in client applications
+4. **Revoke Old Keys**: Remove old keys from secure storage
+
+### Backup and Recovery
+
+- **Secure Backup**: Store private keys in encrypted backups
+- **Multiple Locations**: Use geographically distributed storage
+- **Test Recovery**: Regularly test backup restoration procedures
+- **Access Control**: Limit access to backup systems
+
+## Security Considerations
+
+### Threat Model
+
+The authentication system protects against:
+
+- **Message Tampering**: Signatures prevent payload modification
+- **Impersonation**: Public key cryptography prevents identity spoofing
+- **Replay Attacks**: Unique payload data prevents request reuse
+- **Man-in-the-Middle**: HTTPS transport protects signature transmission
+
+### Attack Vectors
+
+Be aware of potential security risks:
+
+- **Private Key Compromise**: Secure key storage is critical
+- **Side-Channel Attacks**: Use constant-time cryptographic operations
+- **Weak Random Numbers**: Ensure proper entropy for key generation
+- **Implementation Bugs**: Regular security audits recommended
+
+### Validation Layers
+
+The system implements multiple validation layers:
+
+1. **Format Validation**: Public keys, addresses, and signatures format checks
+2. **Cryptographic Validation**: ECDSA signature mathematical verification
+3. **Business Logic Validation**: Request-specific validation rules
+4. **Rate Limiting**: Protection against abuse and DoS attacks
+
+## Code Examples
+
+### Go Client Implementation
+
+<Tabs items={['basic', 'client', 'advanced']} defaultIndex={0}>
+
+<Tab value="basic">
+
+```go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "log"
+    
+    "dogecoin.org/fractal-engine/pkg/doge"
+    "dogecoin.org/fractal-engine/pkg/rpc"
+)
+
+func signRequest() {
+    // Your private and public keys
+    privateKey := "your_private_key_hex"
+    publicKey := "your_public_key_hex"
+    
+    // Create payload
+    payload := rpc.CreateInvoiceRequestPayload{
+        PaymentAddress: "DPaymentAddress123",
+        BuyerAddress:   "DBuyerAddress456",
+        MintHash:       "abc123def456...",
+        Quantity:       100,
+        Price:          50000,
+        SellerAddress:  "DSellerAddress789",
+    }
+    
+    // Serialize payload
+    payloadBytes, err := json.Marshal(payload)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // Sign payload
+    signature, err := doge.SignPayload(payloadBytes, privateKey)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // Create signed request
+    request := rpc.CreateInvoiceRequest{
+        SignedRequest: rpc.SignedRequest{
+            PublicKey: publicKey,
+            Signature: signature,
+        },
+        Payload: payload,
+    }
+    
+    fmt.Printf("Signed request: %+v\n", request)
+}
+```
+
+</Tab>
+
+<Tab value="client">
+
+```go
+package main
+
+import (
+    "log"
+    
+    "dogecoin.org/fractal-engine/pkg/client"
+    "dogecoin.org/fractal-engine/pkg/rpc"
+)
+
+func useClientLibrary() {
+    // Initialize client with your keys
+    client := client.NewTokenisationClient(
+        "https://api.fractalengine.com",
+        "your_private_key_hex",
+        "your_public_key_hex",
+    )
+    
+    // Create invoice request
+    invoiceReq := &rpc.CreateInvoiceRequest{
+        Payload: rpc.CreateInvoiceRequestPayload{
+            PaymentAddress: "DPaymentAddress123",
+            BuyerAddress:   "DBuyerAddress456",
+            MintHash:       "abc123def456...",
+            Quantity:       100,
+            Price:          50000,
+            SellerAddress:  "DSellerAddress789",
+        },
+    }
+    
+    // Client automatically signs the request
+    response, err := client.CreateInvoice(invoiceReq)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    log.Printf("Invoice created: %s", response.Hash)
+}
+```
+
+</Tab>
+
+<Tab value="advanced">
+
+```go
+package main
+
+import (
+    "crypto/sha256"
+    "encoding/hex"
+    "encoding/json"
+    "log"
+    
+    "dogecoin.org/fractal-engine/pkg/doge"
+    "dogecoin.org/fractal-engine/pkg/validation"
+    "github.com/btcsuite/btcd/btcec/v2"
+    "github.com/btcsuite/btcd/btcec/v2/ecdsa"
+)
+
+func advancedSigning() {
+    // Generate new keypair
+    privKey, err := btcec.NewPrivateKey()
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    pubKey := privKey.PubKey()
+    pubKeyHex := hex.EncodeToString(pubKey.SerializeCompressed())
+    privKeyHex := hex.EncodeToString(privKey.Serialize())
+    
+    // Validate public key format
+    if err := validation.ValidatePublicKey(pubKeyHex); err != nil {
+        log.Fatal(err)
+    }
+    
+    // Create and sign payload
+    payload := map[string]interface{}{
+        "action": "custom_action",
+        "data":   "some_data",
+        "nonce":  "unique_nonce_123",
+    }
+    
+    payloadBytes, err := json.Marshal(payload)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // Manual signing process
+    hash := sha256.Sum256(payloadBytes)
+    signature := ecdsa.Sign(privKey, hash[:])
+    sigHex := hex.EncodeToString(signature.Serialize())
+    
+    // Verify signature
+    err = doge.ValidateSignature(payloadBytes, pubKeyHex, sigHex)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    log.Println("Signature verified successfully")
+}
+```
+
+</Tab>
+</Tabs>
+
+### JavaScript/TypeScript Example
+
+```typescript
+import * as secp256k1 from 'secp256k1';
+import { createHash } from 'crypto';
+
+interface SignedRequest {
+  public_key: string;
+  signature: string;
+  payload: any;
+}
+
+function signPayload(payload: any, privateKeyHex: string): string {
+  // Serialize payload to JSON
+  const payloadString = JSON.stringify(payload);
+  const payloadBytes = Buffer.from(payloadString, 'utf8');
+  
+  // Hash payload with SHA256
+  const hash = createHash('sha256').update(payloadBytes).digest();
+  
+  // Sign hash
+  const privateKey = Buffer.from(privateKeyHex, 'hex');
+  const signature = secp256k1.ecdsaSign(hash, privateKey);
+  
+  // Return DER-encoded signature as hex
+  return signature.signature.toString('hex');
+}
+
+function createSignedRequest(
+  payload: any, 
+  privateKeyHex: string, 
+  publicKeyHex: string
+): SignedRequest {
+  const signature = signPayload(payload, privateKeyHex);
+  
+  return {
+    public_key: publicKeyHex,
+    signature: signature,
+    payload: payload
+  };
+}
+```
+
+### Python Example
+
+```python
+import hashlib
+import json
+from ecdsa import SigningKey, SECP256k1
+from ecdsa.util import sigencode_der
+
+def sign_payload(payload: dict, private_key_hex: str) -> str:
+    """Sign a payload using ECDSA with SHA256."""
+    
+    # Serialize payload to JSON
+    payload_json = json.dumps(payload, separators=(',', ':'), sort_keys=True)
+    payload_bytes = payload_json.encode('utf-8')
+    
+    # Hash payload with SHA256
+    hash_obj = hashlib.sha256(payload_bytes)
+    message_hash = hash_obj.digest()
+    
+    # Create signing key from hex
+    private_key_bytes = bytes.fromhex(private_key_hex)
+    signing_key = SigningKey.from_string(private_key_bytes, curve=SECP256k1)
+    
+    # Sign hash and encode as DER
+    signature = signing_key.sign_digest(message_hash, sigencode=sigencode_der)
+    
+    return signature.hex()
+
+def create_signed_request(payload: dict, private_key_hex: str, public_key_hex: str) -> dict:
+    """Create a signed request."""
+    
+    signature = sign_payload(payload, private_key_hex)
+    
+    return {
+        "public_key": public_key_hex,
+        "signature": signature,
+        "payload": payload
+    }
+```
+
+## Troubleshooting Authentication Issues
+
+### Common Error Messages
+
+#### Invalid Public Key Format
+```
+Error: invalid public_key: public key must be exactly 66 characters (compressed format)
+```
+
+**Solution**: Ensure public key is compressed format (66 hex characters starting with 02 or 03)
+
+#### Signature Verification Failed
+```
+Error: signature verification failed
+```
+
+**Causes**:
+- Payload was modified after signing
+- Wrong private key used for signing
+- Public key doesn't match private key
+- Invalid signature encoding
+
+**Solution**: Re-sign with correct private key and ensure payload integrity
+
+#### Invalid Address Format
+```
+Error: invalid address: invalid Dogecoin address format
+```
+
+**Solution**: Verify address corresponds to correct network (mainnet/testnet/regtest)
+
+### Debugging Steps
+
+1. **Verify Key Pair**: Ensure public key derives from private key
+2. **Check Payload**: Verify JSON serialization is identical
+3. **Validate Encoding**: Confirm hex encoding is lowercase
+4. **Test Signature**: Use reference implementation to verify
+5. **Network Match**: Ensure all addresses use same network prefix
+
+### Testing Authentication
+
+```go
+func testAuthentication() {
+    // Generate test keypair
+    privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // Create test payload
+    payload := map[string]interface{}{
+        "test": "data",
+        "timestamp": time.Now().Unix(),
+    }
+    
+    payloadBytes, _ := json.Marshal(payload)
+    
+    // Sign payload
+    signature, err := doge.SignPayload(payloadBytes, privHex)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // Verify signature
+    err = doge.ValidateSignature(payloadBytes, pubHex, signature)
+    if err != nil {
+        log.Fatal("Signature verification failed:", err)
+    }
+    
+    log.Println("Authentication test passed")
+    log.Printf("Address: %s", address)
+    log.Printf("Public Key: %s", pubHex)
+    log.Printf("Signature: %s", signature)
+}
+```
+
+## Integration Examples
+
+### Web Application Integration
+
+For web applications, implement client-side signing:
+
+```javascript
+// Import secp256k1 library
+const secp256k1 = require('secp256k1');
+
+class FractalEngineAuth {
+  constructor(privateKeyHex, publicKeyHex) {
+    this.privateKey = Buffer.from(privateKeyHex, 'hex');
+    this.publicKey = publicKeyHex;
+  }
+  
+  async signRequest(payload) {
+    const payloadString = JSON.stringify(payload);
+    const hash = crypto.createHash('sha256')
+      .update(payloadString)
+      .digest();
+      
+    const signature = secp256k1.ecdsaSign(hash, this.privateKey);
+    
+    return {
+      public_key: this.publicKey,
+      signature: signature.signature.toString('hex'),
+      payload: payload
+    };
+  }
+  
+  async makeAuthenticatedRequest(url, payload) {
+    const signedRequest = await this.signRequest(payload);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(signedRequest)
+    });
+    
+    return response.json();
+  }
+}
+```
+
+### Mobile Application Integration
+
+For mobile applications, use platform-specific crypto libraries:
+
+```swift
+// iOS Swift example using CommonCrypto
+import CryptoKit
+import secp256k1
+
+class FractalEngineAuth {
+    private let privateKey: secp256k1.Signing.PrivateKey
+    private let publicKeyHex: String
+    
+    init(privateKeyHex: String) throws {
+        let privateKeyData = Data(hex: privateKeyHex)
+        self.privateKey = try secp256k1.Signing.PrivateKey(dataRepresentation: privateKeyData)
+        self.publicKeyHex = privateKey.publicKey.dataRepresentation.hexString
+    }
+    
+    func signPayload<T: Codable>(_ payload: T) throws -> SignedRequest<T> {
+        let jsonData = try JSONEncoder().encode(payload)
+        let hash = SHA256.hash(data: jsonData)
+        
+        let signature = try privateKey.ecdsa.signature(for: Data(hash))
+        let signatureHex = signature.derRepresentation.hexString
+        
+        return SignedRequest(
+            publicKey: publicKeyHex,
+            signature: signatureHex,
+            payload: payload
+        )
+    }
+}
+```
+
+The Fractal Engine's authentication system provides robust security through proven cryptographic methods. By following these guidelines and best practices, developers can implement secure, authenticated applications that integrate seamlessly with the platform.

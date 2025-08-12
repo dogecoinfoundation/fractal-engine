@@ -1,0 +1,410 @@
+---
+title: Dogecoin Integration
+description: Comprehensive Dogecoin blockchain integration for address generation, transaction handling, and cryptographic operations
+---
+
+# Dogecoin Blockchain Integration
+
+The Fractal Engine integrates deeply with the Dogecoin blockchain through the `pkg/doge` package, providing comprehensive functionality for address generation, transaction handling, cryptographic operations, and blockchain interaction.
+
+## Overview
+
+The Dogecoin integration layer serves as the foundation for the Fractal Engine's tokenization protocol, handling:
+
+- **Cryptographic Operations**: ECDSA key generation, signing, and verification
+- **Address Management**: Multi-network address generation and validation  
+- **Transaction Processing**: Raw transaction creation, signing, and broadcast
+- **Blockchain Monitoring**: Real-time block following and transaction parsing
+- **RPC Communication**: Comprehensive Dogecoin Core RPC client
+
+## Core Components
+
+### RPC Client (`rpc.go`)
+
+The `RpcClient` provides a full-featured interface to Dogecoin Core nodes:
+
+```go
+import "dogecoin.org/fractal-engine/pkg/doge"
+
+client := doge.NewRpcClient(config)
+
+// Get blockchain info
+info, err := client.GetBlockchainInfo()
+
+// List unspent outputs for an address
+utxos, err := client.ListUnspent("DDogeSampleAddress...")
+
+// Get current block count
+height, err := client.GetBlockCount()
+```
+
+### Address Generation and Validation
+
+Generate Dogecoin addresses for different networks:
+
+```go
+// Generate keypair for mainnet
+privKey, pubKey, address, err := doge.GenerateDogecoinKeypair(doge.PrefixMainnet)
+
+// Generate for testnet
+privKey, pubKey, address, err := doge.GenerateDogecoinKeypair(doge.PrefixTestnet)
+
+// Generate for regtest
+privKey, pubKey, address, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
+
+// Convert public key to address
+address, err := doge.PublicKeyToDogeAddress(pubKeyHex, doge.PrefixMainnet)
+```
+
+## Network Support
+
+The package supports all Dogecoin networks with distinct address prefixes:
+
+| Network | Prefix | Description |
+|---------|--------|-------------|
+| Mainnet | `0x1E` | Production Dogecoin network |
+| Testnet | `0x71` | Test network for development |
+| Regtest | `0x6f` | Local regression testing |
+
+### Network Configuration
+
+```go
+// Get network prefix
+prefix, err := doge.GetPrefix("mainnet") // Returns 0x1E
+
+// Get chain configuration for btcsuite compatibility
+chainCfg := doge.GetChainCfg(doge.PrefixMainnet)
+```
+
+## Transaction Signing
+
+### Raw Transaction Signing
+
+The package provides comprehensive transaction signing with UTXO tracking:
+
+```go
+// Define previous outputs for signing
+prevOutputs := []doge.PrevOutput{
+    {
+        Address: "D7YWHmoRGEvQ7Y1heFKzVEyf2....", 
+        Amount:  100000000, // satoshis
+    },
+}
+
+// Sign the transaction
+signedTx, err := doge.SignRawTransaction(
+    rawTxHex,     // unsigned transaction hex
+    privateKeyHex, // signing private key
+    prevOutputs,   // previous output info
+    chainCfg,      // network configuration
+)
+```
+
+### Signature Verification
+
+The signing process includes automatic verification:
+
+- Creates signature hash using `txscript.CalcSignatureHash`
+- Generates ECDSA signature with `ecdsa.Sign`
+- Builds scriptSig with signature and public key
+- Verifies signature using `txscript.NewEngine`
+
+## ECDSA Cryptographic Operations
+
+### Message Signing
+
+Sign arbitrary payloads for authentication:
+
+```go
+payload := []byte("message to sign")
+signature, err := doge.SignPayload(payload, privateKeyHex)
+```
+
+### Signature Validation
+
+Verify message signatures:
+
+```go
+err := doge.ValidateSignature(payload, publicKeyHex, signature)
+if err != nil {
+    // Signature invalid
+}
+```
+
+### WIF Key Format
+
+Convert hex private keys to Wallet Import Format:
+
+```go
+wif, err := doge.HexToDogecoinWIF(hexKey, true) // compressed
+```
+
+## Blockchain Following
+
+The `DogeFollower` provides real-time blockchain monitoring:
+
+```go
+import (
+    "dogecoin.org/fractal-engine/pkg/doge"
+    "dogecoin.org/fractal-engine/pkg/store"
+)
+
+// Create follower instance
+follower := doge.NewFollower(config, store)
+
+// Start following from last known position
+err := follower.Start()
+```
+
+### Message Processing
+
+The follower automatically extracts Fractal Engine protocol messages:
+
+```go
+// Processes each transaction in new blocks
+for _, tx := range block.Tx {
+    // Extract protocol message from OP_RETURN
+    message, err := GetFractalMessageFromVout(tx.VOut)
+    
+    // Extract receiving address
+    address, err := GetAddressFromVout(tx.VOut)
+    
+    // Store transaction with protocol data
+    store.SaveOnChainTransaction(...)
+}
+```
+
+## OP_RETURN Data Handling
+
+### Creating OP_RETURN Scripts
+
+```go
+data := []byte("protocol data")
+script := doge.WrapOpReturn(data)
+// Returns: "6a" + length + hex-encoded data
+```
+
+### Parsing OP_RETURN Data
+
+```go
+func ParseOpReturnData(vout types.RawTxnVOut) []byte {
+    asm := vout.ScriptPubKey.Asm
+    parts := strings.Split(asm, " ")
+    if len(parts) > 0 && parts[0] == "OP_RETURN" {
+        return hex.DecodeString(parts[1])
+    }
+    return nil
+}
+```
+
+## RPC Methods Reference
+
+### Blockchain Information
+
+```go
+// Get comprehensive blockchain status
+info, err := client.GetBlockchainInfo()
+
+// Get current block height
+height, err := client.GetBlockCount()
+
+// Get mining difficulty
+difficulty, err := client.GetDifficulty()
+
+// Get best block hash
+hash, err := client.GetBestBlockHash()
+```
+
+### Block Operations
+
+```go
+// Get block hash by height
+hash, err := client.GetBlockHash(height)
+
+// Get block with transaction IDs only
+block, err := client.GetBlock(blockHash)
+
+// Get block with full transaction data
+blockWithTxs, err := client.GetBlockWithTransactions(blockHash)
+
+// Get raw block hex
+blockHex, err := client.GetBlockHex(blockHash)
+
+// Get block header
+header, err := client.GetBlockHeader(blockHash)
+```
+
+### Mempool Operations
+
+```go
+// Get mempool information
+mempoolInfo, err := client.GetMempoolInfo()
+
+// Get raw mempool data
+rawMempool, err := client.GetRawMempoolInfo()
+```
+
+### Wallet Operations
+
+```go
+// Generate new address
+address, err := client.GetNewAddress()
+
+// Get private key for address
+privKey, err := client.DumpPrivKey(address)
+
+// Send to address
+txid, err := client.SendToAddress(address, amount)
+
+// Get wallet information
+walletInfo, err := client.GetWalletInfo()
+```
+
+### UTXO Management
+
+```go
+// List unspent outputs for address
+utxos, err := client.ListUnspent("DDogeSampleAddress...")
+
+// Get transaction output details
+txout, err := client.GetTxOut(txid, vout)
+```
+
+## Security Considerations
+
+### Private Key Management
+
+**Critical Security Practices:**
+
+1. **Never log private keys** - The codebase includes debug output that should be removed in production
+2. **Secure key storage** - Use hardware security modules or encrypted storage
+3. **Key rotation** - Implement regular key rotation for high-value operations
+4. **Environment isolation** - Separate keys by network (mainnet/testnet/regtest)
+
+### Transaction Security
+
+```go
+// Always verify signatures before broadcast
+if err := vm.Execute(); err != nil {
+    return "", fmt.Errorf("signature verification failed: %v", err)
+}
+```
+
+### Network Security
+
+- Use TLS/SSL for RPC connections in production
+- Implement proper authentication for Dogecoin Core RPC
+- Monitor for network forks and chain reorganizations
+
+## Integration with Protocol Messages
+
+The Dogecoin integration seamlessly works with Fractal Engine protocol messages:
+
+```go
+// Extract protocol message from transaction
+message, err := GetFractalMessageFromVout(tx.VOut)
+if err == nil && message.IsFractalEngineMessage() {
+    // Process Fractal Engine protocol message
+    processor.HandleMessage(message)
+}
+```
+
+### Message Envelope Structure
+
+Protocol messages are embedded in OP_RETURN outputs and follow the `MessageEnvelope` structure:
+
+```go
+type MessageEnvelope struct {
+    Action  string
+    Version string  
+    Data    []byte
+}
+```
+
+## Error Handling and Troubleshooting
+
+### Common Connection Issues
+
+**RPC Connection Failures:**
+```go
+// Check Dogecoin Core configuration
+client := doge.NewRpcClient(config)
+_, err := client.GetBlockchainInfo()
+if err != nil {
+    // Check: RPC enabled, credentials, network connectivity
+}
+```
+
+**Authentication Errors:**
+- Verify `dogeuser` and `dogepassword` in configuration
+- Ensure Dogecoin Core RPC is enabled with `server=1`
+- Check firewall settings for RPC port
+
+### Chain Following Issues
+
+**Sync Problems:**
+```go
+// Monitor follower status
+follower := doge.NewFollower(config, store)
+err := follower.Start()
+if err != nil {
+    // Check: node sync status, database connectivity
+}
+```
+
+**Rollback Handling:**
+The follower automatically handles chain reorganizations:
+```go
+case messages.RollbackMessage:
+    // Automatically updates chain position
+    store.UpsertChainPosition(msg.NewChainPos.BlockHeight, ...)
+```
+
+### Transaction Issues
+
+**Signing Failures:**
+- Verify private key format and network compatibility
+- Ensure UTXO information matches actual blockchain state
+- Check transaction fee adequacy
+
+**Broadcast Failures:**
+- Validate transaction structure before broadcast
+- Ensure node is synchronized and accepting transactions
+- Verify transaction doesn't conflict with mempool
+
+## Performance Considerations
+
+### RPC Optimization
+
+- Use connection pooling for high-throughput applications
+- Implement caching for frequently accessed data
+- Batch RPC calls when possible
+
+### Memory Management
+
+- The follower processes blocks sequentially to minimize memory usage
+- Consider implementing pruning for historical transaction data
+- Monitor Go garbage collection in high-throughput scenarios
+
+## Testing and Development
+
+### Regtest Environment
+
+```go
+// Use regtest for development
+privKey, pubKey, address, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
+
+// Generate blocks for testing
+hashes, err := client.Generate(10)
+```
+
+### Unit Testing
+
+The package includes comprehensive test coverage in `follower_test.go`. Key testing patterns:
+
+- Mock RPC responses for deterministic testing
+- Test network prefix validation
+- Verify signature generation and validation
+- Test OP_RETURN data parsing
+
+This integration provides a robust foundation for building Dogecoin-based applications with comprehensive blockchain interaction capabilities.

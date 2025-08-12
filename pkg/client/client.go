@@ -411,6 +411,29 @@ func (c *TokenisationClient) GetTokenBalance(address string, mintHash string) ([
 	return result, nil
 }
 
+func (c *TokenisationClient) GetPendingTokenBalance(address string, mintHash string) ([]store.TokenBalance, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/pending-token-balances?address=%s&mint_hash=%s", address, mintHash))
+	if err != nil {
+		return []store.TokenBalance{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return []store.TokenBalance{}, fmt.Errorf("failed to get token balance: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var result []store.TokenBalance
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return []store.TokenBalance{}, err
+	}
+
+	return result, nil
+}
+
 func (c *TokenisationClient) GetMints(page int, limit int, publicKey string, includeUnconfirmed bool) (rpc.GetMintsResponse, error) {
 	var resp *http.Response
 	var err error

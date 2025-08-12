@@ -1,0 +1,475 @@
+---
+title: Protocol Specification
+description: On-chain protocol specification for embedding fractal-related operations into Dogecoin blockchain transactions
+---
+
+# Fractal Engine On-Chain Protocol Specification
+
+## Overview
+
+The Fractal Engine on-chain protocol defines a standardized messaging format for embedding fractal-related operations into Dogecoin blockchain transactions. The protocol uses OP_RETURN data to store encoded messages that represent various actions within the Fractal Engine ecosystem.
+
+The protocol supports two types of messages:
+- **On-chain messages**: Lightweight messages embedded in OP_RETURN data for L1 verification
+- **Gossip messages**: Full-featured messages distributed through the gossip network
+
+## Protocol Identifier
+
+All Fractal Engine messages begin with a unique identifier to distinguish them from other OP_RETURN data:
+
+```
+FRACTAL_ENGINE_IDENTIFIER = 0xFE0001FE
+```
+
+## Message Envelope Structure
+
+### Basic Envelope Format
+
+Every Fractal Engine on-chain message follows this binary structure:
+
+```
+| Field              | Size    | Type   | Description                    |
+|--------------------|---------|--------|--------------------------------|
+| Engine Identifier  | 4 bytes | uint32 | 0xFE0001FE (big-endian)       |
+| Action Type        | 1 byte  | uint8  | Action identifier              |
+| Version            | 1 byte  | uint8  | Protocol version               |
+| Data               | Variable| bytes  | Protobuf-encoded payload       |
+```
+
+### MessageEnvelope Structure
+
+```go
+type MessageEnvelope struct {
+    EngineIdentifier uint32  // Always 0xFE0001FE
+    Action           uint8   // Action type constant
+    Version          uint8   // Protocol version (currently 1)
+    Data             []byte  // Protobuf-serialized payload
+}
+```
+
+## Supported Action Types
+
+The protocol defines the following action types:
+
+| Action | Code | Description |
+|--------|------|-------------|
+| `ACTION_MINT` | 0x01 | Create new fractal mint |
+| `ACTION_BUY_OFFER` | 0x02 | Create buy offer |
+| `ACTION_SELL_OFFER` | 0x03 | Create sell offer |
+| `ACTION_INVOICE` | 0x04 | Create invoice for transaction |
+| `ACTION_PAYMENT` | 0x05 | Execute payment |
+| `ACTION_DELETE_BUY_OFFER` | 0x06 | Cancel buy offer |
+| `ACTION_DELETE_SELL_OFFER` | 0x07 | Cancel sell offer |
+
+## Protocol Version
+
+**Current Version: 1**
+
+The protocol uses semantic versioning principles:
+- Major version changes indicate breaking protocol changes
+- Minor version changes add new features while maintaining backward compatibility
+- Protocol version is embedded in each message envelope
+
+## Action Types Specification
+
+### 1. Mint Action (0x01)
+
+Creates a new fractal mint on the blockchain.
+
+#### On-Chain Message Format
+```protobuf
+message OnChainMintMessage {
+    string hash = 1;  // Unique identifier for the mint
+}
+```
+
+#### Gossip Message Format
+```protobuf
+message MintMessage {
+    string id = 1;                           // Unique identifier
+    string title = 2;                        // Human-readable title
+    string description = 3;                  // Detailed description
+    int32 fraction_count = 4;                // Number of fractions
+    repeated string tags = 5;                // Category tags
+    string transaction_hash = 6;             // L1 transaction hash
+    google.protobuf.Struct metadata = 7;     // Extended metadata
+    string hash = 8;                         // Content hash
+    google.protobuf.Struct requirements = 9;  // Purchase requirements
+    google.protobuf.Struct lockup_options = 10; // Lockup configurations
+    string feed_url = 11;                    // Data feed URL
+    google.protobuf.Timestamp created_at = 12; // Creation timestamp
+    int32 block_height = 13;                 // Block height
+}
+```
+
+### 2. Buy Offer Action (0x02)
+
+Creates an offer to purchase fractal tokens.
+
+#### Gossip Message Format
+```protobuf
+message BuyOfferMessage {
+    string id = 1;                           // Unique offer ID
+    string hash = 2;                         // Offer hash
+    BuyOfferPayload payload = 3;             // Offer details
+    google.protobuf.Timestamp created_at = 4; // Creation time
+}
+
+message BuyOfferPayload {
+    string offerer_address = 1;              // Buyer's address
+    string seller_address = 2;               // Target seller address
+    string mint_hash = 3;                    // Target mint hash
+    int32 quantity = 4;                      // Quantity to purchase
+    int32 price = 5;                         // Offered price
+}
+```
+
+### 3. Sell Offer Action (0x03)
+
+Creates an offer to sell fractal tokens.
+
+#### Gossip Message Format
+```protobuf
+message SellOfferMessage {
+    string id = 1;                           // Unique offer ID
+    string hash = 2;                         // Offer hash
+    SellOfferPayload payload = 3;            // Offer details
+    google.protobuf.Timestamp created_at = 4; // Creation time
+}
+
+message SellOfferPayload {
+    string offerer_address = 1;              // Seller's address
+    string mint_hash = 2;                    // Mint being sold
+    int32 quantity = 3;                      // Quantity for sale
+    int32 price = 4;                         // Asking price
+}
+```
+
+### 4. Invoice Action (0x04)
+
+Creates an invoice for a transaction between parties.
+
+#### On-Chain Message Format
+```protobuf
+message OnChainInvoiceMessage {
+    int32 version = 1;                       // Protocol version
+    string seller_address = 2;               // Seller's address
+    string invoice_hash = 3;                 // Invoice identifier
+    string mint_hash = 4;                    // Related mint
+    int32 quantity = 5;                      // Transaction quantity
+}
+```
+
+#### Gossip Message Format
+```protobuf
+message InvoiceMessage {
+    string id = 1;                           // Unique invoice ID
+    string hash = 2;                         // Invoice hash
+    InvoicePayload payload = 3;              // Invoice details
+    google.protobuf.Timestamp created_at = 4; // Creation time
+}
+
+message InvoicePayload {
+    string payment_address = 1;              // Payment destination
+    string buyer_address = 2;                // Buyer's address
+    string mint_hash = 4;                    // Related mint
+    int32 quantity = 5;                      // Transaction quantity
+    int32 price = 6;                         // Transaction price
+    string seller_address = 7;               // Seller's address
+}
+```
+
+### 5. Payment Action (0x05)
+
+Executes payment for an invoice.
+
+#### On-Chain Message Format
+```protobuf
+message OnChainPaymentMessage {
+    int32 version = 1;                       // Protocol version
+    string hash = 2;                         // Invoice hash being paid
+}
+```
+
+#### Gossip Message Format
+```protobuf
+message PaymentMessage {
+    string invoice_hash = 1;                 // Reference to invoice
+}
+```
+
+### 6. Delete Actions (0x06, 0x07)
+
+Cancel existing buy or sell offers.
+
+#### Delete Buy Offer (0x06)
+```protobuf
+message DeleteBuyOfferMessage {
+    string hash = 1;                         // Hash of offer to cancel
+}
+```
+
+#### Delete Sell Offer (0x07)
+```protobuf
+message DeleteSellOfferMessage {
+    string hash = 1;                         // Hash of offer to cancel
+}
+```
+
+## Serialization Process
+
+### Encoding Messages
+
+1. **Create Message**: Instantiate the appropriate protobuf message
+2. **Marshal Protobuf**: Serialize the message using Protocol Buffers
+3. **Create Envelope**: Wrap the serialized data in a MessageEnvelope
+4. **Serialize Envelope**: Convert to binary format for OP_RETURN
+
+```go
+// Example: Creating a mint message
+func NewMintTransactionEnvelope(hash string, action uint8) MessageEnvelope {
+    message := &OnChainMintMessage{
+        Hash: hash,
+    }
+    
+    protoBytes, err := proto.Marshal(message)
+    if err != nil {
+        return MessageEnvelope{}
+    }
+    
+    return NewMessageEnvelope(action, DEFAULT_VERSION, protoBytes)
+}
+```
+
+### Envelope Serialization
+
+The MessageEnvelope serializes to binary using big-endian byte order:
+
+```go
+func (m *MessageEnvelope) Serialize() []byte {
+    bufIdentifier := make([]byte, 4)
+    binary.BigEndian.PutUint32(bufIdentifier, m.EngineIdentifier)
+    
+    buf := new(bytes.Buffer)
+    buf.Write(bufIdentifier)           // 4 bytes: Engine identifier
+    buf.WriteByte(m.Action)            // 1 byte:  Action type
+    buf.WriteByte(m.Version)           // 1 byte:  Version
+    buf.Write(m.Data)                  // N bytes: Protobuf data
+    
+    return buf.Bytes()
+}
+```
+
+### Deserialization Process
+
+1. **Extract Envelope**: Parse binary data into MessageEnvelope fields
+2. **Verify Identifier**: Confirm the engine identifier matches 0xFE0001FE
+3. **Unmarshal Protobuf**: Deserialize the data field based on action type
+4. **Validate Message**: Perform action-specific validation
+
+```go
+func (m *MessageEnvelope) Deserialize(data []byte) error {
+    buf := bytes.NewBuffer(data)
+    
+    // Read engine identifier (4 bytes)
+    bufIdentifier := make([]byte, 4)
+    buf.Read(bufIdentifier)
+    m.EngineIdentifier = binary.BigEndian.Uint32(bufIdentifier)
+    
+    // Read action type (1 byte)
+    action, err := buf.ReadByte()
+    if err != nil {
+        return err
+    }
+    m.Action = action
+    
+    // Read version (1 byte)
+    version, err := buf.ReadByte()
+    if err != nil {
+        return err
+    }
+    m.Version = version
+    
+    // Remaining bytes are protobuf data
+    m.Data = buf.Bytes()
+    return nil
+}
+```
+
+## OP_RETURN Data Format
+
+### Size Constraints
+
+- **Maximum OP_RETURN size**: 80 bytes (Dogecoin standard)
+- **Envelope overhead**: 6 bytes (identifier + action + version)
+- **Available payload space**: 74 bytes maximum
+- **Recommended payload size**: ≤70 bytes for safety
+
+### Data Embedding Process
+
+1. **Serialize Message**: Create binary envelope as described above
+2. **Validate Size**: Ensure total size ≤ 80 bytes
+3. **Create OP_RETURN**: Embed in transaction output
+4. **Broadcast**: Submit transaction to Dogecoin network
+
+### Size Optimization
+
+For messages exceeding 74 bytes:
+- Use hash references instead of full data
+- Store complete data in gossip network
+- Reference via content hash in on-chain message
+
+## Message Verification
+
+### Basic Verification Steps
+
+1. **Check Identifier**: Verify `EngineIdentifier == 0xFE0001FE`
+2. **Validate Action**: Ensure action type is in valid range (0x01-0x07)
+3. **Check Version**: Verify version compatibility
+4. **Parse Payload**: Successfully unmarshal protobuf data
+5. **Validate Content**: Perform action-specific validation
+
+### Verification Code Example
+
+```go
+func VerifyFractalEngineMessage(data []byte) (bool, error) {
+    var envelope MessageEnvelope
+    
+    // Deserialize envelope
+    err := envelope.Deserialize(data)
+    if err != nil {
+        return false, err
+    }
+    
+    // Verify it's a Fractal Engine message
+    if !envelope.IsFractalEngineMessage() {
+        return false, errors.New("not a Fractal Engine message")
+    }
+    
+    // Verify action type
+    if envelope.Action < ACTION_MINT || envelope.Action > ACTION_DELETE_SELL_OFFER {
+        return false, errors.New("invalid action type")
+    }
+    
+    // Verify version
+    if envelope.Version != DEFAULT_VERSION {
+        return false, errors.New("unsupported version")
+    }
+    
+    return true, nil
+}
+```
+
+### Signature Verification (Gossip Messages)
+
+Gossip messages include digital signatures for authentication:
+
+```protobuf
+message BuyOfferMessageEnvelope {
+    int32 type = 1;
+    int32 version = 2;
+    BuyOfferMessage payload = 3;
+    string public_key = 4;                   // Signer's public key
+    string signature = 5;                    // Digital signature
+}
+```
+
+## Protocol Examples
+
+### Example 1: Mint Transaction
+
+**On-Chain OP_RETURN Data** (Hex):
+```
+FE0001FE 01 01 0A20 68656C6C6F776F726C64686173683132333435363738393061626364656667
+```
+
+**Breakdown**:
+- `FE0001FE`: Engine identifier
+- `01`: Mint action
+- `01`: Version 1
+- `0A20...`: Protobuf-encoded `OnChainMintMessage{hash: "helloworldhash1234567890abcdefg"}`
+
+### Example 2: Invoice Transaction
+
+**On-Chain OP_RETURN Data** (Hex):
+```
+FE0001FE 04 01 0801 12146D7942764E56464E426667704B4574417A 1A20696E766F69636568617368313233343536373839306162636465666768696A6B 22206D696E7468617368313233343536373839306162636465666768696A6B6C6D6E 2803
+```
+
+**Breakdown**:
+- `FE0001FE`: Engine identifier
+- `04`: Invoice action
+- `01`: Version 1  
+- `0801...`: Protobuf-encoded `OnChainInvoiceMessage`
+
+### Example 3: Payment Transaction
+
+**On-Chain OP_RETURN Data** (Hex):
+```
+FE0001FE 05 01 0801 1220696E766F69636568617368313233343536373839306162636465666768696A6B
+```
+
+**Breakdown**:
+- `FE0001FE`: Engine identifier
+- `05`: Payment action
+- `01`: Version 1
+- `0801...`: Protobuf-encoded `OnChainPaymentMessage{hash: "invoicehash1234567890abcdefghijk"}`
+
+## Integration Guidelines
+
+### For Wallet Developers
+
+1. **Parse OP_RETURN**: Extract and verify Fractal Engine messages
+2. **Handle Actions**: Implement handlers for each action type
+3. **Validate Messages**: Perform complete verification before processing
+4. **Update State**: Maintain local state based on confirmed transactions
+
+### For Node Operators
+
+1. **Monitor Transactions**: Scan for Fractal Engine identifiers
+2. **Validate Protocol**: Ensure messages conform to specification
+3. **Gossip Network**: Participate in full message distribution
+4. **State Management**: Maintain consensus on fractal ownership
+
+### For Application Developers
+
+1. **Message Creation**: Use provided helper functions
+2. **Size Management**: Optimize for OP_RETURN constraints
+3. **Error Handling**: Implement robust error recovery
+4. **Version Compatibility**: Support multiple protocol versions
+
+## Security Considerations
+
+### Message Integrity
+
+- All on-chain messages are tamper-proof once confirmed
+- Gossip messages require signature verification
+- Hash-based references prevent data corruption
+
+### DoS Prevention
+
+- OP_RETURN size limits prevent blockchain bloat
+- Rate limiting on gossip message processing
+- Validation prevents malformed message processing
+
+### Privacy
+
+- On-chain messages are publicly visible
+- Sensitive data should be hash-referenced only
+- Consider privacy implications of permanent storage
+
+## Future Extensions
+
+The protocol is designed for extensibility:
+
+- **New Action Types**: Can be added with new identifiers
+- **Version Upgrades**: Backward compatibility maintained
+- **Enhanced Payloads**: More sophisticated message formats
+- **Optimization**: Improved encoding for space efficiency
+
+## Implementation Reference
+
+The complete protocol implementation is available in:
+- [`pkg/protocol/protocol.go`](file:///home/danielw/code/doge/fractal-engine/pkg/protocol/protocol.go) - Core envelope handling
+- [`pkg/protocol/*.proto`](file:///home/danielw/code/doge/fractal-engine/pkg/protocol/) - Message definitions
+- [`pkg/protocol/*.go`](file:///home/danielw/code/doge/fractal-engine/pkg/protocol/) - Helper functions

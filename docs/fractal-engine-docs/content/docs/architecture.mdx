@@ -1,0 +1,346 @@
+---
+title: Architecture
+description: System architecture and design of the Fractal Engine tokenization platform built on Dogecoin
+---
+
+# Fractal Engine Architecture
+
+Fractal Engine is a sophisticated tokenization platform built on Dogecoin that enables fractional ownership through minting, peer-to-peer trading, and payment processing. The system implements a hybrid architecture that combines on-chain protocol messages with off-chain gossip networking for optimal performance and cost efficiency.
+
+## System Overview
+
+### Core Concept
+
+Fractal Engine allows users to create and trade tokens backed by the Dogecoin blockchain while leveraging off-chain communication for efficiency. The system uses Dogecoin's OP_RETURN mechanism to anchor critical protocol messages on-chain while utilizing the DogeNet gossip network for fast, cost-effective data distribution.
+
+### Key Features
+
+- **Token Minting**: Create fractional tokens with configurable supply and metadata
+- **P2P Trading**: Buy and sell offers with automatic matching and settlement
+- **Payment Processing**: Invoice generation and payment handling
+- **Blockchain Anchoring**: Critical operations anchored on Dogecoin L1
+- **Gossip Network**: Fast off-chain data propagation via DogeNet
+- **Dual Database Support**: SQLite for development, PostgreSQL for production
+
+## Component Architecture
+
+<Mermaid
+  chart="graph TB
+    subgraph 'External Systems'
+        DC[Dogecoin Core]
+        DN[DogeNet Gossip Network]
+    end
+
+    subgraph 'Fractal Engine Core'
+        FE[Fractal Engine Service]
+
+        subgraph 'Service Layer'
+            RPC[RPC Server]
+            PROC[Processor]
+            HEALTH[Health Service]
+            TRIM[Trimmer Service]
+        end
+
+        subgraph 'Integration Layer'
+            FOLLOW[Doge Follower]
+            DNCLNT[DogeNet Client]
+            DOGECLNT[Doge RPC Client]
+        end
+
+        subgraph 'Protocol Layer'
+            PROTO[Protocol Handler]
+            VALID[Validation]
+        end
+
+        subgraph 'Storage Layer'
+            STORE[Tokenisation Store]
+            DB[(Database)]
+        end
+    end
+
+    subgraph 'Client Applications'
+        CLI[CLI Tools]
+        API[HTTP Clients]
+        UI[Fractal Admin UI]
+    end
+
+    %% External connections
+    DC --> FOLLOW
+    DN --> DNCLNT
+    DOGECLNT --> DC
+
+    %% Internal connections
+    FE --> RPC
+    FE --> PROC
+    FE --> HEALTH
+    FE --> TRIM
+    FE --> FOLLOW
+    FE --> DNCLNT
+    FE --> DOGECLNT
+    FE --> STORE
+
+    FOLLOW --> STORE
+    DNCLNT --> STORE
+    PROC --> STORE
+    RPC --> STORE
+
+    PROTO --> VALID
+    RPC --> PROTO
+    FOLLOW --> PROTO
+    DNCLNT --> PROTO
+
+    STORE --> DB
+
+    %% Client connections
+    CLI --> RPC
+    API --> RPC
+    UI --> RPC
+
+    %% Styling
+    classDef external fill:#e1f5fe
+    classDef service fill:#f3e5f5
+    classDef integration fill:#fff3e0
+    classDef protocol fill:#e8f5e8
+    classDef storage fill:#fce4ec
+    classDef client fill:#fff8e1
+
+    class DC,DN external
+    class RPC,PROC,HEALTH,TRIM service
+    class FOLLOW,DNCLNT,DOGECLNT integration
+    class PROTO,VALID protocol
+    class STORE,DB storage
+    class CLI,API,UI client
+ "
+/>
+
+## Core Components
+
+### Service Orchestration
+
+**TokenisationService** (`pkg/service/service.go`)
+- Central orchestrator for all system components
+- Manages lifecycle of all sub-services
+- Coordinates startup sequence and graceful shutdown
+- Handles database migrations and health monitoring
+
+### Integration Layer
+
+**DogeFollower** (`pkg/doge/follower.go`)
+- Monitors Dogecoin blockchain for Fractal Engine messages
+- Extracts protocol messages from OP_RETURN data
+- Stores on-chain transactions for processing
+- Implements chain reorganization handling
+
+**DogeNetClient** (`pkg/dogenet/client.go`)
+- Connects to DogeNet gossip network
+- Handles off-chain message propagation
+- Manages mint announcements and metadata distribution
+- Provides resilient network communication
+
+**DogeRpcClient** (`pkg/doge/rpc.go`)
+- Interface to Dogecoin Core RPC
+- Handles transaction broadcasting
+- Provides blockchain state queries
+- Manages wallet operations
+
+### Processing Engine
+
+**FractalEngineProcessor** (`pkg/service/processor.go`)
+- Core business logic processor
+- Matches off-chain gossip with on-chain transactions
+- Validates transaction integrity and protocol compliance
+- Handles state transitions for mints, offers, and payments
+
+### Protocol Layer
+
+**Protocol Handler** (`pkg/protocol/protocol.go`)
+- Defines message envelope structure (`MessageEnvelope`)
+- Implements protocol constants and action types
+- Handles message serialization/deserialization
+- Supports versioned protocol evolution
+
+**Supported Actions:**
+- `ACTION_MINT` (0x01): Token creation
+- `ACTION_BUY_OFFER` (0x02): Buy order placement
+- `ACTION_SELL_OFFER` (0x03): Sell order placement
+- `ACTION_INVOICE` (0x04): Payment request
+- `ACTION_PAYMENT` (0x05): Payment settlement
+- `ACTION_DELETE_BUY_OFFER` (0x06): Buy order cancellation
+- `ACTION_DELETE_SELL_OFFER` (0x07): Sell order cancellation
+
+### Storage Layer
+
+**TokenisationStore** (`pkg/store/store.go`)
+- Abstraction over database operations
+- Supports SQLite (development) and PostgreSQL (production)
+- Handles automatic migrations
+- Provides transaction management
+
+**Key Data Models:**
+- **Mints**: Token definitions and supply information
+- **OnChainTransactions**: Blockchain-anchored protocol messages
+- **UnconfirmedMints**: Pending mint transactions
+- **BuyOffers/SellOffers**: P2P trading orders
+- **Invoices/Payments**: Payment processing records
+
+### API Layer
+
+**RPC Server** (`pkg/rpc/server.go`)
+- HTTP/JSON-RPC API server
+- RESTful endpoints for all operations
+- Swagger documentation generation
+- Request validation and error handling
+
+## Data Flow Architecture
+
+### Mint Creation Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant RPC as RPC Server
+    participant DN as DogeNet Client
+    participant Store as TokenisationStore
+    participant DF as DogeFollower
+    participant DC as Dogecoin Core
+    participant Proc as Processor
+
+    User->>RPC: POST /mints (mint data)
+    RPC->>Store: Store unconfirmed mint
+    RPC->>DN: Gossip mint announcement
+    RPC->>User: Return mint hash
+
+    User->>DC: Send transaction with mint hash in OP_RETURN
+    DC-->>DF: New block notification
+    DF->>DF: Extract Fractal messages from OP_RETURN
+    DF->>Store: Store on-chain transaction
+
+    Proc->>Store: Query unconfirmed mints
+    Proc->>Store: Query on-chain transactions
+    Proc->>Proc: Match off-chain mint with on-chain tx
+    Proc->>Store: Move to confirmed mints
+    Proc->>Store: Remove on-chain transaction
+```
+
+### Trading Flow
+
+```mermaid
+sequenceDiagram
+    participant Buyer
+    participant Seller
+    participant RPC as RPC Server
+    participant Store as TokenisationStore
+    participant DN as DogeNet Client
+
+    Seller->>RPC: POST /sell-offers
+    RPC->>Store: Store sell offer
+    RPC->>DN: Gossip sell offer
+
+    Buyer->>RPC: GET /sell-offers
+    RPC->>Store: Query available offers
+    RPC->>Buyer: Return offers
+
+    Buyer->>RPC: POST /buy-offers (matching sell offer)
+    RPC->>Store: Store buy offer
+    RPC->>DN: Gossip buy offer
+    RPC->>RPC: Auto-match offers
+    RPC->>Store: Update offer states
+    RPC->>Buyer: Return match confirmation
+```
+
+## Technical Decisions & Trade-offs
+
+### Hybrid On-Chain/Off-Chain Architecture
+
+**Decision**: Use Dogecoin OP_RETURN for critical anchoring with DogeNet for data distribution
+
+**Benefits:**
+- Reduces on-chain transaction costs
+- Enables fast gossip-based communication
+- Maintains blockchain security guarantees
+- Supports high-throughput operations
+
+**Trade-offs:**
+- Increased complexity in message matching
+- Requires robust off-chain network infrastructure
+- Potential for temporary inconsistencies
+
+### Protocol Buffer Message Format
+
+**Decision**: Use Protocol Buffers for structured message encoding
+
+**Benefits:**
+- Efficient binary serialization
+- Schema evolution support
+- Cross-language compatibility
+- Built-in validation
+
+**Trade-offs:**
+- Additional tooling requirements
+- Learning curve for developers
+
+### Database Abstraction
+
+**Decision**: Support both SQLite and PostgreSQL
+
+**Benefits:**
+- SQLite for easy development setup
+- PostgreSQL for production scalability
+- Unified API across database backends
+
+**Trade-offs:**
+- Maintenance overhead for multiple backends
+- Feature parity challenges
+
+### Processor Architecture
+
+**Decision**: Separate matching processor for on-chain/off-chain correlation
+
+**Benefits:**
+- Clear separation of concerns
+- Resilient to network partitions
+- Handles chain reorganizations
+- Enables retry mechanisms
+
+**Trade-offs:**
+- Eventual consistency model
+- Complex state management
+
+## Tokenization on Dogecoin
+
+### Protocol Implementation
+
+Fractal Engine implements tokenization through a multi-layered approach:
+
+1. **Protocol Envelope**: Every message uses a standardized envelope with engine identifier (0xFE0001FE), action type, version, and data payload
+
+2. **On-Chain Anchoring**: Critical operations (mints, payments) include a hash in Dogecoin OP_RETURN that corresponds to off-chain data
+
+3. **Off-Chain Metadata**: Detailed token information, trade offers, and metadata are distributed via DogeNet gossip network
+
+4. **Matching Engine**: The processor correlates off-chain announcements with on-chain anchors to confirm valid operations
+
+### Security Model
+
+- **Blockchain Immutability**: Critical state changes require on-chain confirmation
+- **Gossip Redundancy**: Off-chain data is replicated across DogeNet nodes
+- **Hash Verification**: On-chain hashes validate off-chain data integrity
+- **Protocol Versioning**: Supports backward-compatible protocol evolution
+
+### Scalability Approach
+
+- **Batched Operations**: Multiple operations can be batched in single transactions
+- **Gossip Efficiency**: Large metadata stays off-chain while maintaining verifiability
+- **State Pruning**: Trimmer service removes expired unconfirmed transactions
+- **Horizontal Scaling**: Multiple engine instances can process different token sets
+
+## Configuration & Deployment
+
+The system supports flexible deployment configurations through:
+
+- **Docker Compose**: Complete development environment
+- **Microservice Architecture**: Individual component scaling
+- **Configuration Management**: Centralized config with environment overrides
+- **Health Monitoring**: Built-in health checks and metrics
+
+This architecture enables Fractal Engine to provide a robust, scalable tokenization platform that leverages Dogecoin's security while maintaining high performance and low operational costs.
