@@ -172,8 +172,6 @@ func SignRawTransaction(rawTxHex string, privKeyHex string, prevTxOuts []PrevOut
 		return "", fmt.Errorf("failed to serialize signed transaction: %v", err)
 	}
 
-	fmt.Printf("Signed transaction hex: %x\n", signedTxBuf.Bytes())
-
 	rawTxHex = hex.EncodeToString(signedTxBuf.Bytes())
 
 	return rawTxHex, nil

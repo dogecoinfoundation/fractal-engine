@@ -82,6 +82,10 @@ func (f *DogeFollower) Start() error {
 						continue
 					}
 
+					for _, vout := range tx.VOut {
+						fmt.Println(vout.Value, vout.ScriptPubKey.Addresses)
+					}
+
 					value := tx.VOut[0].Value.InexactFloat64()
 
 					_, err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, blockHash, transactionNumber, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data, address, value)

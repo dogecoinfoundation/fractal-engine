@@ -2,17 +2,24 @@ package stack
 
 import (
 	"context"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"log"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	feclient "dogecoin.org/fractal-engine/pkg/client"
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+	"dogecoin.org/fractal-engine/pkg/protocol"
+	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
@@ -113,12 +120,286 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		DogeNetWebAddress: "localhost" + ":" + strconv.Itoa(stackConfig.DogeNetWebPort),
 	}, tokenStore)
 
+	TrackAddress(&stackConfig)
+	TopUp(&stackConfig)
+	ConfirmBlocks(&stackConfig)
+
 	return stackConfig
 }
 
-func TestStack(t *testing.T) {
-	// stacks := makeStackConfigsAndPeer(2)
+func TestSimpleFlow(t *testing.T) {
+	stacks := makeStackConfigsAndPeer(2)
 
+	seller := stacks[0]
+	buyer := stacks[1]
+	mintQty := 100
+	sellQty := 20
+
+	mintHash := Mint(seller)
+	AssertEqualWithRetry(t, func() interface{} {
+		return GetTokenBalance(seller, mintHash)
+	}, mintQty, 10, 3*time.Second)
+	fmt.Println("Mint confirmed")
+
+	invoiceHash := Invoice(seller, buyer.Address, mintHash, sellQty, 20)
+	AssertEqualWithRetry(t, func() interface{} {
+		return GetPendingTokenBalance(seller, mintHash)
+	}, sellQty, 10, 3*time.Second)
+	fmt.Println("Invoice confirmed")
+
+	paymentTrxn := Payment(buyer, seller, invoiceHash, sellQty, 20)
+	AssertEqualWithRetry(t, func() interface{} {
+		return GetTokenBalance(seller, mintHash)
+	}, sellQty, 10, 3*time.Second)
+	fmt.Println("Payment confirmed")
+
+	log.Println("Mint: ", mintHash)
+	log.Println("Invoice: ", invoiceHash)
+	log.Println("Payment Trxn: ", paymentTrxn)
+
+	res, err := buyer.DogeClient.Request("getrawtransaction", []interface{}{paymentTrxn, 2})
+	if err != nil {
+		panic(err)
+	}
+
+	var result doge.RawTxn
+	err = json.Unmarshal(*res, &result)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(result)
+}
+
+func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody string, amount float64) string {
+	blockChainInfo, err := stackConfig.DogeClient.GetBlockchainInfo()
+	if err != nil {
+		panic(err)
+	}
+
+	chainByte, err := doge.GetPrefix(blockChainInfo.Chain)
+	if err != nil {
+		log.Fatal(err)
+	}
+	chainCfg := doge.GetChainCfg(chainByte)
+
+	utxos, err := stackConfig.BalanceMasterClient.GetUtxos(stackConfig.Address)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(utxos) == 0 {
+		panic(errors.New("No utxos found"))
+	}
+
+	inputs := []interface{}{
+		map[string]interface{}{
+			"txid": utxos[0].TxID,
+			"vout": utxos[0].VOut,
+		},
+	}
+
+	address := stackConfig.Address
+
+	var outputs map[string]interface{}
+	if paymentAddress == address {
+		outputs = map[string]interface{}{
+			"data":  hexBody,
+			address: utxos[0].Amount - amount,
+		}
+	} else {
+		outputs = map[string]interface{}{
+			"data":         hexBody,
+			paymentAddress: amount,
+			address:        utxos[0].Amount - amount,
+		}
+	}
+
+	rawTx, err := stackConfig.DogeClient.Request("createrawtransaction", []interface{}{inputs, outputs})
+	if err != nil {
+		panic(err)
+	}
+
+	var rawTxResponse string
+	if err := json.Unmarshal(*rawTx, &rawTxResponse); err != nil {
+		panic(err)
+	}
+
+	encodedTx, err := doge.SignRawTransaction(rawTxResponse, stackConfig.PrivKey, []doge.PrevOutput{
+		{
+			Address: address,
+			Amount:  int64(utxos[0].Amount),
+		},
+	}, chainCfg)
+
+	if err != nil {
+		panic(err)
+	}
+
+	res, err := stackConfig.DogeClient.Request("sendrawtransaction", []interface{}{encodedTx})
+	if err != nil {
+		panic(err)
+	}
+
+	var txid string
+
+	if err := json.Unmarshal(*res, &txid); err != nil {
+		panic(err)
+	}
+
+	return txid
+}
+
+func GetTokenBalance(stackConfig *StackConfig, mintHash string) int {
+	tokens, err := stackConfig.TokenisationClient.GetTokenBalance(stackConfig.Address, mintHash)
+	if err != nil {
+		panic(err)
+	}
+
+	balance := 0
+	for _, token := range tokens {
+		balance += token.Quantity
+	}
+
+	return balance
+}
+
+func GetPendingTokenBalance(stackConfig *StackConfig, mintHash string) int {
+	tokens, err := stackConfig.TokenisationClient.GetPendingTokenBalance(stackConfig.Address, mintHash)
+	if err != nil {
+		panic(err)
+	}
+
+	balance := 0
+	for _, token := range tokens {
+		balance += token.Quantity
+	}
+
+	return balance
+}
+
+func ConfirmBlocks(stackConfig *StackConfig) {
+	_, err := stackConfig.DogeClient.Request("generate", []interface{}{10})
+	if err != nil {
+		panic(err)
+	}
+}
+
+func TopUp(stackConfig *StackConfig) {
+	ctx := context.Background()
+	err := stackConfig.TokenisationClient.TopUpBalance(ctx, stackConfig.Address)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Topped up address " + stackConfig.Address)
+}
+
+func TrackAddress(stackConfig *StackConfig) {
+	err := stackConfig.BalanceMasterClient.TrackAddress(stackConfig.Address)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Tracking address " + stackConfig.Address)
+}
+
+func Payment(buyerConfig *StackConfig, sellerConfig *StackConfig, invoiceHash string, quantity int, price int) string {
+	envelope := protocol.NewPaymentTransactionEnvelope(invoiceHash, protocol.ACTION_PAYMENT)
+	encodedTransactionBody := envelope.Serialize()
+
+	total := float64(quantity*price + 1)
+
+	txId := WriteToBlockchain(buyerConfig, sellerConfig.Address, hex.EncodeToString(encodedTransactionBody), total)
+	ConfirmBlocks(buyerConfig)
+
+	return txId
+}
+
+func Invoice(stackConfig *StackConfig, buyerAddress string, mintHash string, quantity int, price int) string {
+	invoicePayload := rpc.CreateInvoiceRequestPayload{
+		PaymentAddress: stackConfig.Address,
+		BuyerAddress:   buyerAddress,
+		MintHash:       mintHash,
+		Quantity:       quantity,
+		Price:          price,
+		SellerAddress:  stackConfig.Address,
+	}
+	mintPayloadBytes, err := json.Marshal(invoicePayload)
+	if err != nil {
+		panic(err)
+	}
+
+	invoiceRequest := rpc.CreateInvoiceRequest{
+		Payload: invoicePayload,
+	}
+
+	signature, err := doge.SignPayload(mintPayloadBytes, stackConfig.PrivKey)
+	if err != nil {
+		panic(err)
+	}
+
+	invoiceRequest.Signature = signature
+
+	res, err := stackConfig.TokenisationClient.CreateInvoice(&invoiceRequest)
+	if err != nil {
+		panic(err)
+	}
+
+	envelope := protocol.NewInvoiceTransactionEnvelope(res.Hash, stackConfig.Address, mintHash, int32(quantity), protocol.ACTION_INVOICE)
+	encodedTransactionBody := envelope.Serialize()
+
+	// just network fees
+	WriteToBlockchain(stackConfig, stackConfig.Address, hex.EncodeToString(encodedTransactionBody), float64(1))
+
+	ConfirmBlocks(stackConfig)
+
+	return res.Hash
+}
+
+func Mint(stackConfig *StackConfig) string {
+	mintPayload := rpc.CreateMintRequestPayload{
+		Title:         "Super Lambo",
+		FractionCount: 100,
+		Description:   "Fast Car",
+		ContractOfSale: store.StringInterfaceMap{
+			"specifications": map[string]interface{}{
+				"model": "Ferrari",
+			},
+		},
+	}
+	mintPayloadBytes, err := json.Marshal(mintPayload)
+	if err != nil {
+		panic(err)
+	}
+
+	mintRequest := rpc.CreateMintRequest{
+		Payload:   mintPayload,
+		Address:   stackConfig.Address,
+		PublicKey: stackConfig.PubKey,
+	}
+
+	signature, err := doge.SignPayload(mintPayloadBytes, stackConfig.PrivKey)
+	if err != nil {
+		panic(err)
+	}
+
+	mintRequest.Signature = signature
+
+	res, err := stackConfig.TokenisationClient.Mint(&mintRequest)
+	if err != nil {
+		panic(err)
+	}
+
+	envelope := protocol.NewMintTransactionEnvelope(res.Hash, protocol.ACTION_MINT)
+	encodedTransactionBody := envelope.Serialize()
+
+	// Only need 1 to cover network fees
+	WriteToBlockchain(stackConfig, stackConfig.Address, hex.EncodeToString(encodedTransactionBody), 1)
+
+	ConfirmBlocks(stackConfig)
+
+	return res.Hash
 }
 
 func makeStackConfigsAndPeer(stackCount int) []*StackConfig {

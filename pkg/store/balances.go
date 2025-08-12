@@ -197,6 +197,38 @@ func (s *TokenisationStore) GetTokenBalances(address string, mintHash string) ([
 	return tokenBalances, nil
 }
 
+func (s *TokenisationStore) GetPendingTokenBalances(address string, mintHash string) ([]TokenBalance, error) {
+	log.Println("Getting token balance: ADDRESS", address, "MINT HASH", mintHash)
+
+	rows, err := s.DB.Query(`
+		SELECT quantity FROM pending_token_balances WHERE owner_address = $1 AND mint_hash = $2
+	`, address, mintHash)
+
+	if err != nil {
+		return []TokenBalance{}, err
+	}
+
+	defer rows.Close()
+
+	tokenBalances := []TokenBalance{}
+
+	for rows.Next() {
+
+		var quantity int
+		err := rows.Scan(&quantity)
+		if err != nil {
+			return []TokenBalance{}, err
+		}
+		tokenBalances = append(tokenBalances, TokenBalance{
+			Address:  address,
+			MintHash: mintHash,
+			Quantity: quantity,
+		})
+	}
+
+	return tokenBalances, nil
+}
+
 func (s *TokenisationStore) UpsertTokenBalanceWithTransaction(address, mintHash string, quantity int, tx *sql.Tx) error {
 	log.Println("Upserting token balance with transaction:", address, mintHash, quantity)
 
