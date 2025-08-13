@@ -75,7 +75,7 @@
         # Apps for easy running
         apps = {
           fractal = flake-utils.lib.mkApp {
-            drv = fractalengine;
+            drv = self.packages.${system}.fractalengine;
             name = "fractalengine";
           };
         };

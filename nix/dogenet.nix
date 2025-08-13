@@ -18,7 +18,7 @@ buildGoModule rec {
 
   subPackages = [ "cmd/dogenet" ];
 
-  CGO_ENABLED = "1";
+  env.CGO_ENABLED = "1";
 
   ldflags = [
     "-s" "-w"

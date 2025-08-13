@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchurl, autoPatchelfHook, writeShellScriptBin, gettext }:
+{ lib, stdenv, fetchurl, autoPatchelfHook, writeShellScriptBin, gettext, gcc-unwrapped, xorg, libxkbcommon, fontconfig, freetype }:
 
 let
   dogecoin = stdenv.mkDerivation rec {
@@ -7,10 +7,17 @@ let
 
     src = fetchurl {
       url = "https://github.com/dogecoin/dogecoin/releases/download/v${version}/dogecoin-${version}-x86_64-linux-gnu.tar.gz";
-      sha256 = ""; # TODO: Add correct hash
+      sha256 = "sha256-TyJxF7QRp8mGIslwmG4nvPw/VHpyvvZefZ6CmJF11Pg=";
     };
 
     nativeBuildInputs = [ autoPatchelfHook ];
+    buildInputs = [ 
+      gcc-unwrapped.lib
+      xorg.libxcb
+      libxkbcommon
+      fontconfig
+      freetype
+    ];
 
     installPhase = ''
       runHook preInstall

@@ -6,7 +6,7 @@ buildGoModule rec {
 
   src = lib.cleanSource ../.;
 
-  vendorHash = null; # Will be computed automatically
+  vendorHash = "sha256-54AMWtLaCNOVZ7ruyOfy53Tj5S2PGQ7oLGSHV+sl7x4=";
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ systemd ];
@@ -20,7 +20,7 @@ buildGoModule rec {
   ];
 
   # Environment variables for build
-  CGO_ENABLED = "1";
+  env.CGO_ENABLED = "1";
 
   # Copy migrations after build
   postInstall = ''
