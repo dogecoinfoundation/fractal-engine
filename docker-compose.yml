@@ -89,7 +89,7 @@ services:
     ports:
       - "${FRACTAL_PORT:-8891}:8891"
     environment:
-      - DATABASE_URL=sqlite:///root/storage/fractal-engine.
+      - DATABASE_URL=sqlite:///root/storage/fractal-engine.db
       - DOGE_NET_ADDRESS=${DOGE_NET_ADDRESS}
       - DOGE_NET_NETWORK=${DOGE_NET_NETWORK}
       - DOGE_PORT=${DOGE_PORT}

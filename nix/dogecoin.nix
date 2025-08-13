@@ -37,7 +37,7 @@ let
   };
 
   # Wrapper script that mimics the Docker behavior
-  dogecoin-wrapper = writeShellScriptBin "dogecoin-regtest" ''
+  dogecoin-wrapper = writeShellScriptBin "dogecoind" ''
     #!/usr/bin/env bash
 
     # Default environment variables

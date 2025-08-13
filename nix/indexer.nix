@@ -8,10 +8,10 @@ buildGoModule rec {
     owner = "dogeorg";
     repo = "indexer";
     rev = "main"; # Can be overridden
-    sha256 = "sha256-Rps6v1dsBzlFrtWRt7TbtmdpyfNLVVLCK12kBP4j3ao="; # TODO: Add correct hash
+    sha256 = "sha256-piDP8o4qFJkKOgU0S4uR9unMSpW02toi5IyKkJ1VlUY=";
   };
 
-  vendorHash = "sha256-1NcilX79v5EZvtH1KQv04sqQ347dp0DBk9FtiKUQ1Uw="; # TODO: Add correct hash
+  vendorHash = "sha256-2JU4LayU5mLZXyGH1rt9tduQgqUycyfMNSendcCNLhw=";
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ systemd zeromq ];
@@ -26,23 +26,40 @@ buildGoModule rec {
   ];
 
   postInstall = ''
-    # Create wrapper script (note: Dockerfile had wrong command, fixing it)
+    # Create wrapper script with new CLI flags
     cat > $out/bin/indexer-start << 'EOF'
     #!/usr/bin/env bash
 
     # Default environment variables
-    export RPC_SERVER_PORT=''${RPC_SERVER_PORT:-8893}
-    export DOGE_PORT=''${DOGE_PORT:-22556}
-    export DOGE_HOST=''${DOGE_HOST:-localhost}
+    export INDEXER_BINDAPI=''${INDEXER_BINDAPI:-localhost:8888}
+    export INDEXER_CHAIN=''${INDEXER_CHAIN:-regtest}
+    export INDEXER_DBURL=''${INDEXER_DBURL:-index.db}
+    export INDEXER_LISTENPORT=''${INDEXER_LISTENPORT:-8001}
+    export INDEXER_RPCHOST=''${INDEXER_RPCHOST:-127.0.0.1}
+    export INDEXER_RPCPASS=''${INDEXER_RPCPASS:-dogecoin}
+    export INDEXER_RPCPORT=''${INDEXER_RPCPORT:-22555}
+    export INDEXER_RPCUSER=''${INDEXER_RPCUSER:-dogecoin}
+    export INDEXER_STARTINGHEIGHT=''${INDEXER_STARTINGHEIGHT:-5830000}
+    export INDEXER_WEBPORT=''${INDEXER_WEBPORT:-8000}
+    export INDEXER_ZMQHOST=''${INDEXER_ZMQHOST:-127.0.0.1}
+    export INDEXER_ZMQPORT=''${INDEXER_ZMQPORT:-28332}
 
     # Create storage directory
     mkdir -p $HOME/.indexer/storage
 
     exec $out/bin/indexer \
-      --doge-host $DOGE_HOST \
-      --doge-port $DOGE_PORT \
-      --rpc-server-host 0.0.0.0 \
-      --rpc-server-port $RPC_SERVER_PORT
+      -bindapi $INDEXER_BINDAPI \
+      -chain $INDEXER_CHAIN \
+      -dburl $INDEXER_DBURL \
+      -listenport $INDEXER_LISTENPORT \
+      -rpchost $INDEXER_RPCHOST \
+      -rpcpass $INDEXER_RPCPASS \
+      -rpcport $INDEXER_RPCPORT \
+      -rpcuser $INDEXER_RPCUSER \
+      -startingheight $INDEXER_STARTINGHEIGHT \
+      -webport $INDEXER_WEBPORT \
+      -zmqhost $INDEXER_ZMQHOST \
+      -zmqport $INDEXER_ZMQPORT
     EOF
 
     chmod +x $out/bin/indexer-start

@@ -22,7 +22,12 @@
           dogecoin = pkgs.callPackage ./nix/dogecoin.nix {};
           dogenet = pkgs.callPackage ./nix/dogenet.nix {};
           indexer = pkgs.callPackage ./nix/indexer.nix {};
+          indexerstore = pkgs.callPackage ./nix/indexerstore.nix {};
           fractaladmin = pkgs.callPackage ./nix/fractaladmin.nix {};
+
+          # Service orchestration
+          fractal-compose = pkgs.callPackage ./nix/compose.nix {};
+          fractal-stack = pkgs.callPackage ./nix/stack.nix {};
 
           # Predefined configurations
           minimal = pkgs.buildEnv {
@@ -38,6 +43,7 @@
               dogecoin
               dogenet
               indexer
+              indexerstore
               fractaladmin
             ];
           };
@@ -55,6 +61,7 @@
                 ++ lib.optional withDogecoin dogecoin
                 ++ lib.optional withDogenet dogenet
                 ++ lib.optional withIndexer indexer
+                ++ lib.optional withIndexer indexerstore
                 ++ lib.optional withAdmin fractaladmin;
             };
 
@@ -77,6 +84,16 @@
           fractal = flake-utils.lib.mkApp {
             drv = self.packages.${system}.fractalengine;
             name = "fractalengine";
+          };
+
+          compose = flake-utils.lib.mkApp {
+            drv = self.packages.${system}.fractal-compose;
+            name = "fractal-compose";
+          };
+
+          stack = flake-utils.lib.mkApp {
+            drv = self.packages.${system}.fractal-stack;
+            name = "fractal-stack";
           };
         };
       }

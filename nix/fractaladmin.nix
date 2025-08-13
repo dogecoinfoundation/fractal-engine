@@ -1,82 +1,77 @@
-{ lib, stdenv, fetchFromGitHub, nodejs, prisma-engines }:
+{ lib, stdenv, fetchFromGitHub, nodejs, pnpm, cacert, pkgs }:
 
 stdenv.mkDerivation rec {
   pname = "fractaladmin";
-  version = "3c156b4";
+  version = "main";
 
   src = fetchFromGitHub {
     owner = "dogecoinfoundation";
     repo = "fractal-ui";
-    rev = "3c156b416acef7f46530928fab1224cce3b624a2";
-    sha256 = "sha256-CyIP6Dn+u1U1UpC6BdN3ia0rkpG7bj+3cehl+SuzlJQ="; # TODO: Add correct hash
+    rev = "main";
+    sha256 = "sha256-Mz5O6j8hJTwtZyepnHyvVQ/p3yryVHyBaA8itzLimck=";
   };
 
-  nativeBuildInputs = [ nodejs ];
+  nativeBuildInputs = [ nodejs pnpm cacert ];
 
-  # Ensure Prisma can find its engines
-  PRISMA_QUERY_ENGINE_LIBRARY = "${prisma-engines}/lib/libquery_engine.node";
-  PRISMA_QUERY_ENGINE_BINARY = "${prisma-engines}/bin/query-engine";
-  PRISMA_SCHEMA_ENGINE_BINARY = "${prisma-engines}/bin/schema-engine";
+  configurePhase = ''
+    export HOME=$TMPDIR
+    export npm_config_cache=$TMPDIR/npm-cache
+    export CYPRESS_CACHE_FOLDER=$TMPDIR/cypress
+    export PLAYWRIGHT_BROWSERS_PATH=$TMPDIR/playwright
+    export SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt
+    export NODE_EXTRA_CA_CERTS=${cacert}/etc/ssl/certs/ca-bundle.crt
+    pnpm config set store-dir $TMPDIR/pnpm
+    pnpm install --frozen-lockfile
+  '';
 
   buildPhase = ''
-    runHook preBuild
+    export DATABASE_URL="file:./dev.db"
+    export NEXT_TELEMETRY_DISABLED=1
+    export PRISMA_QUERY_ENGINE_LIBRARY=${pkgs.prisma-engines}/lib/libquery_engine.node
+    export PRISMA_QUERY_ENGINE_BINARY=${pkgs.prisma-engines}/bin/query-engine
+    export PRISMA_SCHEMA_ENGINE_BINARY=${pkgs.prisma-engines}/bin/schema-engine
+    export PRISMA_INTROSPECTION_ENGINE_BINARY=${pkgs.prisma-engines}/bin/introspection-engine
+    export PRISMA_FMT_BINARY=${pkgs.prisma-engines}/bin/prisma-fmt
     
-    # Create npm cache directory
-    export npm_config_cache=$TMPDIR/.npm
-    mkdir -p $npm_config_cache
+    # Generate Prisma client and run migrations
+    pnpm prisma generate
+    pnpm prisma migrate deploy
     
-    # Install dependencies
-    npm install --production=false
-    
-    # Set up data directory
-    mkdir -p data
-    chmod 0777 data
-
-    # Generate Prisma client
-    export DATABASE_URL=''${DATABASE_URL:-"file:./data/dev.db"}
-    npx prisma generate || echo "Prisma generate failed, continuing..."
-    
-    # Build the application
-    npm run build
-    
-    runHook postBuild
+    pnpm run build
   '';
 
   installPhase = ''
-    runHook preInstall
-
     mkdir -p $out/lib/fractaladmin
-    cp -r . $out/lib/fractaladmin/
+    cp -r .next/ $out/lib/fractaladmin/
+    cp -r public/ $out/lib/fractaladmin/ || true
+    cp package.json $out/lib/fractaladmin/
+    cp next.config.ts $out/lib/fractaladmin/ || true
+    cp -r node_modules/ $out/lib/fractaladmin/
+    cp -r generated/ $out/lib/fractaladmin/ || true
+    cp -r prisma/ $out/lib/fractaladmin/ || true
+
+    # Copy Prisma engines
+    mkdir -p $out/lib/fractaladmin/.prisma/client
+    cp ${pkgs.prisma-engines}/lib/libquery_engine.node $out/lib/fractaladmin/.prisma/client/ || true
 
     # Create wrapper script
     mkdir -p $out/bin
-    cat > $out/bin/fractaladmin << 'EOF'
-    #!/usr/bin/env bash
-
-    export NODE_ENV=production
-    export DATABASE_URL=''${DATABASE_URL:-"file://$HOME/.fractaladmin/dev.db"}
-
-    # Ensure data directory exists
-    mkdir -p $(dirname $(echo $DATABASE_URL | sed 's/file://'))
-
-    cd $out/lib/fractaladmin
-
-    # Run migrations if needed
-    ${nodejs}/bin/npx prisma migrate deploy || true
-
-    # Start the application
-    exec ${nodejs}/bin/npm start
-    EOF
-
+    cat > $out/bin/fractaladmin << EOF
+#!/usr/bin/env bash
+export PRISMA_QUERY_ENGINE_LIBRARY=$out/lib/fractaladmin/.prisma/client/libquery_engine.node
+export PRISMA_QUERY_ENGINE_BINARY=${pkgs.prisma-engines}/bin/query-engine
+export DATABASE_URL=\''${DATABASE_URL:-file:./dev.db}
+cd $out/lib/fractaladmin
+exec ${nodejs}/bin/node node_modules/next/dist/bin/next start "\$@"
+EOF
     chmod +x $out/bin/fractaladmin
-
-    runHook postInstall
   '';
 
   meta = with lib; {
-    description = "Fractal UI Admin interface";
+    description = "Fractal Admin UI - Web interface for Dogecoin fractal services";
     homepage = "https://github.com/dogecoinfoundation/fractal-ui";
     license = licenses.mit;
-    platforms = platforms.all;
+    maintainers = [ ];
+    platforms = platforms.linux ++ platforms.darwin;
   };
 }
