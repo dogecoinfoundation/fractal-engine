@@ -5,12 +5,6 @@ let
   postgres-wrapper = writeShellScriptBin "indexer" ''
     #!/usr/bin/env bash
 
-    # Default environment variables
-    export POSTGRES_USER=''${INDEXER_POSTGRES_USER:-''${POSTGRES_USER:-indexer}}
-    export POSTGRES_PASSWORD=''${POSTGRES_PASSWORD:-indexer}
-    export POSTGRES_DB=''${INDEXER_POSTGRES_DB:-''${POSTGRES_DB:-indexer}}
-    export PGDATA=''${INDEXER_PGDATA:-''${PGDATA:-$HOME/.indexer/data}}
-
     # Create data directory if it doesn't exist
     mkdir -p "$PGDATA"
 
@@ -18,7 +12,7 @@ let
     PORT="''${INDEXER_POSTGRES_PORT:-''${PGPORT:-5432}}"
     echo "DEBUG: All env vars:"
     echo "  POSTGRES_USER=$POSTGRES_USER"
-    echo "  POSTGRES_DB=$POSTGRES_DB" 
+    echo "  POSTGRES_DB=$POSTGRES_DB"
     echo "  PGDATA=$PGDATA"
     echo "  PGPORT=$PGPORT"
     echo "  PORT=$PORT"
@@ -30,7 +24,7 @@ let
       echo "Starting temporary PostgreSQL server..."
       ${postgresql}/bin/pg_ctl -D "$PGDATA" -l "$PGDATA/server.log" -o "-p $PORT -k /tmp" start
       sleep 3
-      
+
       echo "Creating database '$POSTGRES_DB'..."
       PGPORT=$PORT ${postgresql}/bin/createdb -h localhost -p $PORT -U "$POSTGRES_USER" "$POSTGRES_DB"
       if [ $? -eq 0 ]; then
@@ -39,7 +33,7 @@ let
         echo "Failed to create database '$POSTGRES_DB'"
         cat "$PGDATA/server.log"
       fi
-      
+
       ${postgresql}/bin/pg_ctl -D "$PGDATA" stop
       sleep 1
     else
