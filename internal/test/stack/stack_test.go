@@ -18,40 +18,39 @@ import (
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+	"dogecoin.org/fractal-engine/pkg/indexer"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
-	bmclient "github.com/dogecoinfoundation/balance-master/pkg/client"
 )
 
 type StackConfig struct {
-	InstanceId          int
-	BasePort            int
-	DogePort            int
-	DogeHost            string
-	FractalPort         int
-	FractalHost         string
-	DogeNetPort         int
-	DogeNetHost         string
-	DogeNetBindPort     int
-	DogeNetPubKey       string
-	DogeNetWebPort      int
-	BalanceMasterPort   int
-	BalanceMasterHost   string
-	PortgresPort        int
-	PostgresHost        string
-	DogeNetHandlerPort  int
-	PrivKey             string
-	PubKey              string
-	Address             string
-	TokenisationClient  *feclient.TokenisationClient
-	BalanceMasterClient *bmclient.BalanceMasterClient
-	DogeClient          *doge.RpcClient
-	DogeNetClient       dogenet.GossipClient
-	TokenisationStore   *store.TokenisationStore
+	InstanceId         int
+	BasePort           int
+	DogePort           int
+	DogeHost           string
+	FractalPort        int
+	FractalHost        string
+	DogeNetPort        int
+	DogeNetHost        string
+	DogeNetBindPort    int
+	DogeNetPubKey      string
+	DogeNetWebPort     int
+	IndexerURL         string
+	PortgresPort       int
+	PostgresHost       string
+	DogeNetHandlerPort int
+	PrivKey            string
+	PubKey             string
+	Address            string
+	TokenisationClient *feclient.TokenisationClient
+	IndexerClient      *indexer.IndexerClient
+	DogeClient         *doge.RpcClient
+	DogeNetClient      dogenet.GossipClient
+	TokenisationStore  *store.TokenisationStore
 }
 
 func NewStackConfig(instanceId int, chain string) StackConfig {
@@ -78,7 +77,7 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		FractalPort:        basePort + 2,
 		DogeNetPort:        basePort + 3,
 		DogeNetWebPort:     basePort + 4,
-		BalanceMasterPort:  basePort + 5,
+		IndexerURL:         "http://localhost:" + strconv.Itoa(basePort+5),
 		PortgresPort:       basePort + 6,
 		DogeNetHandlerPort: basePort + 7,
 		DogeNetBindPort:    42000 + instanceId,
@@ -90,10 +89,7 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 	populateStackHosts(&stackConfig, cli)
 
 	stackConfig.TokenisationClient = feclient.NewTokenisationClient("http://"+stackConfig.FractalHost+":"+strconv.Itoa(stackConfig.FractalPort), stackConfig.PrivKey, stackConfig.PubKey)
-	stackConfig.BalanceMasterClient = bmclient.NewBalanceMasterClient(&bmclient.BalanceMasterClientConfig{
-		RpcServerHost: stackConfig.BalanceMasterHost,
-		RpcServerPort: strconv.Itoa(stackConfig.BalanceMasterPort),
-	})
+	stackConfig.IndexerClient = indexer.NewIndexerClient(stackConfig.IndexerURL)
 	stackConfig.DogeClient = doge.NewRpcClient(&fecfg.Config{
 		DogeScheme:   "http",
 		DogeHost:     "localhost",
@@ -120,7 +116,6 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		DogeNetWebAddress: "localhost" + ":" + strconv.Itoa(stackConfig.DogeNetWebPort),
 	}, tokenStore)
 
-	TrackAddress(&stackConfig)
 	TopUp(&stackConfig)
 	ConfirmBlocks(&stackConfig)
 
@@ -183,19 +178,19 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 	}
 	chainCfg := doge.GetChainCfg(chainByte)
 
-	utxos, err := stackConfig.BalanceMasterClient.GetUtxos(stackConfig.Address)
+	utxos, err := stackConfig.IndexerClient.GetUTXO(stackConfig.Address)
 	if err != nil {
 		panic(err)
 	}
 
-	if len(utxos) == 0 {
+	if len(utxos.UTXOs) == 0 {
 		panic(errors.New("No utxos found"))
 	}
 
 	inputs := []interface{}{
 		map[string]interface{}{
-			"txid": utxos[0].TxID,
-			"vout": utxos[0].VOut,
+			"txid": utxos.UTXOs[0].TxID,
+			"vout": utxos.UTXOs[0].VOut,
 		},
 	}
 
@@ -205,13 +200,13 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 	if paymentAddress == address {
 		outputs = map[string]interface{}{
 			"data":  hexBody,
-			address: utxos[0].Amount - amount,
+			address: float64(utxos.UTXOs[0].Value) - amount,
 		}
 	} else {
 		outputs = map[string]interface{}{
 			"data":         hexBody,
 			paymentAddress: amount,
-			address:        utxos[0].Amount - amount,
+			address:        float64(utxos.UTXOs[0].Value) - amount,
 		}
 	}
 
@@ -228,7 +223,7 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 	encodedTx, err := doge.SignRawTransaction(rawTxResponse, stackConfig.PrivKey, []doge.PrevOutput{
 		{
 			Address: address,
-			Amount:  int64(utxos[0].Amount),
+			Amount:  int64(utxos.UTXOs[0].Value),
 		},
 	}, chainCfg)
 
@@ -293,15 +288,6 @@ func TopUp(stackConfig *StackConfig) {
 	}
 
 	fmt.Println("Topped up address " + stackConfig.Address)
-}
-
-func TrackAddress(stackConfig *StackConfig) {
-	err := stackConfig.BalanceMasterClient.TrackAddress(stackConfig.Address)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Tracking address " + stackConfig.Address)
 }
 
 func Payment(buyerConfig *StackConfig, sellerConfig *StackConfig, invoiceHash string, quantity int, price int) string {

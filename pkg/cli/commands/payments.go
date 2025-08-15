@@ -12,12 +12,12 @@ import (
 	"dogecoin.org/fractal-engine/pkg/cli/keys"
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
+	"dogecoin.org/fractal-engine/pkg/indexer"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-	bmclient "github.com/dogecoinfoundation/balance-master/pkg/client"
 	"github.com/urfave/cli/v3"
 )
 
@@ -123,17 +123,14 @@ func payInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	balanceMasterClient := bmclient.NewBalanceMasterClient(&bmclient.BalanceMasterClientConfig{
-		RpcServerHost: config.BalanceMasterHost,
-		RpcServerPort: config.BalanceMasterPort,
-	})
+	indexerClient := indexer.NewIndexerClient(config.IndexerURL)
 
-	utxos, err := balanceMasterClient.GetUtxos(address)
+	utxos, err := indexerClient.GetUTXO(address)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if len(utxos) == 0 {
+	if len(utxos.UTXOs) == 0 {
 		log.Fatal("No utxos found for address", address)
 	}
 
@@ -142,17 +139,17 @@ func payInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 
 	inputs := []interface{}{
 		map[string]interface{}{
-			"txid": utxos[0].TxID,
-			"vout": utxos[0].VOut,
+			"txid": utxos.UTXOs[0].TxID,
+			"vout": utxos.UTXOs[0].VOut,
 		},
 	}
 
 	buyOfferValue := float64(selectedInvoice.Quantity * selectedInvoice.Price)
-	if utxos[0].Amount < buyOfferValue {
+	if float64(utxos.UTXOs[0].Value) < buyOfferValue {
 		log.Fatal("Insufficient balance for invoice", selectedInvoice.Hash)
 	}
 
-	change := utxos[0].Amount - buyOfferValue
+	change := float64(utxos.UTXOs[0].Value) - buyOfferValue
 
 	outputs := map[string]interface{}{
 		"data":  hex.EncodeToString(encodedTransactionBody),
@@ -180,7 +177,7 @@ func payInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 	encodedTx, err := doge.SignRawTransaction(rawTxResponse, privHex, []doge.PrevOutput{
 		{
 			Address: address,
-			Amount:  int64(utxos[0].Amount),
+			Amount:  int64(utxos.UTXOs[0].Value),
 		},
 	}, chainCfg)
 

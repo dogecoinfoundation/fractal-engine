@@ -29,8 +29,7 @@ var InitCommand = &cli.Command{
 func initAction(ctx context.Context, cmd *cli.Command) error {
 	host := "localhost"
 	port := "8891"
-	balanceMasterHost := "localhost"
-	balanceMasterPort := "8899"
+	indexerURL := "http://localhost:8899"
 	dogeScheme := "http"
 	dogeHost := "localhost"
 	dogePort := "22556"
@@ -45,11 +44,8 @@ func initAction(ctx context.Context, cmd *cli.Command) error {
 			Title("What is the Fractal Engine Port?").
 			Value(&port),
 		huh.NewInput().
-			Title("What is the Balance Master Host?").
-			Value(&balanceMasterHost),
-		huh.NewInput().
-			Title("What is the Balance Master Port?").
-			Value(&balanceMasterPort),
+			Title("What is the Indexer URL?").
+			Value(&indexerURL),
 		huh.NewInput().
 			Title("What is the Dogecoin Scheme?").
 			Value(&dogeScheme),
@@ -76,8 +72,7 @@ func initAction(ctx context.Context, cmd *cli.Command) error {
 	config := fecli.Config{
 		FractalEngineHost: host,
 		FractalEnginePort: port,
-		BalanceMasterHost: balanceMasterHost,
-		BalanceMasterPort: balanceMasterPort,
+		IndexerURL:        indexerURL,
 		DogeScheme:        dogeScheme,
 		DogeHost:          dogeHost,
 		DogePort:          dogePort,

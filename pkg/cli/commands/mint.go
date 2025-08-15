@@ -14,12 +14,12 @@ import (
 	"dogecoin.org/fractal-engine/pkg/cli/keys"
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
+	"dogecoin.org/fractal-engine/pkg/indexer"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-	bmclient "github.com/dogecoinfoundation/balance-master/pkg/client"
 	"github.com/urfave/cli/v3"
 )
 
@@ -185,17 +185,14 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 	}
 	chainCfg := doge.GetChainCfg(chainByte)
 
-	balanceMasterClient := bmclient.NewBalanceMasterClient(&bmclient.BalanceMasterClientConfig{
-		RpcServerHost: config.BalanceMasterHost,
-		RpcServerPort: config.BalanceMasterPort,
-	})
+	indexerClient := indexer.NewIndexerClient(config.IndexerURL)
 
-	utxos, err := balanceMasterClient.GetUtxos(address)
+	utxos, err := indexerClient.GetUTXO(address)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if len(utxos) == 0 {
+	if len(utxos.UTXOs) == 0 {
 		log.Fatal("No utxos found for address", address)
 	}
 
@@ -236,8 +233,8 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 
 	inputs := []interface{}{
 		map[string]interface{}{
-			"txid": utxos[0].TxID,
-			"vout": utxos[0].VOut,
+			"txid": utxos.UTXOs[0].TxID,
+			"vout": utxos.UTXOs[0].VOut,
 		},
 	}
 
@@ -245,7 +242,7 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 
 	outputs := map[string]interface{}{
 		"data":  hex.EncodeToString(encodedTransactionBody),
-		address: utxos[0].Amount - 1,
+		address: utxos.UTXOs[0].Value - 1,
 	}
 
 	dogeClient := doge.NewRpcClient(&fecfg.Config{
@@ -269,7 +266,7 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 	encodedTx, err := doge.SignRawTransaction(rawTxResponse, privHex, []doge.PrevOutput{
 		{
 			Address: address,
-			Amount:  int64(utxos[0].Amount),
+			Amount:  int64(utxos.UTXOs[0].Value),
 		},
 	}, chainCfg)
 

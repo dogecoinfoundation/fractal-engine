@@ -75,7 +75,8 @@ psql -h localhost -p 5432 -U fractalstore -d fractalstore
 | **dogenet** | 8085, 42000 | P2P gossip network | dogecoin |
 | **dogecoin** | 22556 | Dogecoin Core node | - |
 | **fractalstore** | 5432 | PostgreSQL database | - |
-| **balance-master** | 8899 | Balance management | dogecoin |
+| **indexer** | 8705 | Balance management | dogecoin |
+| **indexerstore** | 8709 | Balance management | - |
 
 ### Service Dependencies
 
@@ -84,7 +85,7 @@ graph TD
     A[fractalengine] --> B[dogecoin]
     A --> C[dogenet]
     A --> D[fractalstore]
-    E[balance-master] --> B
+    E[indexer] --> B
     C --> B
 ```
 
