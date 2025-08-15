@@ -1,15 +1,10 @@
-{ lib, buildGoModule, fetchFromGitHub, pkg-config, systemd, zeromq }:
+{ lib, buildGoModule, pkg-config, systemd, zeromq }:
 
 buildGoModule rec {
   pname = "indexer";
   version = "main";
 
-  src = fetchFromGitHub {
-    owner = "dogeorg";
-    repo = "indexer";
-    rev = "main"; # Can be overridden
-    sha256 = "sha256-piDP8o4qFJkKOgU0S4uR9unMSpW02toi5IyKkJ1VlUY=";
-  };
+  src = /home/danielw/code/doge/indexer;
 
   vendorHash = "sha256-2JU4LayU5mLZXyGH1rt9tduQgqUycyfMNSendcCNLhw=";
 

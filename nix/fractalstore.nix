@@ -9,9 +9,10 @@ let
     mkdir -p "$PGDATA"
 
     # Initialize database if needed
-    PORT="''${FRACTAL_POSTGRES_PORT:-''${PGPORT:-5432}}"
+    PORT="''${PGPORT:-5432}"
     echo "DEBUG: All env vars:"
     echo "  POSTGRES_USER=$POSTGRES_USER"
+    echo "  POSTGRES_PASSWORD=$POSTGRES_PASSWORD"
     echo "  POSTGRES_DB=$POSTGRES_DB"
     echo "  PGDATA=$PGDATA"
     echo "  PGPORT=$PGPORT"
@@ -26,7 +27,7 @@ let
       sleep 3
 
       echo "Creating database '$POSTGRES_DB'..."
-      PGPORT=$PORT ${postgresql}/bin/createdb -h localhost -p $PORT -U "$POSTGRES_USER" "$POSTGRES_DB"
+      ${postgresql}/bin/createdb -h localhost -p $PORT -U "$POSTGRES_USER" "$POSTGRES_DB"
       if [ $? -eq 0 ]; then
         echo "Database '$POSTGRES_DB' created successfully"
       else

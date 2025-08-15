@@ -1,6 +1,6 @@
-{ lib, stdenv, fetchFromGitHub, nodejs, pnpm, cacert, pkgs }:
+{ lib, buildNpmPackage, fetchFromGitHub, nodejs, cacert, pkgs }:
 
-stdenv.mkDerivation rec {
+buildNpmPackage rec {
   pname = "fractaladmin";
   version = "main";
 
@@ -8,23 +8,18 @@ stdenv.mkDerivation rec {
     owner = "dogecoinfoundation";
     repo = "fractal-ui";
     rev = "main";
-    sha256 = "sha256-Mz5O6j8hJTwtZyepnHyvVQ/p3yryVHyBaA8itzLimck=";
+    sha256 = "sha256-BmK+p9ovjtoGoN/VHI1QuqYwm19DUsClSOAyDX/Rj1Y=";
   };
 
-  nativeBuildInputs = [ nodejs pnpm cacert ];
-
-  configurePhase = ''
-    export HOME=$TMPDIR
-    export npm_config_cache=$TMPDIR/npm-cache
-    export CYPRESS_CACHE_FOLDER=$TMPDIR/cypress
-    export PLAYWRIGHT_BROWSERS_PATH=$TMPDIR/playwright
-    export SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt
-    export NODE_EXTRA_CA_CERTS=${cacert}/etc/ssl/certs/ca-bundle.crt
-    pnpm config set store-dir $TMPDIR/pnpm
-    pnpm install --frozen-lockfile
+  postPatch = ''
+    cp ${./package-lock.json} package-lock.json
   '';
 
-  buildPhase = ''
+  npmDepsHash = "sha256-HJWjb1RbrGijyCo88Nf4lMI5I331bvF6+OLjRPU0kMI=";
+
+  nativeBuildInputs = [ cacert pkgs.prisma-engines ];
+
+  preBuild = ''
     export DATABASE_URL="file:./dev.db"
     export NEXT_TELEMETRY_DISABLED=1
     export PRISMA_QUERY_ENGINE_LIBRARY=${pkgs.prisma-engines}/lib/libquery_engine.node
@@ -34,11 +29,11 @@ stdenv.mkDerivation rec {
     export PRISMA_FMT_BINARY=${pkgs.prisma-engines}/bin/prisma-fmt
     
     # Generate Prisma client and run migrations
-    pnpm prisma generate
-    pnpm prisma migrate deploy
-    
-    pnpm run build
+    npx prisma generate
+    npx prisma migrate deploy
   '';
+
+  npmBuildScript = "build";
 
   installPhase = ''
     mkdir -p $out/lib/fractaladmin

@@ -82,6 +82,7 @@ export INDEXER_POSTGRES_DB=indexer
 export INDEXER_PGDATA="$INDEXER_POSTGRES_DATA"
 export INDEXER_PGPORT=$INDEXER_POSTGRES_PORT
 
+
 cleanup() {
   echo "Stopping stack instance $INSTANCE_ID..."
   if [ -f "$PIDS_FILE" ]; then
