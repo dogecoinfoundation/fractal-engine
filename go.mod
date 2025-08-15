@@ -14,7 +14,6 @@ require (
 	github.com/cosmos/btcutil v1.0.5
 	github.com/docker/docker v28.3.3+incompatible
 	github.com/docker/go-connections v0.5.0
-	github.com/dogecoinfoundation/balance-master v0.0.0-20250720101753-eed1617866b1
 	github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3
 	github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9
 	github.com/dogeorg/doge v0.0.15
