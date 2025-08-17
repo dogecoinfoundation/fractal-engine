@@ -36,17 +36,19 @@ buildGoModule rec {
     # Create wrapper script
     cat > $out/bin/dogenet-start << EOF
     #!/usr/bin/env bash
-    
+
     # Default environment variables
     export DOGE_NET_HANDLER=\''${DOGE_NET_HANDLER:-unix:///tmp/dogenet.sock}
     export DOGENET_WEB_PORT=\''${DOGENET_WEB_PORT:-8085}
     export DOGENET_BIND_HOST=\''${DOGENET_BIND_HOST:-0.0.0.0}
     export DOGENET_BIND_PORT=\''${DOGENET_BIND_PORT:-42000}
-    
+    export INSTANCE_ID=\''${INSTANCE_ID:1}
+
     # Set up storage directory
-    DOGENET_HOME=\$HOME/.dogenet
-    mkdir -p \$DOGENET_HOME/storage
-    
+    DOGENET_HOME="$HOME/.dogenet$INSTANCE_ID"
+    echo $DOGENET_HOME
+    mkdir -p "$DOGENET_HOME/storage"
+
     # Copy keys to working directory if they don't exist
     if [ ! -f "\$DOGENET_HOME/dev-key" ]; then
       cp $out/share/dogenet/dev-key \$DOGENET_HOME/
@@ -54,11 +56,11 @@ buildGoModule rec {
     if [ ! -f "\$DOGENET_HOME/ident-pub" ]; then
       cp $out/share/dogenet/ident-pub \$DOGENET_HOME/
     fi
-    
+
     cd \$DOGENET_HOME
     export KEY=\$(cat dev-key)
     export IDENT=\$(cat ident-pub)
-    
+
     exec $out/bin/dogenet \\
     --local \\
     --public 0.0.0.0 \\

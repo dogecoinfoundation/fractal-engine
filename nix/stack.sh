@@ -29,14 +29,15 @@ DOGENET_HANDLER_PORT=$((BASE_PORT + 7))
 DOGENET_BIND_PORT=$((42000 + INSTANCE_ID))
 FRACTAL_ADMIN_PORT=$((BASE_PORT + 8))
 INDEXER_POSTGRES_PORT=$((BASE_PORT + 9))
+DOGE_P2P_PORT=$((BASE_PORT + 10))
 
 # Data directories for instance isolation
 BASE_DIR="$HOME/.fractal-stack-$INSTANCE_ID"
-POSTGRES_DATA="$BASE_DIR/postgres"
-DOGECOIN_DATA="$BASE_DIR/dogecoin"
-FRACTAL_ADMIN_DATA="$BASE_DIR/admin"
-INDEXER_DATA="$BASE_DIR/indexer"
-INDEXER_POSTGRES_DATA="$BASE_DIR/indexer-postgres"
+POSTGRES_DATA="$BASE_DIR/postgres-$INSTANCE_ID"
+DOGECOIN_DATA="$BASE_DIR/dogecoin-$INSTANCE_ID"
+FRACTAL_ADMIN_DATA="$BASE_DIR/admin-$INSTANCE_ID"
+INDEXER_DATA="$BASE_DIR/indexer-$INSTANCE_ID"
+INDEXER_POSTGRES_DATA="$BASE_DIR/indexer-postgres-$INSTANCE_ID"
 
 # PID file for this instance
 PIDS_FILE="$BASE_DIR/pids"
@@ -122,6 +123,7 @@ show_status() {
   echo "  Dogecoin RPC:     $DOGE_RPC_PORT"
   echo "  Fractal Engine:   $FRACTAL_ENGINE_PORT"
   echo "  Dogenet:          $DOGENET_PORT"
+  echo "  Dogecoin P2P:     $DOGE_P2P_PORT"
   echo "  Dogenet Web:      $DOGENET_WEB_PORT"
   echo "  Dogenet Bind:     $DOGENET_BIND_PORT"
   echo "  Indexer API:      $INDEXER_PORT"
@@ -197,7 +199,7 @@ case "$COMMAND" in
     fi
 
     # Start Dogecoin
-    start_service "dogecoin" "env RPC_USER=$DOGECOIN_RPC_USER RPC_PASSWORD=$DOGECOIN_RPC_PASSWORD RPC_PORT=$DOGECOIN_RPC_PORT  @dogecoin@/bin/dogecoind"
+    start_service "dogecoin" "env P2P_PORT=$DOGE_P2P_PORT RPC_USER=$DOGECOIN_RPC_USER RPC_PASSWORD=$DOGECOIN_RPC_PASSWORD RPC_PORT=$DOGECOIN_RPC_PORT INSTANCE_ID=$INSTANCE_ID @dogecoin@/bin/dogecoind"
 
     # Wait for Dogecoin RPC to be ready
     echo "Waiting for Dogecoin RPC to be ready on port $DOGE_RPC_PORT..."
@@ -233,7 +235,7 @@ case "$COMMAND" in
       --doge-user $DOGECOIN_RPC_USER \
       --doge-password $DOGECOIN_RPC_PASSWORD \
       --database-url $FRACTAL_ENGINE_DB?sslmode=disable"
-    start_service "dogenet" "@dogenet@/bin/dogenet-start"
+    start_service "dogenet" "env INSTANCE_ID=$INSTANCE_ID DOGENET_WEB_PORT=$DOGENET_WEB_PORT DOGENET_BIND_HOST=$DOGENET_BIND_HOST DOGENET_BIND_PORT=$DOGENET_BIND_PORT @dogenet@/bin/dogenet-start"
     start_service "indexer" "@indexer@/bin/indexer \
       -bindapi localhost:$INDEXER_PORT \
       -chain regtest \
@@ -248,7 +250,7 @@ case "$COMMAND" in
       -zmqport $((DOGE_RPC_PORT + 1000)) \
       -startingheight $INDEXER_STARTINGHEIGHT \
       $INDEXER_ARGS"
-    start_service "fractaladmin" "@fractaladmin@/bin/fractaladmin"
+    start_service "fractaladmin" "@fractaladmin@/bin/fractaladmin -p $FRACTAL_ADMIN_PORT"
 
     echo ""
     echo "=== Stack $INSTANCE_ID Ready ==="

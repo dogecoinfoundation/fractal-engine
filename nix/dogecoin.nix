@@ -11,7 +11,7 @@ let
     };
 
     nativeBuildInputs = [ autoPatchelfHook ];
-    buildInputs = [ 
+    buildInputs = [
       gcc-unwrapped.lib
       xorg.libxcb
       libxkbcommon
@@ -44,12 +44,16 @@ let
     export RPC_USER=''${RPC_USER:-test}
     export RPC_PASSWORD=''${RPC_PASSWORD:-test}
     export RPC_PORT=''${RPC_PORT:-22556}
+    export INSTANCE_ID=''${INSTANCE_ID:-1}
+    export P2P_PORT=''${P2P_PORT:-18000}
 
     # Generate config from template
-    ${gettext}/bin/envsubst < ${../regtest.conf} > /tmp/dogecoin.conf
+    ${gettext}/bin/envsubst < ${../regtest.conf} > /tmp/dogecoin$INSTANCE_ID.conf
 
     echo "Generated dogecoin.conf:"
-    cat /tmp/dogecoin.conf
+    cat /tmp/dogecoin$INSTANCE_ID.conf
+
+    mkdir -p /tmp/dogecoin$INSTANCE_ID
 
     # Start dogecoind
     exec ${dogecoin}/bin/dogecoind \
@@ -58,7 +62,9 @@ let
       -reindex-chainstate \
       -min \
       -splash=0 \
-      -conf=/tmp/dogecoin.conf
+      -port=$P2P_PORT \
+      -datadir=/tmp/dogecoin$INSTANCE_ID/ \
+      -conf=/tmp/dogecoin$INSTANCE_ID.conf
   '';
 
 in dogecoin-wrapper

@@ -13,7 +13,6 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/cosmos/btcutil v1.0.5
 	github.com/docker/docker v28.3.3+incompatible
-	github.com/docker/go-connections v0.5.0
 	github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3
 	github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9
 	github.com/dogeorg/doge v0.0.15
@@ -65,6 +64,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
+	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect

@@ -108,8 +108,6 @@ github.com/docker/go-connections v0.5.0 h1:USnMq7hx7gwdVZq1L49hLXaFtUdTADjXGp+uj
 github.com/docker/go-connections v0.5.0/go.mod h1:ov60Kzw0kKElRwhNs9UlUHAE/F9Fe6GLaXnqyDdmEXc=
 github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
-github.com/dogecoinfoundation/balance-master v0.0.0-20250720101753-eed1617866b1 h1:cECoiM12r9mW892fT9JKsux0Q57wpfMwuAGhEKh/kdg=
-github.com/dogecoinfoundation/balance-master v0.0.0-20250720101753-eed1617866b1/go.mod h1:3zRTaVWUN/O/RBwVglFb9qmT6EVGi3COQXkRlaLnh4M=
 github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3 h1:jqM8gk0TPC5liYIZVZoqlBWd2m0AfcyvqPD8PSI8wWc=
 github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3/go.mod h1:dd2AuK49uFB+OlXiUHGjCybGpqxikz2rUTcoWydLwJ8=
 github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9 h1:soO8Di8P7Of1bTZN14fAnle56izyMx+rpp0Z/q3Zj0M=

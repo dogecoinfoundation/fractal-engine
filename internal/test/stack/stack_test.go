@@ -6,11 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"regexp"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -22,9 +19,6 @@ import (
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
 )
 
 type StackConfig struct {
@@ -59,26 +53,25 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		panic(err)
 	}
 
-	basePort := 8000 + (instanceId * 100)
+	basePort := 8600 + (instanceId * 100)
 	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(prefixByte)
 	if err != nil {
 		panic(err)
-	}
-
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		log.Fatal(err)
 	}
 
 	stackConfig := StackConfig{
 		InstanceId:         instanceId,
 		BasePort:           basePort,
 		DogePort:           basePort + 14556,
+		DogeHost:           "localhost",
 		FractalPort:        basePort + 2,
+		FractalHost:        "localhost",
 		DogeNetPort:        basePort + 3,
 		DogeNetWebPort:     basePort + 4,
+		DogeNetHost:        "localhost",
 		IndexerURL:         "http://localhost:" + strconv.Itoa(basePort+5),
 		PortgresPort:       basePort + 6,
+		PostgresHost:       "localhost",
 		DogeNetHandlerPort: basePort + 7,
 		DogeNetBindPort:    42000 + instanceId,
 		Address:            address,
@@ -86,7 +79,9 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		PubKey:             pubHex,
 	}
 
-	populateStackHosts(&stackConfig, cli)
+	fmt.Println("StackConfig:", stackConfig)
+
+	// populateStackHosts(&stackConfig, cli)
 
 	stackConfig.TokenisationClient = feclient.NewTokenisationClient("http://"+stackConfig.FractalHost+":"+strconv.Itoa(stackConfig.FractalPort), stackConfig.PrivKey, stackConfig.PubKey)
 	stackConfig.IndexerClient = indexer.NewIndexerClient(stackConfig.IndexerURL)
@@ -94,8 +89,8 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		DogeScheme:   "http",
 		DogeHost:     "localhost",
 		DogePort:     strconv.Itoa(stackConfig.DogePort),
-		DogeUser:     "test",
-		DogePassword: "test",
+		DogeUser:     "dogecoinrpc",
+		DogePassword: "changeme" + strconv.Itoa(instanceId),
 	})
 
 	tokenStore, err := store.NewTokenisationStore("postgres://fractalstore:fractalstore@"+stackConfig.PostgresHost+":"+strconv.Itoa(stackConfig.PortgresPort)+"/fractalstore?sslmode=disable", fecfg.Config{
@@ -412,55 +407,4 @@ func makeStackConfigsAndPeer(stackCount int) []*StackConfig {
 	}
 
 	return stacks
-}
-
-func populateStackHosts(stackConfig *StackConfig, cli *client.Client) {
-	ctx := context.Background()
-	inspectRes, err := cli.NetworkInspect(ctx, "fractal-shared", network.InspectOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	instanceId := strconv.Itoa(stackConfig.InstanceId)
-
-	for _, ct := range inspectRes.Containers {
-		if ct.Name == "fractalengine-"+instanceId {
-			stackConfig.FractalHost = strings.Split(ct.IPv4Address, "/")[0]
-		}
-
-		if ct.Name == "dogecoin-"+instanceId {
-			stackConfig.DogeHost = strings.Split(ct.IPv4Address, "/")[0]
-		}
-
-		if ct.Name == "dogenet-"+instanceId {
-			stackConfig.DogeNetHost = strings.Split(ct.IPv4Address, "/")[0]
-			res, err := cli.ContainerLogs(ctx, ct.Name, container.LogsOptions{
-				ShowStderr: true,
-			})
-			if err != nil {
-				panic(err)
-			}
-
-			logBytes, err := io.ReadAll(res)
-			if err != nil {
-				panic(err)
-			}
-
-			logs := string(logBytes)
-			re := regexp.MustCompile(`Node PubKey is: ([0-9a-fA-F]+)`)
-			matches := re.FindStringSubmatch(logs)
-			if len(matches) > 1 {
-				stackConfig.DogeNetPubKey = matches[1]
-			}
-		}
-
-		if ct.Name == "fractalstore-"+instanceId {
-			stackConfig.PostgresHost = "localhost" // Connect from outside Docker context
-		}
-
-		if ct.Name == "balance-master-"+instanceId {
-			stackConfig.BalanceMasterHost = strings.Split(ct.IPv4Address, "/")[0]
-		}
-	}
-
 }

@@ -6,7 +6,7 @@ buildGoModule rec {
 
   src = lib.cleanSource ../.;
 
-  vendorHash = "sha256-54AMWtLaCNOVZ7ruyOfy53Tj5S2PGQ7oLGSHV+sl7x4=";
+  vendorHash = "sha256-B9sArwoUnVbVTlbeRZIVAaO849/5pFfHCBHYeG49tE8=";
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ systemd ];
