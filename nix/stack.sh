@@ -38,12 +38,12 @@ DOGECOIN_DATA="$BASE_DIR/dogecoin-$INSTANCE_ID"
 FRACTAL_ADMIN_DATA="$BASE_DIR/admin-$INSTANCE_ID"
 INDEXER_DATA="$BASE_DIR/indexer-$INSTANCE_ID"
 INDEXER_POSTGRES_DATA="$BASE_DIR/indexer-postgres-$INSTANCE_ID"
-
-# PID file for this instance
+DOGENET_DATA="$BASE_DIR/dogenet-$INSTANCE_ID"
+LOGS_DIR="$BASE_DIR/logs"
 PIDS_FILE="$BASE_DIR/pids"
 
 # Create instance directories
-mkdir -p "$BASE_DIR" "$POSTGRES_DATA" "$DOGECOIN_DATA" "$FRACTAL_ADMIN_DATA" "$INDEXER_DATA" "$INDEXER_POSTGRES_DATA"
+mkdir -p "$BASE_DIR" "$POSTGRES_DATA" "$DOGECOIN_DATA" "$FRACTAL_ADMIN_DATA" "$INDEXER_DATA" "$INDEXER_POSTGRES_DATA" "$DOGENET_DATA" "$LOGS_DIR"
 
 # Configuration for this instance
 export POSTGRES_USER=fractalstore
@@ -105,15 +105,26 @@ cleanup() {
   fi
 }
 
+
 start_service() {
   local service_name="$1"
   local cmd="$2"
-  echo "[$PROJECT_NAME] Starting $service_name on various ports..."
-  $cmd &
+  local log_file="$LOGS_DIR/${service_name}.log"
+  {
+    echo "===== [$PROJECT_NAME] $service_name starting at $(date -Is) ====="
+    echo "Command: $cmd"
+  } >> "$log_file"
+
+  echo "[$PROJECT_NAME] Starting $service_name on various ports... (logging to $log_file)"
+
+  # Start the command with stdout/stderr redirected to the per-service log file
+  $cmd >> "$log_file" 2>&1 &
+
   local pid=$!
   echo "$service_name $pid" >> "$PIDS_FILE"
   echo "[$PROJECT_NAME] $service_name started with PID $pid"
 }
+
 
 show_status() {
   echo "=== Fractal Stack Instance $INSTANCE_ID ==="
@@ -222,20 +233,48 @@ case "$COMMAND" in
       exit 1
     fi
 
-    # Start core services
+    start_service "dogenet" "env INSTANCE_ID=$INSTANCE_ID DOGE_NET_HANDLER=$DOGE_NET_HANDLER DOGENET_HOME=$DOGENET_DATA DOGENET_WEB_PORT=$DOGENET_WEB_PORT DOGENET_BIND_HOST=$DOGENET_BIND_HOST DOGENET_BIND_PORT=$DOGENET_BIND_PORT @dogenet@/bin/dogenet-start"
+
+     echo "Waiting for Dogenet /health on port $DOGENET_WEB_PORT..."
+    timeout=30
+    while [ $timeout -gt 0 ]; do
+      if curl -sf "http://localhost:$DOGENET_WEB_PORT/health" >/dev/null 2>&1; then
+        echo "Dogenet is ready!"
+        break
+      fi
+      echo "Waiting for Dogenet... ($timeout seconds left)"
+      sleep 2
+      timeout=$((timeout - 2))
+    done
+    if [ $timeout -le 0 ]; then
+      echo "ERROR: Dogenet failed to become healthy within 30 seconds"
+      exit 1
+    fi
     start_service "fractalengine" "@fractalengine@/bin/fractal-engine \
+
       --rpc-server-host 0.0.0.0 \
+
       --rpc-server-port $FRACTAL_ENGINE_PORT \
+
       --doge-net-network tcp \
+
       --doge-net-address localhost:$DOGENET_HANDLER_PORT \
+
       --doge-net-web-address localhost:$DOGENET_WEB_PORT \
+
       --doge-scheme http \
+
       --doge-host localhost \
+
       --doge-port $DOGE_RPC_PORT \
+
       --doge-user $DOGECOIN_RPC_USER \
+
       --doge-password $DOGECOIN_RPC_PASSWORD \
+
       --database-url $FRACTAL_ENGINE_DB?sslmode=disable"
-    start_service "dogenet" "env INSTANCE_ID=$INSTANCE_ID DOGENET_WEB_PORT=$DOGENET_WEB_PORT DOGENET_BIND_HOST=$DOGENET_BIND_HOST DOGENET_BIND_PORT=$DOGENET_BIND_PORT @dogenet@/bin/dogenet-start"
+
+
     start_service "indexer" "@indexer@/bin/indexer \
       -bindapi localhost:$INDEXER_PORT \
       -chain regtest \
@@ -272,27 +311,68 @@ case "$COMMAND" in
     show_status
     ;;
 
+
   ports)
+
     echo "=== Port Usage for Stack Instance $INSTANCE_ID ==="
+
     if [ -f "$PIDS_FILE" ]; then
+
       echo "Service → PID → Listening On"
+
       echo "──────────────────────────────"
+
+
       while read -r service pid; do
-        if kill -0 "$pid" 2>/dev/null; then
-          addresses=$(ss -tulpn | grep "pid=$pid" | awk '{print $5}' | tr '\n' ',')
-          if [ -n "$addresses" ]; then
-            printf "%-12s → %-6s → %s\n" "$service" "$pid" "$addresses"
-          else
-            printf "%-12s → %-6s → (no listening ports)\n" "$service" "$pid"
-          fi
-        else
-          printf "%-12s → %-6s → (dead process)\n" "$service" "$pid"
+        pid=$(printf '%s' "$pid" | tr -cd '0-9')
+        if [ -z "$pid" ]; then
+          continue
         fi
+
+
+        if kill -0 "$pid" 2>/dev/null; then
+
+          if command -v ss >/dev/null 2>&1; then
+            addresses=$(
+              { ss -ltnp 2>/dev/null; ss -lunp 2>/dev/null; } \
+              | awk -v pid="$pid" '$0 ~ ("pid=" pid "[,)]") { print $5 }' \
+              | sort -u | paste -sd, - 2>/dev/null
+            )
+          elif command -v netstat >/dev/null 2>&1; then
+            addresses=$(
+              { netstat -ltnp 2>/dev/null; netstat -lunp 2>/dev/null; } \
+              | awk -v pid="$pid" '$7 ~ ("^" pid "/") { print $4 }' \
+              | sort -u | paste -sd, - 2>/dev/null
+            )
+          else
+            addresses=""
+          fi
+          if [ -n "$addresses" ]; then
+
+            printf "%-12s → %-6s → %s\n" "$service" "$pid" "$addresses"
+
+          else
+
+            printf "%-12s → %-6s → (no listening ports)\n" "$service" "$pid"
+
+          fi
+
+        else
+
+          printf "%-12s → %-6s → (dead process)\n" "$service" "$pid"
+
+        fi
+
       done < "$PIDS_FILE"
+
     else
+
       echo "No services running (PID file not found)"
+
     fi
+
     ;;
+
 
   logs)
     echo "Service logs for instance $INSTANCE_ID:"

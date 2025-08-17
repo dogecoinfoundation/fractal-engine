@@ -26,8 +26,11 @@ let
       ${postgresql}/bin/pg_ctl -D "$PGDATA" -l "$PGDATA/server.log" -o "-p $PORT -k /tmp" start
       sleep 3
 
+
       echo "Creating database '$POSTGRES_DB'..."
-      ${postgresql}/bin/createdb -h localhost -p $PORT -U "$POSTGRES_USER" "$POSTGRES_DB"
+
+      PGPASSWORD="$POSTGRES_PASSWORD" ${postgresql}/bin/createdb -h localhost -p $PORT -U "$POSTGRES_USER" "$POSTGRES_DB"
+
       if [ $? -eq 0 ]; then
         echo "Database '$POSTGRES_DB' created successfully"
       else
