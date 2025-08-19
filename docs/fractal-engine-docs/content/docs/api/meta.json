@@ -1,0 +1,6 @@
+{
+  "title": "API Reference",
+  "root": true,
+  "pages": ["overview", "---Available Endpoints---", "..."],
+  "icon": "Router"
+}

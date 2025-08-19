@@ -1,0 +1,47 @@
+---
+title: Minting
+---
+
+### Mint Creation
+<Mermaid
+  chart="
+sequenceDiagram
+    participant User as Fractal Engine User
+    participant Wallet as Dogecoin Wallet
+    participant DogecoinL1 as Dogecoin L1
+    participant API as Fractal API
+    participant TokenSvc as Tokenisation Service
+    participant StoreClient as Store Client
+    participant DogeNetClient as DogeNet Client
+
+    User->>API: Request Mint Creation
+    API->>TokenSvc: Create Mint
+    TokenSvc->>StoreClient: Save Unconfirmed Mint
+    TokenSvc->>DogeNetClient: Gossip Unconfirmed Mint
+    TokenSvc-->>API: Respond with Encoded Transaction Body
+    API-->>User: Deliver Encoded Transaction Body
+
+    User->>Wallet: Create Mint Transaction (with Encoded Body)
+    Wallet->>DogecoinL1: Broadcast Mint Transaction
+"
+/>
+
+### Onchain Transaction Confirmation
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Processor as Fractal Engine Processor
+    participant Store as Fractal Store
+
+loop Every 5 seconds
+    Processor->>Store: Fetch Onchain transactions
+    alt Is Mint Transaction
+        Processor->>Store: Match Unconfirmed Mint with Onchain Transaction
+        Processor->>Store: Save Mint
+        Processor->>Store: Update Token Balance
+        Processor->>Store: Delete Onchain Transaction
+        Processor->>Store: Delete Unconfirmed Mint
+    end
+end
+"
+/>

@@ -1,0 +1,6 @@
+{
+  "title": "Architecture",
+  "root": true,
+  "icon": "Hammer",
+  "pages": ["overview", "flows", "---Docs---", "..."]
+}

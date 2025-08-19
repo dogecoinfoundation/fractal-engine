@@ -1,3 +1,4 @@
+import { GithubInfo } from "@/components/GithubInfo";
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 
 /**
@@ -8,6 +9,7 @@ import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
  * Docs Layout: app/docs/layout.tsx
  */
 export const baseOptions: BaseLayoutProps = {
+  themeSwitch: { enabled: false },
   nav: {
     title: (
       <>
@@ -24,5 +26,18 @@ export const baseOptions: BaseLayoutProps = {
     ),
   },
   // see https://fumadocs.dev/docs/ui/navigation/links
-  links: [],
+  links: [
+    {
+      type: 'custom',
+      children: (
+        <GithubInfo owner="dogecoinfoundation" repo="fractal-engine" className="lg:-mx-2" />
+      ),
+    },
+    {
+      type: 'custom',
+      children: (
+        <GithubInfo owner="dogecoinfoundation" repo="fractal-ui" className="lg:-mx-2" />
+      ),
+    },
+  ],
 };

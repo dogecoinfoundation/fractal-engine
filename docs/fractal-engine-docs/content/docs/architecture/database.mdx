@@ -3,8 +3,6 @@ title: Database & Store Layer
 description: Comprehensive documentation for the Fractal Engine database schema and store layer architecture
 ---
 
-# Database Architecture & Store Layer
-
 This document provides comprehensive documentation for the Fractal Engine database schema and store layer architecture.
 
 ## Database Architecture Overview
@@ -211,8 +209,9 @@ CREATE TABLE IF NOT EXISTS health (
 
 ### Core Entity Relationships
 
-```mermaid
-erDiagram
+<Mermaid
+  chart={`
+  erDiagram
     mints ||--o{ token_balances : "creates"
     mints ||--o{ buy_offers : "targets"
     mints ||--o{ sell_offers : "targets"
@@ -228,7 +227,8 @@ erDiagram
     onchain_transactions ||--o{ invoices : "confirms"
     
     chain_position ||--|| onchain_transactions : "tracks"
-```
+  `}
+/>
 
 ### Data Flow Patterns
 

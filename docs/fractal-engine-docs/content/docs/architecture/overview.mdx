@@ -1,9 +1,7 @@
 ---
-title: Architecture
+title: Overview
 description: System architecture and design of the Fractal Engine tokenization platform built on Dogecoin
 ---
-
-# Fractal Engine Architecture
 
 Fractal Engine is a sophisticated tokenization platform built on Dogecoin that enables fractional ownership through minting, peer-to-peer trading, and payment processing. The system implements a hybrid architecture that combines on-chain protocol messages with off-chain gossip networking for optimal performance and cost efficiency.
 
@@ -195,58 +193,62 @@ Fractal Engine allows users to create and trade tokens backed by the Dogecoin bl
 
 ### Mint Creation Flow
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant RPC as RPC Server
-    participant DN as DogeNet Client
-    participant Store as TokenisationStore
-    participant DF as DogeFollower
-    participant DC as Dogecoin Core
-    participant Proc as Processor
+<Mermaid
+  chart="
+    sequenceDiagram
+      participant User
+      participant RPC as RPC Server
+      participant DN as DogeNet Client
+      participant Store as TokenisationStore
+      participant DF as DogeFollower
+      participant DC as Dogecoin Core
+      participant Proc as Processor
 
-    User->>RPC: POST /mints (mint data)
-    RPC->>Store: Store unconfirmed mint
-    RPC->>DN: Gossip mint announcement
-    RPC->>User: Return mint hash
+      User->>RPC: POST /mints (mint data)
+      RPC->>Store: Store unconfirmed mint
+      RPC->>DN: Gossip mint announcement
+      RPC->>User: Return mint hash
 
-    User->>DC: Send transaction with mint hash in OP_RETURN
-    DC-->>DF: New block notification
-    DF->>DF: Extract Fractal messages from OP_RETURN
-    DF->>Store: Store on-chain transaction
+      User->>DC: Send transaction with mint hash in OP_RETURN
+      DC-->>DF: New block notification
+      DF->>DF: Extract Fractal messages from OP_RETURN
+      DF->>Store: Store on-chain transaction
 
-    Proc->>Store: Query unconfirmed mints
-    Proc->>Store: Query on-chain transactions
-    Proc->>Proc: Match off-chain mint with on-chain tx
-    Proc->>Store: Move to confirmed mints
-    Proc->>Store: Remove on-chain transaction
-```
+      Proc->>Store: Query unconfirmed mints
+      Proc->>Store: Query on-chain transactions
+      Proc->>Proc: Match off-chain mint with on-chain tx
+      Proc->>Store: Move to confirmed mints
+      Proc->>Store: Remove on-chain transaction
+  "
+/>
 
 ### Trading Flow
 
-```mermaid
-sequenceDiagram
-    participant Buyer
-    participant Seller
-    participant RPC as RPC Server
-    participant Store as TokenisationStore
-    participant DN as DogeNet Client
+<Mermaid
+  chart="
+    sequenceDiagram
+      participant Buyer
+      participant Seller
+      participant RPC as RPC Server
+      participant Store as TokenisationStore
+      participant DN as DogeNet Client
 
-    Seller->>RPC: POST /sell-offers
-    RPC->>Store: Store sell offer
-    RPC->>DN: Gossip sell offer
+      Seller->>RPC: POST /sell-offers
+      RPC->>Store: Store sell offer
+      RPC->>DN: Gossip sell offer
 
-    Buyer->>RPC: GET /sell-offers
-    RPC->>Store: Query available offers
-    RPC->>Buyer: Return offers
+      Buyer->>RPC: GET /sell-offers
+      RPC->>Store: Query available offers
+      RPC->>Buyer: Return offers
 
-    Buyer->>RPC: POST /buy-offers (matching sell offer)
-    RPC->>Store: Store buy offer
-    RPC->>DN: Gossip buy offer
-    RPC->>RPC: Auto-match offers
-    RPC->>Store: Update offer states
-    RPC->>Buyer: Return match confirmation
-```
+      Buyer->>RPC: POST /buy-offers (matching sell offer)
+      RPC->>Store: Store buy offer
+      RPC->>DN: Gossip buy offer
+      RPC->>RPC: Auto-match offers
+      RPC->>Store: Update offer states
+      RPC->>Buyer: Return match confirmation
+  "
+/>
 
 ## Technical Decisions & Trade-offs
 
