@@ -101,14 +101,10 @@ func (c *IndexerClient) GetBalance(address string) (*BalanceResponse, error) {
 		return nil, fmt.Errorf("failed to read balance response: %w", err)
 	}
 
-	fmt.Println("DATA", string(data))
-
 	var balance BalanceResponse
 	if err := json.Unmarshal(data, &balance); err != nil {
 		return nil, fmt.Errorf("failed to decode balance response: %w", err)
 	}
-
-	fmt.Println("balancebalancebalance", balance.Available)
 
 	return &balance, nil
 }

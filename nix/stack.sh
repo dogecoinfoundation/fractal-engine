@@ -263,20 +263,20 @@ case "$COMMAND" in
       --doge-password $DOGECOIN_RPC_PASSWORD \
       --database-url $FRACTAL_ENGINE_DB?sslmode=disable"
 
-    # start_service "indexer" "@indexer@/bin/indexer \
-    #   -bindapi localhost:$INDEXER_PORT \
-    #   -chain regtest \
-    #   -dburl postgres://indexer:indexer$INSTANCE_ID@localhost:$INDEXER_POSTGRES_PORT/indexer?sslmode=disable \
-    #   -listenport $((INDEXER_PORT + 1)) \
-    #   -rpchost localhost \
-    #   -rpcpass $DOGECOIN_RPC_PASSWORD \
-    #   -rpcport $DOGE_RPC_PORT \
-    #   -rpcuser $DOGECOIN_RPC_USER \
-    #   -webport $((INDEXER_PORT + 2)) \
-    #   -zmqhost localhost \
-    #   -zmqport $((DOGE_RPC_PORT + 1000)) \
-    #   -startingheight $INDEXER_STARTINGHEIGHT \
-    #   $INDEXER_ARGS"
+    start_service "indexer" "@indexer@/bin/indexer \
+      -bindapi localhost:$INDEXER_PORT \
+      -chain regtest \
+      -dburl postgres://indexer:indexer$INSTANCE_ID@localhost:$INDEXER_POSTGRES_PORT/indexer?sslmode=disable \
+      -listenport $((INDEXER_PORT + 1)) \
+      -rpchost localhost \
+      -rpcpass $DOGECOIN_RPC_PASSWORD \
+      -rpcport $DOGE_RPC_PORT \
+      -rpcuser $DOGECOIN_RPC_USER \
+      -webport $((INDEXER_PORT + 2)) \
+      -zmqhost localhost \
+      -zmqport $((DOGE_RPC_PORT + 1000)) \
+      -startingheight $INDEXER_STARTINGHEIGHT \
+      $INDEXER_ARGS"
     start_service "fractaladmin" "@fractaladmin@/bin/fractaladmin -p $FRACTAL_ADMIN_PORT"
 
     echo ""

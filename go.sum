@@ -112,8 +112,10 @@ github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3 h
 github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3/go.mod h1:dd2AuK49uFB+OlXiUHGjCybGpqxikz2rUTcoWydLwJ8=
 github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9 h1:soO8Di8P7Of1bTZN14fAnle56izyMx+rpp0Z/q3Zj0M=
 github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9/go.mod h1:YyB0wlJ7IGhr7j7jGlgjXZ7mtDnTGaCBkX4HePUORPo=
-github.com/dogeorg/doge v0.0.15 h1:h9C3UrLnLnRr6924xdml6sADWFL1gNMnorsQQXm6tl8=
-github.com/dogeorg/doge v0.0.15/go.mod h1:Q9/0XChJ8EA54OrhjkWm+ySEm0zZ5M7C38do/ZCnZuY=
+github.com/dogeorg/doge v0.1.1 h1:/pZt7M3YNiNu5w83wMuT52XMVDp8f4Jwku1ciQnx+TM=
+github.com/dogeorg/doge v0.1.1/go.mod h1:Q9/0XChJ8EA54OrhjkWm+ySEm0zZ5M7C38do/ZCnZuY=
+github.com/dogeorg/doge v0.1.2-0.20250818072130-2d2e0619e480 h1:qG7ZrJTWmwOBukju4hJ0bm6a9HGaLhIluRe0Y8DbmJI=
+github.com/dogeorg/doge v0.1.2-0.20250818072130-2d2e0619e480/go.mod h1:Q9/0XChJ8EA54OrhjkWm+ySEm0zZ5M7C38do/ZCnZuY=
 github.com/dogeorg/gossip v0.0.18 h1:/ZaXnnfNGiHL6aAFonXE1ju4uwioS/Ub7llix3GypX0=
 github.com/dogeorg/gossip v0.0.18/go.mod h1:tu1/VgSCPBfXLUyFeywAOUQuwACk9xzRUbd4ychdz/o=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=

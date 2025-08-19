@@ -159,7 +159,11 @@ func TestSimpleFlow(t *testing.T) {
 
 	Retry(t, func() bool {
 		fmt.Printf("Checking balance for %s\n", seller.Address)
-		balance, _ := seller.IndexerClient.GetBalance(seller.Address)
+		balance, err := seller.IndexerClient.GetBalance(seller.Address)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		return balance.Available >= 1
 	}, 20, 3*time.Second)
 	fmt.Println("Doge Balance confirmed")
