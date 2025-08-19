@@ -1,17 +1,16 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
+import { BookOpenText } from "lucide-react";
 
 export default function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center flex-grow bg-gray-50">
       <div className="container mx-auto px-4 py-12">
-        <Image 
-          src="/static/image/fractal-logo.png" 
-          alt="Fractal Engine Logo" 
-          width={300}
-          height={290}
+        <Image
+          src="/icon.svg"
+          alt="Fractal Engine Logo"
+          width={256}
+          height={256}
           className="w-48 mx-auto pb-4"
         />
 
@@ -24,13 +23,14 @@ export default function HomePage() {
             className="flex flex-col items-center p-8 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
           >
             <div className="h-48 flex items-center justify-center mb-4">
-              <Image
+              {/* <Image
                 src="/static/image/fractal-docs.svg"
                 alt="Fractal Engine Documentation"
                 width={300}
                 height={300}
                 className="w-48 object-contain"
-              />
+              /> */}
+              <BookOpenText width={200} height={200} />
             </div>
             <h2 className="text-xl font-semibold text-center mt-auto">View Docs</h2>
           </Link>
