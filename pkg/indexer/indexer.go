@@ -3,6 +3,7 @@ package indexer
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -95,10 +96,19 @@ func (c *IndexerClient) GetBalance(address string) (*BalanceResponse, error) {
 		return nil, fmt.Errorf("balance request failed with status: %d", resp.StatusCode)
 	}
 
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read balance response: %w", err)
+	}
+
+	fmt.Println("DATA", string(data))
+
 	var balance BalanceResponse
-	if err := json.NewDecoder(resp.Body).Decode(&balance); err != nil {
+	if err := json.Unmarshal(data, &balance); err != nil {
 		return nil, fmt.Errorf("failed to decode balance response: %w", err)
 	}
+
+	fmt.Println("balancebalancebalance", balance.Available)
 
 	return &balance, nil
 }

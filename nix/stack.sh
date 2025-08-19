@@ -235,10 +235,10 @@ case "$COMMAND" in
 
     start_service "dogenet" "env INSTANCE_ID=$INSTANCE_ID DOGE_NET_HANDLER=$DOGE_NET_HANDLER DOGENET_HOME=$DOGENET_DATA DOGENET_WEB_PORT=$DOGENET_WEB_PORT DOGENET_BIND_HOST=$DOGENET_BIND_HOST DOGENET_BIND_PORT=$DOGENET_BIND_PORT @dogenet@/bin/dogenet-start"
 
-     echo "Waiting for Dogenet /health on port $DOGENET_WEB_PORT..."
+     echo "Waiting for Dogenet /nodes on port $DOGENET_WEB_PORT..."
     timeout=30
     while [ $timeout -gt 0 ]; do
-      if curl -sf "http://localhost:$DOGENET_WEB_PORT/health" >/dev/null 2>&1; then
+      if curl -sf "http://localhost:$DOGENET_WEB_PORT/nodes" >/dev/null 2>&1; then
         echo "Dogenet is ready!"
         break
       fi
@@ -251,44 +251,32 @@ case "$COMMAND" in
       exit 1
     fi
     start_service "fractalengine" "@fractalengine@/bin/fractal-engine \
-
       --rpc-server-host 0.0.0.0 \
-
       --rpc-server-port $FRACTAL_ENGINE_PORT \
-
       --doge-net-network tcp \
-
       --doge-net-address localhost:$DOGENET_HANDLER_PORT \
-
       --doge-net-web-address localhost:$DOGENET_WEB_PORT \
-
       --doge-scheme http \
-
       --doge-host localhost \
-
       --doge-port $DOGE_RPC_PORT \
-
       --doge-user $DOGECOIN_RPC_USER \
-
       --doge-password $DOGECOIN_RPC_PASSWORD \
-
       --database-url $FRACTAL_ENGINE_DB?sslmode=disable"
 
-
-    start_service "indexer" "@indexer@/bin/indexer \
-      -bindapi localhost:$INDEXER_PORT \
-      -chain regtest \
-      -dburl postgres://indexer:indexer$INSTANCE_ID@localhost:$INDEXER_POSTGRES_PORT/indexer?sslmode=disable \
-      -listenport $((INDEXER_PORT + 1)) \
-      -rpchost localhost \
-      -rpcpass $DOGECOIN_RPC_PASSWORD \
-      -rpcport $DOGE_RPC_PORT \
-      -rpcuser $DOGECOIN_RPC_USER \
-      -webport $((INDEXER_PORT + 2)) \
-      -zmqhost localhost \
-      -zmqport $((DOGE_RPC_PORT + 1000)) \
-      -startingheight $INDEXER_STARTINGHEIGHT \
-      $INDEXER_ARGS"
+    # start_service "indexer" "@indexer@/bin/indexer \
+    #   -bindapi localhost:$INDEXER_PORT \
+    #   -chain regtest \
+    #   -dburl postgres://indexer:indexer$INSTANCE_ID@localhost:$INDEXER_POSTGRES_PORT/indexer?sslmode=disable \
+    #   -listenport $((INDEXER_PORT + 1)) \
+    #   -rpchost localhost \
+    #   -rpcpass $DOGECOIN_RPC_PASSWORD \
+    #   -rpcport $DOGE_RPC_PORT \
+    #   -rpcuser $DOGECOIN_RPC_USER \
+    #   -webport $((INDEXER_PORT + 2)) \
+    #   -zmqhost localhost \
+    #   -zmqport $((DOGE_RPC_PORT + 1000)) \
+    #   -startingheight $INDEXER_STARTINGHEIGHT \
+    #   $INDEXER_ARGS"
     start_service "fractaladmin" "@fractaladmin@/bin/fractaladmin -p $FRACTAL_ADMIN_PORT"
 
     echo ""
@@ -303,9 +291,15 @@ case "$COMMAND" in
     wait
     ;;
 
+
   down)
+
     cleanup
+
+    echo "Purging PostgreSQL data directories for instance $INSTANCE_ID..."
+    rm -rf "$POSTGRES_DATA" "$INDEXER_POSTGRES_DATA"
     ;;
+
 
   ps|status)
     show_status
@@ -335,7 +329,7 @@ case "$COMMAND" in
           if command -v ss >/dev/null 2>&1; then
             addresses=$(
               { ss -ltnp 2>/dev/null; ss -lunp 2>/dev/null; } \
-              | awk -v pid="$pid" '$0 ~ ("pid=" pid "[,)]") { print $5 }' \
+              | awk -v pid="$pid" '$0 ~ ("pid=" pid "[,)]") { print $4 }' \
               | sort -u | paste -sd, - 2>/dev/null
             )
           elif command -v netstat >/dev/null 2>&1; then

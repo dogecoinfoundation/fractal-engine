@@ -7,7 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -47,6 +50,8 @@ type StackConfig struct {
 	TokenisationStore  *store.TokenisationStore
 }
 
+var nodePubKeyRe = regexp.MustCompile(`Node PubKey is:\s*([0-9a-fA-F]{64})`)
+
 func NewStackConfig(instanceId int, chain string) StackConfig {
 	prefixByte, err := doge.GetPrefix(chain)
 	if err != nil {
@@ -60,18 +65,19 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 	}
 
 	stackConfig := StackConfig{
-		InstanceId:         instanceId,
-		BasePort:           basePort,
-		DogePort:           basePort + 14556,
-		DogeHost:           "localhost",
-		FractalPort:        basePort + 2,
-		FractalHost:        "localhost",
-		DogeNetPort:        basePort + 3,
-		DogeNetWebPort:     basePort + 4,
-		DogeNetHost:        "localhost",
-		IndexerURL:         "http://localhost:" + strconv.Itoa(basePort+5),
+		InstanceId:     instanceId,
+		BasePort:       basePort,
+		DogePort:       basePort + 14556,
+		DogeHost:       "0.0.0.0",
+		FractalPort:    basePort + 2,
+		FractalHost:    "0.0.0.0",
+		DogeNetPort:    basePort + 3,
+		DogeNetWebPort: basePort + 4,
+		DogeNetHost:    "0.0.0.0",
+		IndexerURL:     "http://0.0.0.0:" + strconv.Itoa(basePort+5),
+		// IndexerURL:         "http://0.0.0.0:8888",
 		PortgresPort:       basePort + 6,
-		PostgresHost:       "localhost",
+		PostgresHost:       "0.0.0.0",
 		DogeNetHandlerPort: basePort + 7,
 		DogeNetBindPort:    42000 + instanceId,
 		Address:            address,
@@ -81,7 +87,25 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 
 	fmt.Println("StackConfig:", stackConfig)
 
-	// populateStackHosts(&stackConfig, cli)
+	dogenetLogFile := "/home/danielw/.fractal-stack-" + strconv.Itoa(instanceId) + "/logs/dogenet.log"
+
+	_, err = os.Stat(dogenetLogFile)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	logFile, err := os.ReadFile(dogenetLogFile)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	// 2025/08/18 11:51:38 Node PubKey is: 8ff4c022073629d7c89ca52c52a6b8e68dab948803afb22f57e7d83424b83364
+	logFileStr := string(logFile)
+	nodePubKey, ok := ExtractNodePubKey(logFileStr)
+	if !ok {
+		fmt.Println("Error: could not extract node public key")
+	}
+	stackConfig.DogeNetPubKey = nodePubKey
 
 	stackConfig.TokenisationClient = feclient.NewTokenisationClient("http://"+stackConfig.FractalHost+":"+strconv.Itoa(stackConfig.FractalPort), stackConfig.PrivKey, stackConfig.PubKey)
 	stackConfig.IndexerClient = indexer.NewIndexerClient(stackConfig.IndexerURL)
@@ -117,6 +141,14 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 	return stackConfig
 }
 
+func ExtractNodePubKey(logFileStr string) (string, bool) {
+	matches := nodePubKeyRe.FindAllStringSubmatch(logFileStr, -1)
+	if len(matches) == 0 {
+		return "", false
+	}
+	return strings.ToLower(matches[len(matches)-1][1]), true
+}
+
 func TestSimpleFlow(t *testing.T) {
 	stacks := makeStackConfigsAndPeer(2)
 
@@ -124,6 +156,27 @@ func TestSimpleFlow(t *testing.T) {
 	buyer := stacks[1]
 	mintQty := 100
 	sellQty := 20
+
+	Retry(t, func() bool {
+		fmt.Printf("Checking balance for %s\n", seller.Address)
+		balance, _ := seller.IndexerClient.GetBalance(seller.Address)
+		return balance.Available >= 1
+	}, 20, 3*time.Second)
+	fmt.Println("Doge Balance confirmed")
+
+	Retry(t, func() bool {
+		fmt.Printf("Checking balance for %s\n", seller.Address)
+		utxo, _ := seller.IndexerClient.GetUTXO(seller.Address)
+
+		for _, u := range utxo.UTXOs {
+			fmt.Printf("UTXO TXID: %s\n", u.TxID)
+			fmt.Printf("UTXO VOUT: %d\n", u.VOut)
+			fmt.Printf("UTXO Value: %s\n", u.Value)
+		}
+
+		return true
+	}, 20, 3*time.Second)
+	fmt.Println("Doge Balance confirmed")
 
 	mintHash := Mint(seller)
 	AssertEqualWithRetry(t, func() interface{} {

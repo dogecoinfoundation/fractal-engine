@@ -8,10 +8,10 @@ buildGoModule rec {
     owner = "dogeorg";
     repo = "indexer";
     rev = "main";
-    sha256 = "sha256-74pikV5RtaEmp+4MbXXWo2R4Wg4GOeRS2i2uJxLElmI=";
+    sha256 = "sha256-9y2Z3KpLuY9eNDEqrhnH+DK8CUkpTNqLco22wH7A0z8=";
   };
 
-  vendorHash = "sha256-2JU4LayU5mLZXyGH1rt9tduQgqUycyfMNSendcCNLhw=";
+  vendorHash = "sha256-d0sLMxinLp3C2NaTzq6oFUtKIpUvoEVLor+tDt6yO7E=";
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ systemd zeromq ];

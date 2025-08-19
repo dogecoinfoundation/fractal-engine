@@ -98,7 +98,7 @@ func (dr *DemoRoutes) postSetupDemoBalance(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	_, err = dr.dogeClient.SendToAddress(address, float64(1000))
+	_, err = dr.dogeClient.SendToAddress(address, 1000)
 	if err != nil {
 		log.Println("error sending to address", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -115,7 +115,7 @@ func (dr *DemoRoutes) postSetupDemoBalance(w http.ResponseWriter, r *http.Reques
 	respondJSON(w, http.StatusOK, address)
 }
 
-func (dr *DemoRoutes) SetupAddress(label string, initialBalance float64) (Address, error) {
+func (dr *DemoRoutes) SetupAddress(label string, initialBalance int64) (Address, error) {
 	_, err := dr.dogeClient.Generate(100)
 	if err != nil {
 		return Address{}, err
@@ -142,7 +142,7 @@ func (dr *DemoRoutes) SetupAddress(label string, initialBalance float64) (Addres
 	pubKey := dogelib.ECPubKeyFromECPrivKey(privKeyBytes)
 	pubKeyHex := hex.EncodeToString(pubKey[:])
 
-	_, err = dr.dogeClient.SendToAddress(address, float64(initialBalance))
+	_, err = dr.dogeClient.SendToAddress(address, initialBalance)
 	if err != nil {
 		return Address{}, err
 	}

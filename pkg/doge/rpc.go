@@ -105,7 +105,7 @@ func (t *RpcClient) DumpPrivKey(address string) (string, error) {
 	return result, nil
 }
 
-func (t *RpcClient) SendToAddress(address string, amount float64) (string, error) {
+func (t *RpcClient) SendToAddress(address string, amount int64) (string, error) {
 	res, err := t.Request("sendtoaddress", []any{address, amount})
 	if err != nil {
 		return "", err

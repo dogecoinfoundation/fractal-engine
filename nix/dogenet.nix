@@ -8,10 +8,10 @@ buildGoModule rec {
     owner = "Dogebox-WG";
     repo = "dogenet";
     rev = "main"; # Can be overridden
-    sha256 = "sha256-3hAZMqB4YKHonDnZEZLaF3Hb2ajjVkyMrTQjn5eXpKI="; # TODO: Add correct hash
+    sha256 = "sha256-3hAZMqB4YKHonDnZEZLaF3Hb2ajjVkyMrTQjn5eXpKI="; # TODO: Update with the correct hash
   };
 
-  vendorHash = "sha256-4XDgSVH+QAlIAv5/h30oqeVzMTEoAfEAySkVmMH6kFs="; # TODO: Add correct hash
+  vendorHash = "sha256-4XDgSVH+QAlIAv5/h30oqeVzMTEoAfEAySkVmMH6kFs="; # TODO: Update with the correct hash
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ systemd ];
@@ -24,7 +24,7 @@ buildGoModule rec {
     "-s" "-w"
   ];
 
-  # Post-build setup to generate keys
+  # Post-build setup to generate keys and wrapper
   postInstall = ''
     mkdir -p $out/share/dogenet
 
@@ -33,59 +33,56 @@ buildGoModule rec {
     $out/bin/dogenet genkey dev-key
     $out/bin/dogenet genkey ident-key ident-pub
 
-    # Create wrapper script
-    cat > $out/bin/dogenet-start << EOF
-    #!/usr/bin/env bash
+    # Create wrapper script with runtime env defaults and public host:port derivation
+    cat > $out/bin/dogenet-start <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
 
-    export DOGE_NET_HANDLER="''${DOGE_NET_HANDLER:-127.0.0.1:42000}"
-    export DOGENET_WEB_PORT="''${DOGENET_WEB_PORT:-8085}"
-    export DOGENET_BIND_HOST="''${DOGENET_BIND_HOST:-0.0.0.0}"
-    export DOGENET_BIND_PORT="''${DOGENET_BIND_PORT:-41000}"
-    export INSTANCE_ID="''${INSTANCE_ID:-1}"
+# Runtime-configurable env with defaults
+export DOGE_NET_HANDLER="''${DOGE_NET_HANDLER:-127.0.0.1:42000}"
+export DOGENET_WEB_PORT="''${DOGENET_WEB_PORT:-8085}"
+export DOGENET_BIND_HOST="''${DOGENET_BIND_HOST:-0.0.0.0}"
+export DOGENET_BIND_PORT="''${DOGENET_BIND_PORT:-41000}"
+export INSTANCE_ID="''${INSTANCE_ID:-1}"
 
-    # Set up storage directory
-    # Choose a writable DOGENET_HOME
+# Derive public from bind unless explicitly overridden
+export DOGENET_PUBLIC_HOST="''${DOGENET_PUBLIC_HOST:-''${DOGENET_BIND_HOST}}"
+export DOGENET_PUBLIC_PORT="''${DOGENET_PUBLIC_PORT:-''${DOGENET_BIND_PORT}}"
 
-    if [ -z "''${DOGENET_HOME:-}" ]; then
-      if [ -n "''${HOME:-}" ] && [ -w "''${HOME:-/}" ]; then
-        DOGENET_HOME="''${HOME}/.dogenet''${INSTANCE_ID}"
-      else
+# Determine DOGENET_HOME directory
+if [ -z "''${DOGENET_HOME:-}" ]; then
+  if [ -n "''${HOME:-}" ] && [ -w "''${HOME:-/}" ] ; then
+    DOGENET_HOME="''${HOME}/.dogenet''${INSTANCE_ID}"
+  else
+    DOGENET_HOME="/tmp/.dogenet''${INSTANCE_ID}"
+  fi
+fi
+mkdir -p "''${DOGENET_HOME}/storage"
 
-        DOGENET_HOME="/tmp/.dogenet''${INSTANCE_ID}"
-      fi
-    fi
+# Seed keys if missing
+if [ ! -f "''${DOGENET_HOME}/dev-key" ]; then
+  cp "__OUT_PATH__/share/dogenet/dev-key" "''${DOGENET_HOME}/"
+fi
+if [ ! -f "''${DOGENET_HOME}/ident-pub" ]; then
+  cp "__OUT_PATH__/share/dogenet/ident-pub" "''${DOGENET_HOME}/"
+fi
 
+cd "''${DOGENET_HOME}"
 
-    mkdir -p "\$DOGENET_HOME/storage"
+# Load keys into env (dogenet reads KEY)
+export KEY="$(cat dev-key)"
+export IDENT="$(cat ident-pub)"
 
+exec "__OUT_PATH__/bin/dogenet" \
+  --local \
+  --public "''${DOGENET_PUBLIC_HOST}:''${DOGENET_PUBLIC_PORT}" \
+  --handler "''${DOGE_NET_HANDLER}" \
+  --web "0.0.0.0:''${DOGENET_WEB_PORT}" \
+  --bind "''${DOGENET_BIND_HOST}:''${DOGENET_BIND_PORT}"
+EOF
 
-
-    # Copy keys to working directory if they don't exist
-
-    if [ ! -f "\$DOGENET_HOME/dev-key" ]; then
-      cp $out/share/dogenet/dev-key "\$DOGENET_HOME/"
-
-    fi
-    if [ ! -f "\$DOGENET_HOME/ident-pub" ]; then
-      cp $out/share/dogenet/ident-pub "\$DOGENET_HOME/"
-    fi
-
-
-    cd "\$DOGENET_HOME"
-
-    export KEY="\$(cat dev-key)"
-
-    export IDENT="\$(cat ident-pub)"
-
-    echo \$DOGENET_WEB_PORT
-
-    exec $out/bin/dogenet \\
-    --local \\
-    --public 0.0.0.0 \\
-    --handler \$DOGE_NET_HANDLER \\
-    --web 0.0.0.0:\$DOGENET_WEB_PORT \\
-    --bind \$DOGENET_BIND_HOST:\$DOGENET_BIND_PORT
-    EOF
+    # Inject the actual store path into the wrapper (while keeping runtime env expansion intact)
+    sed -i "s#__OUT_PATH__#$out#g" "$out/bin/dogenet-start"
 
     chmod +x $out/bin/dogenet-start
   '';
@@ -94,5 +91,6 @@ buildGoModule rec {
     description = "Dogenet networking service";
     homepage = "https://github.com/Dogebox-WG/dogenet";
     license = licenses.mit;
+    mainProgram = "dogenet-start";
   };
 }
