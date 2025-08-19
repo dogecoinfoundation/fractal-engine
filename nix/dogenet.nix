@@ -1,4 +1,4 @@
-{ lib, buildGoModule, fetchFromGitHub, pkg-config, systemd }:
+{ lib, buildGoModule, fetchFromGitHub, pkg-config }:
 
 buildGoModule rec {
   pname = "dogenet";
@@ -14,7 +14,7 @@ buildGoModule rec {
   vendorHash = "sha256-4XDgSVH+QAlIAv5/h30oqeVzMTEoAfEAySkVmMH6kFs="; # TODO: Update with the correct hash
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ systemd ];
+  buildInputs = [];
 
   subPackages = [ "cmd/dogenet" ];
 

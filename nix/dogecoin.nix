@@ -1,60 +1,13 @@
-{ lib
-, stdenv
-, fetchurl
-, autoPatchelfHook
-, writeShellScriptBin
-, gettext
-, pkgs
-}:
+{ lib, fetchurl, autoPatchelfHook, writeShellScriptBin, gettext, gcc-unwrapped, xorg, libxkbcommon, fontconfig, freetype }:
 
 let
-  dogecoin = stdenv.mkDerivation rec {
-    pname = "dogecoin";
-    version = "1.14.9";
-
-    src = fetchurl {
-      url = "https://github.com/dogecoin/dogecoin/releases/download/v${version}/dogecoin-${version}-x86_64-linux-gnu.tar.gz";
-      sha256 = "sha256-TyJxF7QRp8mGIslwmG4nvPw/VHpyvvZefZ6CmJF11Pg=";
-    };
-
-    # We're installing prebuilt binaries → NO autoreconf/pkg-config
-    dontConfigure = true;
-    dontBuild = true;
-
-    # Patchelf the downloaded binaries so they find Nix-provided libs
-    nativeBuildInputs = [ autoPatchelfHook ];
-
-    # Runtime deps typically needed by the prebuilt dogecoin binaries
-    buildInputs = [
-      pkgs.stdenv.cc.cc.lib   # libstdc++
-      pkgs.openssl
-      pkgs.libevent
-      pkgs.zeromq             # enables ZMQ support at runtime
-      pkgs.zlib
-    ];
-
-    # The tarball layout is dogecoin-1.14.9/bin/...
-    # Let Nix know where to find it after unpack
-    installPhase = ''
-      runHook preInstall
-      mkdir -p $out/bin
-      # find the bin dir robustly (versioned folder)
-      BIN_DIR="$(find . -maxdepth 2 -type d -name bin | head -n1)"
-      # copy only headless binaries to avoid Qt/X11 deps
-      for f in dogecoind dogecoin-cli dogecoin-tx; do
-        if [ -f "$BIN_DIR/$f" ]; then
-          cp "$BIN_DIR/$f" $out/bin/
-        fi
-      done
-      runHook postInstall
-    '';
-
-    meta = with lib; {
-      description = "Dogecoin Core (prebuilt binary)";
-      homepage = "https://dogecoin.com/";
-      license = licenses.mit;
-      platforms = [ "x86_64-linux" ];
-    };
+  core = pkgs.callPackage (pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/Dogebox-WG/dogebox-nur-packages/f485a380d516436c2310b289622f39bf21382f9c/pkgs/dogecoin-core/default.nix";
+    sha256 = "sha256-n27e6ZpRJDKXpL8Fs5QNqELFec5htai33lLY566tHoo=";
+  }) {
+    disableWallet = true;
+    disableGUI = true;
+    disableTests = true;
   };
 
   # Wrapper that starts regtest with your env-driven ports + ZMQ on one socket
@@ -94,7 +47,7 @@ txindex=1
 EOF
     fi
 
-    exec ${dogecoin}/bin/dogecoind \
+    exec ${core}/bin/dogecoind \
       -printtoconsole \
       -regtest \
       -reindex-chainstate \

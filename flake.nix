@@ -2,7 +2,7 @@
   description = "Fractal Engine - Configurable Dogecoin services";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -17,12 +17,19 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         lib = nixpkgs.lib;
+
+        iso8601FromLastModifiedDate = d:
+          "${builtins.substring 0 4 d}-${builtins.substring 4 2 d}-${builtins.substring 6 2 d}"
+          + "T${builtins.substring 8 2 d}:${builtins.substring 10 2 d}:${builtins.substring 12 2 d}Z";
       in
       {
         packages = rec {
           # Required services (always included)
-          fractalengine = pkgs.callPackage ./nix/fractalengine.nix { };
-          fractalstore = pkgs.callPackage ./nix/fractalstore.nix { };
+          fractalengine = pkgs.callPackage ./nix/fractalengine.nix {
+            rev = if self ? rev then self.rev else "dirty";
+            date = if self ? lastModifiedDate then iso8601FromLastModifiedDate self.lastModifiedDate else "unknown-date";
+          };
+          fractalstore = pkgs.callPackage ./nix/fractalstore.nix {};
 
           # Optional services
           dogecoin = pkgs.callPackage ./nix/dogecoin.nix { };
@@ -31,8 +38,7 @@
           indexerstore = pkgs.callPackage ./nix/indexerstore.nix { };
 
           # Service orchestration
-
-          fractal-stack = pkgs.callPackage ./nix/stack.nix { };
+          fractal-stack = pkgs.callPackage ./nix/stack.nix {};
 
           # Predefined configurations
           minimal = pkgs.buildEnv {
@@ -74,14 +80,16 @@
               ++ lib.optional withIndexer indexerstore;
             };
 
-          default = minimal;
+          default = fractalengine;
         };
+
+        formatter = pkgs.nixfmt-tree;
 
         # Development shells
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             go_1_24
-            nodejs_18
+            nodejs_22
             postgresql
             git
             curl
@@ -98,6 +106,80 @@
           stack = flake-utils.lib.mkApp {
             drv = self.packages.${system}.fractal-stack;
             name = "fractal-stack";
+          };
+
+          # Development task apps (migrated from Makefile)
+          test = {
+            type = "app";
+            program = "${pkgs.writeShellApplication {
+              name = "fractal-test";
+              runtimeInputs = [ pkgs.go_1_24 ];
+              text = ''
+                set -euo pipefail
+                IFS=' ' read -r -a EXTRA <<< "''${GO_TEST_EXTRA_FLAGS:-}"
+                ENV=test TZ=UTC go test "''${EXTRA[@]}" -p 1 -covermode=count -coverprofile=coverage.txt -timeout=30m ./...
+              '';
+            }}/bin/fractal-test";
+          };
+
+          coverage = {
+            type = "app";
+            program = "${pkgs.writeShellApplication {
+              name = "fractal-coverage";
+              runtimeInputs = [ pkgs.go_1_24 ];
+              text = ''
+                set -euo pipefail
+                go tool cover -func=coverage.txt
+              '';
+            }}/bin/fractal-coverage";
+          };
+
+          coverage-html = {
+            type = "app";
+            program = "${pkgs.writeShellApplication {
+              name = "fractal-coverage-html";
+              runtimeInputs = [ pkgs.go_1_24 ];
+              text = ''
+                set -euo pipefail
+                go tool cover -html=coverage.txt
+              '';
+            }}/bin/fractal-coverage-html";
+          };
+
+          lint = {
+            type = "app";
+            program = "${pkgs.writeShellApplication {
+              name = "fractal-lint";
+              runtimeInputs = [ pkgs.golangci-lint ];
+              text = ''
+                set -euo pipefail
+                golangci-lint run --fix
+              '';
+            }}/bin/fractal-lint";
+          };
+
+          format = {
+            type = "app";
+            program = "${pkgs.writeShellApplication {
+              name = "fractal-format";
+              runtimeInputs = [ pkgs.golangci-lint ];
+              text = ''
+                set -euo pipefail
+                golangci-lint fmt
+              '';
+            }}/bin/fractal-format";
+          };
+
+          tidy = {
+            type = "app";
+            program = "${pkgs.writeShellApplication {
+              name = "fractal-tidy";
+              runtimeInputs = [ pkgs.go_1_24 ];
+              text = ''
+                set -euo pipefail
+                go mod tidy
+              '';
+            }}/bin/fractal-tidy";
           };
         };
       }

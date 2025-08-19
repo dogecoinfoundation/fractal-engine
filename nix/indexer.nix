@@ -1,4 +1,4 @@
-{ lib, buildGoModule, fetchFromGitHub, pkg-config, systemd, zeromq, pkgs }:
+{ lib, buildGoModule, fetchFromGitHub, pkg-config, zeromq }:
 
 buildGoModule rec {
   pname = "indexer";
@@ -14,7 +14,7 @@ buildGoModule rec {
   vendorHash = "sha256-EpogYqHjdxiXK9WgpR/3P86BvlvmDuuGFvMrRpkubH0=";
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ systemd zeromq ];
+  buildInputs = [ zeromq ];
 
   # Build main.go in root
   subPackages = [ "." ];
