@@ -1,0 +1,14 @@
+{
+  "title": "Using Fractal",
+  "root": true,
+  "icon": "BookOpenText",
+  "pages": [
+    "---Overview---",
+    "...(overview)",
+    "---Usage---",
+    "...usage",
+    "---Sections---",
+    "[Architecture](https://fractal.dogecoin.org/docs/architecture/overview)",
+    "[API Reference](https://fractal.dogecoin.org/docs/api/overview)"
+  ]
+}

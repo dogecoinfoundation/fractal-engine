@@ -5,8 +5,6 @@ description: Comprehensive guide to authentication, request signing, and cryptog
 
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
-# Authentication and Cryptographic Signing
-
 The Fractal Engine implements a robust cryptographic authentication system based on Dogecoin's ECDSA signature scheme. All authenticated requests must be signed with valid Dogecoin private keys and verified using the corresponding public keys.
 
 ## Security Model Overview
@@ -21,17 +19,19 @@ The authentication system is built on the following principles:
 
 ### Security Architecture
 
-```mermaid
-graph TB
-    A[Client Private Key] --> B[Sign Message Payload]
-    B --> C[ECDSA Signature]
-    C --> D[HTTP Request]
-    D --> E[Server Validation]
-    E --> F[Public Key Verification]
-    F --> G[Signature Verification]
-    G --> H[Address Validation]
-    H --> I[Request Processing]
-```
+<Mermaid
+  chart="
+    graph TB
+      A[Client Private Key] --> B[Sign Message Payload]
+      B --> C[ECDSA Signature]
+      C --> D[HTTP Request]
+      D --> E[Server Validation]
+      E --> F[Public Key Verification]
+      F --> G[Signature Verification]
+      G --> H[Address Validation]
+      H --> I[Request Processing]
+  "
+/>
 
 ## Cryptographic Components
 
