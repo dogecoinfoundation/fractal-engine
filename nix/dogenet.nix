@@ -8,7 +8,7 @@ buildGoModule rec {
     owner = "Dogebox-WG";
     repo = "dogenet";
     rev = "main"; # Can be overridden
-    sha256 = "sha256-3hAZMqB4YKHonDnZEZLaF3Hb2ajjVkyMrTQjn5eXpKI="; # TODO: Update with the correct hash
+    sha256 = "sha256-VJzY8NegXLyTNk4PlXxMnNGYwyzRFWdfBmA4WDVgaa8="; # TODO: Update with the correct hash
   };
 
   vendorHash = "sha256-4XDgSVH+QAlIAv5/h30oqeVzMTEoAfEAySkVmMH6kFs="; # TODO: Update with the correct hash
@@ -26,12 +26,7 @@ buildGoModule rec {
 
   # Post-build setup to generate keys and wrapper
   postInstall = ''
-    mkdir -p $out/share/dogenet
-
-    # Generate development keys
-    cd $out/share/dogenet
-    $out/bin/dogenet genkey dev-key
-    $out/bin/dogenet genkey ident-key ident-pub
+    # Keys are generated at runtime by the wrapper if missing
 
     # Create wrapper script with runtime env defaults and public host:port derivation
     cat > $out/bin/dogenet-start <<'EOF'
@@ -49,22 +44,16 @@ export INSTANCE_ID="''${INSTANCE_ID:-1}"
 export DOGENET_PUBLIC_HOST="''${DOGENET_PUBLIC_HOST:-''${DOGENET_BIND_HOST}}"
 export DOGENET_PUBLIC_PORT="''${DOGENET_PUBLIC_PORT:-''${DOGENET_BIND_PORT}}"
 
-# Determine DOGENET_HOME directory
-if [ -z "''${DOGENET_HOME:-}" ]; then
-  if [ -n "''${HOME:-}" ] && [ -w "''${HOME:-/}" ] ; then
-    DOGENET_HOME="''${HOME}/.dogenet''${INSTANCE_ID}"
-  else
-    DOGENET_HOME="/tmp/.dogenet''${INSTANCE_ID}"
-  fi
-fi
+DOGENET_HOME="$HOME/.fractal-stack-$INSTANCE_ID/dogenet"
+
 mkdir -p "''${DOGENET_HOME}/storage"
 
-# Seed keys if missing
+# Generate keys if missing
 if [ ! -f "''${DOGENET_HOME}/dev-key" ]; then
-  cp "__OUT_PATH__/share/dogenet/dev-key" "''${DOGENET_HOME}/"
+  "__OUT_PATH__/bin/dogenet" genkey "''${DOGENET_HOME}/dev-key"
 fi
 if [ ! -f "''${DOGENET_HOME}/ident-pub" ]; then
-  cp "__OUT_PATH__/share/dogenet/ident-pub" "''${DOGENET_HOME}/"
+  "__OUT_PATH__/bin/dogenet" genkey "''${DOGENET_HOME}/ident-key" "''${DOGENET_HOME}/ident-pub"
 fi
 
 cd "''${DOGENET_HOME}"

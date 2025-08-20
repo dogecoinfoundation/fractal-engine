@@ -8,7 +8,6 @@ import (
 
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
-	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/store"
 	dogelib "github.com/dogeorg/doge"
 )
@@ -16,14 +15,13 @@ import (
 // setupDemoBalance
 
 type DemoRoutes struct {
-	store        *store.TokenisationStore
-	gossipClient dogenet.GossipClient
-	cfg          *config.Config
-	dogeClient   *doge.RpcClient
+	store      *store.TokenisationStore
+	cfg        *config.Config
+	dogeClient *doge.RpcClient
 }
 
-func HandleDemoRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux, cfg *config.Config, dogeClient *doge.RpcClient) {
-	dr := &DemoRoutes{store: store, gossipClient: gossipClient, cfg: cfg, dogeClient: dogeClient}
+func HandleDemoRoutes(store *store.TokenisationStore, mux *http.ServeMux, cfg *config.Config, dogeClient *doge.RpcClient) {
+	dr := &DemoRoutes{store: store, cfg: cfg, dogeClient: dogeClient}
 
 	mux.HandleFunc("/setup-demo-balance", dr.handleSetupDemoBalance)
 	mux.HandleFunc("/list-unspent", dr.handleListUnspent)

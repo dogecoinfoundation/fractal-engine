@@ -7,12 +7,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"dogecoin.org/fractal-engine/db/migrations"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -68,7 +70,12 @@ func (s *TokenisationStore) Migrate() error {
 		return err
 	}
 
-	m, err := migrate.NewWithDatabaseInstance("file://"+s.cfg.MigrationsPath, s.backend, driver)
+	src, err := iofs.New(migrations.Files, ".")
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.NewWithInstance("iofs", src, s.backend, driver)
 	if err != nil {
 		return err
 	}

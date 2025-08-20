@@ -9,6 +9,15 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func (s *TokenisationStore) ChooseInvoice() (Invoice, error) {
+	row := s.DB.QueryRow("SELECT id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature FROM invoices WHERE hash IN (SELECT hash FROM invoices ORDER BY RANDOM() LIMIT 1)")
+	var invoice Invoice
+	if err := row.Scan(&invoice.Id, &invoice.Hash, &invoice.PaymentAddress, &invoice.BuyerAddress, &invoice.MintHash, &invoice.Quantity, &invoice.Price, &invoice.CreatedAt, &invoice.SellerAddress, &invoice.PublicKey, &invoice.Signature); err != nil {
+		return Invoice{}, err
+	}
+	return invoice, nil
+}
+
 func (s *TokenisationStore) GetInvoices(offset int, limit int, mintHash string, offererAddress string) ([]Invoice, error) {
 	rows, err := s.DB.Query("SELECT id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature FROM invoices WHERE mint_hash = $1 AND (buyer_address = $2 OR seller_address = $2) LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
 	if err != nil {
