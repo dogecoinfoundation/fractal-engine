@@ -48,5 +48,20 @@ export async function generateMetadata(props: {
   return {
     title: page.data.title,
     description: page.data.description,
+    alternates: {
+      canonical:
+        Array.isArray(params.slug) && params.slug.length > 0
+          ? `/docs/${params.slug.join('/')}`
+          : '/docs',
+    },
+    openGraph: {
+      title: page.data.title,
+      description: page.data.description,
+      url:
+        Array.isArray(params.slug) && params.slug.length > 0
+          ? `/docs/${params.slug.join('/')}`
+          : '/docs',
+      type: 'article',
+    },
   };
 }

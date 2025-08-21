@@ -3,8 +3,6 @@ title: DogeNet P2P Network
 description: Peer-to-peer gossip networking system for decentralized distribution of tokenization data
 ---
 
-# DogeNet P2P Gossip Network
-
 DogeNet is a peer-to-peer gossip networking system that enables decentralized distribution of tokenization data across the Fractal Engine network. This document provides comprehensive information about DogeNet's architecture, configuration, and operation.
 
 ## Overview and Purpose
@@ -146,18 +144,20 @@ DogeNet forms a mesh network where:
 - **Clients**: Connect to local daemon via TCP
 - **Messages**: Propagate through gossip protocol
 
-```mermaid
-graph TD
-    A[DogeNet Daemon A] --- B[DogeNet Daemon B]
-    A --- C[DogeNet Daemon C]
-    B --- C
-    B --- D[DogeNet Daemon D]
-    
-    A --- A1[Fractal Engine A]
-    B --- B1[Fractal Engine B]
-    C --- C1[Fractal Engine C]
-    D --- D1[Fractal Engine D]
-```
+<Mermaid
+  chart="
+    graph TD
+      A[DogeNet Daemon A] --- B[DogeNet Daemon B]
+      A --- C[DogeNet Daemon C]
+      B --- C
+      B --- D[DogeNet Daemon D]
+      
+      A --- A1[Fractal Engine A]
+      B --- B1[Fractal Engine B]
+      C --- C1[Fractal Engine C]
+      D --- D1[Fractal Engine D]
+  "
+/>
 
 ### Message Propagation Strategy
 

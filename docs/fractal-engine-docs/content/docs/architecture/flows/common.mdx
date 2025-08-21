@@ -1,0 +1,50 @@
+---
+title: Common
+---
+
+## Common
+
+### DogeNet Follower
+<Mermaid
+  chart="
+  sequenceDiagram
+    participant DogNetClient as DogeNet Client
+    participant Store as Fractal Store
+
+    loop For Each New Gossiped Transaction
+        DogNetClient->>DogNetClient: Get Transaction
+        alt Is Mint Transaction
+            DogNetClient->>Store: Save Unconfirmed Mint
+        end
+        alt Is Invoice Transaction
+            DogNetClient->>Store: Save Unconfirmed Invoice
+        end
+        alt Is Sell Offer Transaction
+            DogNetClient->>Store: Save Sell Offer
+        end
+        alt Is Buy Offer Transaction
+            DogNetClient->>Store: Save Buy Offer
+        end
+    end
+ "
+/>
+
+### Onchain Transaction Follower
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Follower as Fractal Follower (Dogecoin L1)
+    participant Store as Fractal Store
+    participant DogecoinL1 as Dogecoin L1
+
+    loop For Each New Block
+        Follower->>DogecoinL1: Get Block Data
+        loop For Each Transaction in Block
+            Follower->>Follower: Check if Fractal Engine Transaction
+            alt Is Fractal Engine Transaction
+                Follower->>Store: Save Onchain Transaction
+            end
+        end
+    end
+"
+/>

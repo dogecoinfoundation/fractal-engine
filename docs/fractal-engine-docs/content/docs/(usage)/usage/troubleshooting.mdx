@@ -3,8 +3,6 @@ title: Troubleshooting Guide
 description: Comprehensive troubleshooting procedures for diagnosing and resolving common issues across all Fractal Engine system components
 ---
 
-# Fractal Engine Troubleshooting Guide
-
 This guide provides comprehensive troubleshooting procedures for diagnosing and resolving common issues across all Fractal Engine system components.
 
 ## Table of Contents
@@ -112,7 +110,7 @@ curl -s http://localhost:8891/health | jq .
   }
 }
 
-# DogeNet health  
+# DogeNet health
 curl -s http://localhost:8085/health
 
 # Service health via CLI
@@ -210,7 +208,7 @@ docker port fractalengine-1
 
 **Default Port Assignments**:
 - 8891: Fractal Engine API
-- 8085: DogeNet Web Interface  
+- 8085: DogeNet Web Interface
 - 42000: DogeNet P2P
 - 22556: Dogecoin RPC
 - 5432: PostgreSQL
@@ -224,7 +222,7 @@ docker port fractalengine-1
 
 #### Connection Refused
 
-**Symptoms**: 
+**Symptoms**:
 - "connection refused" errors
 - "dial tcp: connect: connection refused"
 
@@ -384,7 +382,7 @@ docker-compose logs fractalengine | grep -i "rpc\|server\|listen"
 
 **Common HTTP Status Codes**:
 - `400 Bad Request`: Invalid input data
-- `404 Not Found`: Resource not found  
+- `404 Not Found`: Resource not found
 - `422 Unprocessable Entity`: Validation failed
 - `500 Internal Server Error`: Server error
 
@@ -455,7 +453,7 @@ psql -h localhost -p 5432 -U fractalstore -d fractalstore \
 
 **Common Problems**:
 - File permissions
-- Disk space exhaustion  
+- Disk space exhaustion
 - Concurrent access limitations
 
 #### PostgreSQL Issues
@@ -642,7 +640,7 @@ Database operation completed: [table]
 # Search for errors
 docker-compose logs fractalengine | grep -i error
 
-# Count error occurrences  
+# Count error occurrences
 docker-compose logs fractalengine | grep -c "Error"
 
 # Filter by severity
