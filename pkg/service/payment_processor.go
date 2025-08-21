@@ -26,8 +26,19 @@ func (p *PaymentProcessor) Process(tx store.OnChainTransaction) error {
 		return err
 	}
 
+	if tx.BlockHash == "" {
+		blockHash, err := p.dogeClient.GetBlockHash(int(tx.Height))
+		if err != nil {
+			log.Println("GetBlockHash", err)
+			return err
+		}
+
+		tx.BlockHash = blockHash
+	}
+
 	blockHeader, err := p.dogeClient.GetBlockHeader(tx.BlockHash)
 	if err != nil {
+		log.Println("GetBlockHeader", err)
 		return err
 	}
 

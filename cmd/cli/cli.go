@@ -2,19 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
 	"os"
 
 	"dogecoin.org/fractal-engine/pkg/cli/commands"
-	"github.com/dogeorg/doge"
 	"github.com/urfave/cli/v3"
 )
 
 func main() {
-
-	pubkeyHash, _ := doge.Base58DecodeCheck("mtscddS96MYf83q14BxGu7AKwscSYrL7S2")
-	fmt.Println(hex.EncodeToString(pubkeyHash[1:]))
 
 	(&cli.Command{
 		Name:      "Fractal Engine CLI",

@@ -130,9 +130,23 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		panic(err)
 	}
 
-	err = tokenStore.Migrate()
-	if err != nil && err.Error() != "no change" {
-		panic(err)
+	failures := 0
+	maxFails := 5
+
+	for {
+		err = tokenStore.Migrate()
+		if err != nil && err.Error() != "no change" {
+			if failures < maxFails {
+				failures++
+				fmt.Printf("Migration failed: %s\n", err)
+			} else {
+				panic(err)
+			}
+		} else {
+			break
+		}
+
+		time.Sleep(5 * time.Second)
 	}
 
 	stackConfig.DogeNetClient = dogenet.NewDogeNetClient(&fecfg.Config{
@@ -214,9 +228,12 @@ func TestSimpleFlow(t *testing.T) {
 
 	paymentTrxn := Payment(buyer, seller, invoiceHash, sellQty, 20)
 	AssertEqualWithRetry(t, func() interface{} {
-		fmt.Println("Payment balance: ", GetTokenBalance(seller, mintHash))
-		return GetTokenBalance(seller, mintHash)
+		return GetTokenBalance(buyer, mintHash)
 	}, sellQty, 30, 3*time.Second)
+
+	AssertEqualWithRetry(t, func() interface{} {
+		return GetTokenBalance(seller, mintHash)
+	}, mintQty-sellQty, 30, 3*time.Second)
 	fmt.Println("Payment confirmed")
 
 	log.Println("Mint: ", mintHash)
@@ -336,15 +353,6 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 			address:        selectedUtxo.Value - koinuAmount - fee,
 		}
 	}
-
-	fmt.Println("VIN:")
-	fmt.Println(selectedUtxo.Value)
-	fmt.Println("PAYMENT AMOUNT:")
-	fmt.Println(koinuAmount)
-	fmt.Println("INPUT:")
-	fmt.Println(inputs)
-	fmt.Println("OUTPUT:")
-	fmt.Println(outputs)
 
 	rawTx, err := stackConfig.DogeClient.Request("createrawtransaction", []interface{}{inputs, outputs})
 	if err != nil {

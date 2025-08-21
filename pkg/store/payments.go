@@ -84,7 +84,7 @@ func (s *TokenisationStore) MatchPayment(onchainTransaction OnChainTransaction) 
 
 	value := float64(invoice.Quantity * invoice.Price)
 
-	paymentValue := onchainTransaction.Values[invoice.BuyerAddress]
+	paymentValue := onchainTransaction.Values[invoice.SellerAddress]
 
 	if paymentValue != value {
 		return Invoice{}, fmt.Errorf("payment value is not equal to buy offer value: %f != %f", paymentValue, value)

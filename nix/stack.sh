@@ -356,6 +356,8 @@ case "$COMMAND" in
     cleanup
     echo "Removing data directory: $BASE_DIR"
     rm -rf "$BASE_DIR"
+    rm -rf "$DOGENET_DATA"
+    rm -rf "$PGDATA"
     rm -rf "/tmp/dogecoin$INSTANCE_ID"
     ;;
 
