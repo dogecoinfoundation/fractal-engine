@@ -7,12 +7,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"dogecoin.org/fractal-engine/db/migrations"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -29,28 +31,7 @@ func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, 
 		return nil, err
 	}
 
-	if u.Scheme == "memory" {
-		sqlite, err := sql.Open("sqlite3", ":memory:")
-		if err != nil {
-			return nil, err
-		}
-
-		return &TokenisationStore{DB: sqlite, backend: "sqlite", cfg: cfg}, nil
-	} else if u.Scheme == "sqlite" {
-		var url string
-		if u.Host == "" {
-			url = u.Path
-		} else {
-			url = u.Host
-		}
-
-		sqlite, err := sql.Open("sqlite3", url)
-		if err != nil {
-			return nil, err
-		}
-
-		return &TokenisationStore{DB: sqlite, backend: "sqlite", cfg: cfg}, nil
-	} else if u.Scheme == "postgres" {
+	if u.Scheme == "postgres" {
 		postgres, err := sql.Open("postgres", dbUrl)
 		if err != nil {
 			return nil, err
@@ -59,7 +40,12 @@ func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, 
 		return &TokenisationStore{DB: postgres, backend: "postgres", cfg: cfg}, nil
 	}
 
-	return nil, fmt.Errorf("unsupported database scheme: %s", u.Scheme)
+	sqlite, err := sql.Open("sqlite3", dbUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokenisationStore{DB: sqlite, backend: "sqlite", cfg: cfg}, nil
 }
 
 func (s *TokenisationStore) Migrate() error {
@@ -68,7 +54,12 @@ func (s *TokenisationStore) Migrate() error {
 		return err
 	}
 
-	m, err := migrate.NewWithDatabaseInstance("file://"+s.cfg.MigrationsPath, s.backend, driver)
+	src, err := iofs.New(migrations.Files, ".")
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.NewWithInstance("iofs", src, s.backend, driver)
 	if err != nil {
 		return err
 	}

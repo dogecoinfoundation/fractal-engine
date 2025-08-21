@@ -8,6 +8,6 @@ CREATE TABLE IF NOT EXISTS onchain_transactions (
     action_version INTEGER NOT NULL,
     action_data BYTEA NOT NULL,
     address TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    value DOUBLE PRECISION NOT NULL
+    "values" JSONB NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

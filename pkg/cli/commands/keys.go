@@ -12,7 +12,6 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-	bmclient "github.com/dogecoinfoundation/balance-master/pkg/client"
 	"github.com/urfave/cli/v3"
 )
 
@@ -224,18 +223,6 @@ func createKeyAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	balanceMasterClient := bmclient.NewBalanceMasterClient(&bmclient.BalanceMasterClientConfig{
-		RpcServerHost: config.BalanceMasterHost,
-		RpcServerPort: config.BalanceMasterPort,
-	})
-
-	err = balanceMasterClient.TrackAddress(address)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Address tracked", address)
 
 	return nil
 }

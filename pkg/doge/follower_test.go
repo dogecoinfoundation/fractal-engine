@@ -9,6 +9,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/protocol"
+	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/dogecoinfoundation/chainfollower/pkg/chainfollower"
 	"github.com/dogecoinfoundation/chainfollower/pkg/messages"
 	"github.com/dogecoinfoundation/chainfollower/pkg/state"
@@ -90,6 +91,6 @@ func TestDogeFollower(t *testing.T) {
 	assert.Equal(t, uint8(protocol.DEFAULT_VERSION), transactions[0].ActionVersion)
 	assert.Equal(t, hex.EncodeToString(mintMessage.Data), hex.EncodeToString(transactions[0].ActionData))
 	assert.Equal(t, "1234567890", transactions[0].Address)
-	assert.Equal(t, float64(100), transactions[0].Value)
+	assert.Assert(t, transactions[0].Values.Equal(store.StringInterfaceMap{"1234567890": 100}))
 
 }

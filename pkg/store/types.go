@@ -1,15 +1,47 @@
 package store
 
 import (
+	"bytes"
 	"crypto/sha256"
+
 	"database/sql"
+
+	"database/sql/driver"
 	"encoding/hex"
+
 	"encoding/json"
+
 	"fmt"
+
 	"time"
 )
 
 type StringInterfaceMap map[string]interface{}
+
+func (m StringInterfaceMap) Value() (driver.Value, error) {
+	if m == nil {
+		return "{}", nil
+	}
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return string(b), nil
+}
+
+func (m StringInterfaceMap) Equal(other StringInterfaceMap) bool {
+	// Marshal both sides to canonical JSON and compare bytes
+	// encoding/json sorts map keys, and both 10 and 10.0 render as "10"
+	aj, errA := json.Marshal(m)
+	if errA != nil {
+		return false
+	}
+	bj, errB := json.Marshal(other)
+	if errB != nil {
+		return false
+	}
+	return bytes.Equal(aj, bj)
+}
 
 func (m *StringInterfaceMap) Scan(src interface{}) error {
 	var source []byte
@@ -60,16 +92,16 @@ type MintHash struct {
 }
 
 type OnChainTransaction struct {
-	Id                string  `json:"id"`
-	TxHash            string  `json:"tx_hash"`
-	Height            int64   `json:"height"`
-	BlockHash         string  `json:"block_hash"`
-	ActionType        uint8   `json:"action_type"`
-	ActionVersion     uint8   `json:"action_version"`
-	ActionData        []byte  `json:"action_data"`
-	Address           string  `json:"address"`
-	Value             float64 `json:"value"`
-	TransactionNumber int     `json:"transaction_number"`
+	Id                string             `json:"id"`
+	TxHash            string             `json:"tx_hash"`
+	Height            int64              `json:"height"`
+	BlockHash         string             `json:"block_hash"`
+	ActionType        uint8              `json:"action_type"`
+	ActionVersion     uint8              `json:"action_version"`
+	ActionData        []byte             `json:"action_data"`
+	Address           string             `json:"address"`
+	Values            StringInterfaceMap `json:"values"`
+	TransactionNumber int                `json:"transaction_number"`
 }
 
 func (m *MintWithoutID) GenerateHash() (string, error) {
@@ -257,20 +289,21 @@ type InvoiceHash struct {
 }
 
 type Invoice struct {
-	Id                    string    `json:"id"`
-	Hash                  string    `json:"hash"`
-	PaymentAddress        string    `json:"payment_address"`
-	BuyerAddress          string    `json:"buyer_address"`
-	MintHash              string    `json:"mint_hash"`
-	Quantity              int       `json:"quantity"`
-	Price                 int       `json:"price"`
-	CreatedAt             time.Time `json:"created_at"`
-	SellerAddress         string    `json:"seller_address"`
-	BlockHeight           int64     `json:"block_height"`
-	TransactionHash       string    `json:"transaction_hash"`
-	PendingTokenBalanceId string    `json:"pending_token_balance_id"`
-	PublicKey             string    `json:"public_key"`
-	Signature             string    `json:"signature"`
+	Id                    string       `json:"id"`
+	Hash                  string       `json:"hash"`
+	PaymentAddress        string       `json:"payment_address"`
+	BuyerAddress          string       `json:"buyer_address"`
+	MintHash              string       `json:"mint_hash"`
+	Quantity              int          `json:"quantity"`
+	Price                 int          `json:"price"`
+	CreatedAt             time.Time    `json:"created_at"`
+	SellerAddress         string       `json:"seller_address"`
+	BlockHeight           int64        `json:"block_height"`
+	TransactionHash       string       `json:"transaction_hash"`
+	PendingTokenBalanceId string       `json:"pending_token_balance_id"`
+	PublicKey             string       `json:"public_key"`
+	Signature             string       `json:"signature"`
+	PaidAt                sql.NullTime `json:"paid_at"`
 }
 
 func (i *Invoice) GenerateHash() (string, error) {

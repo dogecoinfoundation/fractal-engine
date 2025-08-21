@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,44 +15,45 @@ import (
 	"time"
 
 	feclient "dogecoin.org/fractal-engine/pkg/client"
+	"dogecoin.org/fractal-engine/pkg/config"
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+	"dogecoin.org/fractal-engine/pkg/indexer"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
-	bmclient "github.com/dogecoinfoundation/balance-master/pkg/client"
+	"github.com/dogeorg/doge/koinu"
 )
 
 type StackConfig struct {
-	InstanceId          int
-	BasePort            int
-	DogePort            int
-	DogeHost            string
-	FractalPort         int
-	FractalHost         string
-	DogeNetPort         int
-	DogeNetHost         string
-	DogeNetBindPort     int
-	DogeNetPubKey       string
-	DogeNetWebPort      int
-	BalanceMasterPort   int
-	BalanceMasterHost   string
-	PortgresPort        int
-	PostgresHost        string
-	DogeNetHandlerPort  int
-	PrivKey             string
-	PubKey              string
-	Address             string
-	TokenisationClient  *feclient.TokenisationClient
-	BalanceMasterClient *bmclient.BalanceMasterClient
-	DogeClient          *doge.RpcClient
-	DogeNetClient       dogenet.GossipClient
-	TokenisationStore   *store.TokenisationStore
+	InstanceId         int
+	BasePort           int
+	DogePort           int
+	DogeHost           string
+	DogeP2PPort        int
+	FractalPort        int
+	FractalHost        string
+	DogeNetPort        int
+	DogeNetHost        string
+	DogeNetBindPort    int
+	DogeNetPubKey      string
+	DogeNetWebPort     int
+	IndexerURL         string
+	PortgresPort       int
+	PostgresHost       string
+	DogeNetHandlerPort int
+	PrivKey            string
+	PubKey             string
+	Address            string
+	TokenisationClient *feclient.TokenisationClient
+	IndexerClient      *indexer.IndexerClient
+	DogeClient         *doge.RpcClient
+	DogeNetClient      dogenet.GossipClient
+	TokenisationStore  *store.TokenisationStore
 }
+
+var nodePubKeyRe = regexp.MustCompile(`Node PubKey is:\s*([0-9a-fA-F]{64})`)
 
 func NewStackConfig(instanceId int, chain string) StackConfig {
 	prefixByte, err := doge.GetPrefix(chain)
@@ -60,26 +61,25 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		panic(err)
 	}
 
-	basePort := 8000 + (instanceId * 100)
+	basePortFirst := 8600 + (1 * 100)
+	basePort := 8600 + (instanceId * 100)
 	privHex, pubHex, address, err := doge.GenerateDogecoinKeypair(prefixByte)
 	if err != nil {
 		panic(err)
 	}
 
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	stackConfig := StackConfig{
 		InstanceId:         instanceId,
 		BasePort:           basePort,
-		DogePort:           basePort + 14556,
+		DogePort:           basePortFirst + 14556,
+		DogeHost:           "0.0.0.0",
+		DogeP2PPort:        basePortFirst + 10,
 		FractalPort:        basePort + 2,
+		FractalHost:        "0.0.0.0",
 		DogeNetPort:        basePort + 3,
 		DogeNetWebPort:     basePort + 4,
-		BalanceMasterPort:  basePort + 5,
-		PortgresPort:       basePort + 6,
+		DogeNetHost:        "0.0.0.0",
+		IndexerURL:         "http://0.0.0.0:" + strconv.Itoa(basePortFirst+5),
 		DogeNetHandlerPort: basePort + 7,
 		DogeNetBindPort:    42000 + instanceId,
 		Address:            address,
@@ -87,45 +87,87 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		PubKey:             pubHex,
 	}
 
-	populateStackHosts(&stackConfig, cli)
+	fmt.Println("StackConfig:", stackConfig)
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	dogenetLogFile := home + "/.fractal-stack-" + strconv.Itoa(instanceId) + "/logs/dogenet.log"
+
+	_, err = os.Stat(dogenetLogFile)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	logFile, err := os.ReadFile(dogenetLogFile)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	logFileStr := string(logFile)
+	nodePubKey, ok := ExtractNodePubKey(logFileStr)
+	if !ok {
+		fmt.Println("Error: could not extract node public key")
+	}
+	stackConfig.DogeNetPubKey = nodePubKey
 
 	stackConfig.TokenisationClient = feclient.NewTokenisationClient("http://"+stackConfig.FractalHost+":"+strconv.Itoa(stackConfig.FractalPort), stackConfig.PrivKey, stackConfig.PubKey)
-	stackConfig.BalanceMasterClient = bmclient.NewBalanceMasterClient(&bmclient.BalanceMasterClientConfig{
-		RpcServerHost: stackConfig.BalanceMasterHost,
-		RpcServerPort: strconv.Itoa(stackConfig.BalanceMasterPort),
-	})
+	stackConfig.IndexerClient = indexer.NewIndexerClient(stackConfig.IndexerURL)
 	stackConfig.DogeClient = doge.NewRpcClient(&fecfg.Config{
 		DogeScheme:   "http",
 		DogeHost:     "localhost",
 		DogePort:     strconv.Itoa(stackConfig.DogePort),
-		DogeUser:     "test",
-		DogePassword: "test",
+		DogeUser:     "dogecoinrpc",
+		DogePassword: "changeme1",
 	})
 
-	tokenStore, err := store.NewTokenisationStore("postgres://fractalstore:fractalstore@"+stackConfig.PostgresHost+":"+strconv.Itoa(stackConfig.PortgresPort)+"/fractalstore?sslmode=disable", fecfg.Config{
-		MigrationsPath: "../../../db/migrations",
-	})
+	tokenStore, err := store.NewTokenisationStore("file:fractalstore?mode=memory&cache=shared", config.Config{})
 
 	stackConfig.TokenisationStore = tokenStore
 	if err != nil {
 		panic(err)
 	}
 
-	err = tokenStore.Migrate()
-	if err != nil && err.Error() != "no change" {
-		panic(err)
+	failures := 0
+	maxFails := 5
+
+	for {
+		err = tokenStore.Migrate()
+		if err != nil && err.Error() != "no change" {
+			if failures < maxFails {
+				failures++
+				fmt.Printf("Migration failed: %s\n", err)
+			} else {
+				panic(err)
+			}
+		} else {
+			break
+		}
+
+		time.Sleep(5 * time.Second)
 	}
 
 	stackConfig.DogeNetClient = dogenet.NewDogeNetClient(&fecfg.Config{
 		DogeNetWebAddress: "localhost" + ":" + strconv.Itoa(stackConfig.DogeNetWebPort),
 	}, tokenStore)
 
-	TrackAddress(&stackConfig)
 	TopUp(&stackConfig)
 	ConfirmBlocks(&stackConfig)
 
 	return stackConfig
 }
+
+func ExtractNodePubKey(logFileStr string) (string, bool) {
+	matches := nodePubKeyRe.FindAllStringSubmatch(logFileStr, -1)
+	if len(matches) == 0 {
+		return "", false
+	}
+	return strings.ToLower(matches[len(matches)-1][1]), true
+}
+
+var spentUtxos []string
 
 func TestSimpleFlow(t *testing.T) {
 	stacks := makeStackConfigsAndPeer(2)
@@ -135,11 +177,39 @@ func TestSimpleFlow(t *testing.T) {
 	mintQty := 100
 	sellQty := 20
 
+	Retry(t, func() bool {
+		fmt.Printf("Checking balance for %s\n", seller.Address)
+		balance, err := seller.IndexerClient.GetBalance(seller.Address)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		return balance.Available >= 1
+	}, 20, 3*time.Second)
+	fmt.Println("Doge Balance confirmed")
+
+	utxo, err := seller.IndexerClient.GetUTXO(seller.Address)
+	if err != nil {
+		t.Fail()
+	}
+	for _, utxo := range utxo.UTXOs {
+		fmt.Println(utxo)
+	}
+
 	mintHash := Mint(seller)
 	AssertEqualWithRetry(t, func() interface{} {
 		return GetTokenBalance(seller, mintHash)
 	}, mintQty, 10, 3*time.Second)
 	fmt.Println("Mint confirmed")
+
+	Retry(t, func() bool {
+		fmt.Printf("Checking balance for %s\n", seller.Address)
+		utxos, err := GetUnspentUtxos(seller, seller.Address)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(utxos) > 0
+	}, 30, 5*time.Second)
 
 	invoiceHash := Invoice(seller, buyer.Address, mintHash, sellQty, 20)
 	AssertEqualWithRetry(t, func() interface{} {
@@ -147,10 +217,23 @@ func TestSimpleFlow(t *testing.T) {
 	}, sellQty, 10, 3*time.Second)
 	fmt.Println("Invoice confirmed")
 
+	Retry(t, func() bool {
+		fmt.Printf("Checking balance for %s\n", buyer.Address)
+		utxos, err := GetUnspentUtxos(buyer, buyer.Address)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(utxos) > 0
+	}, 30, 5*time.Second)
+
 	paymentTrxn := Payment(buyer, seller, invoiceHash, sellQty, 20)
 	AssertEqualWithRetry(t, func() interface{} {
+		return GetTokenBalance(buyer, mintHash)
+	}, sellQty, 30, 3*time.Second)
+
+	AssertEqualWithRetry(t, func() interface{} {
 		return GetTokenBalance(seller, mintHash)
-	}, sellQty, 10, 3*time.Second)
+	}, mintQty-sellQty, 30, 3*time.Second)
 	fmt.Println("Payment confirmed")
 
 	log.Println("Mint: ", mintHash)
@@ -171,7 +254,32 @@ func TestSimpleFlow(t *testing.T) {
 	fmt.Println(result)
 }
 
-func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody string, amount float64) string {
+func GetUnspentUtxos(stackConfig *StackConfig, address string) ([]indexer.UTXOItem, error) {
+	utxo, err := stackConfig.IndexerClient.GetUTXO(address)
+	if err != nil {
+		return nil, err
+	}
+
+	var unspent []indexer.UTXOItem
+	for _, utxo := range utxo.UTXOs {
+		inSpentUtxos := false
+		for _, spentUtxo := range spentUtxos {
+			if utxo.TxID == spentUtxo {
+				inSpentUtxos = true
+				break
+			}
+		}
+
+		if !inSpentUtxos {
+			unspent = append(unspent, utxo)
+		}
+
+	}
+
+	return unspent, nil
+}
+
+func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody string, amount int64) string {
 	blockChainInfo, err := stackConfig.DogeClient.GetBlockchainInfo()
 	if err != nil {
 		panic(err)
@@ -183,35 +291,66 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 	}
 	chainCfg := doge.GetChainCfg(chainByte)
 
-	utxos, err := stackConfig.BalanceMasterClient.GetUtxos(stackConfig.Address)
-	if err != nil {
-		panic(err)
+	var selectedUtxo indexer.UTXOItem
+	retries := 0
+	maxRetries := 10
+
+	for {
+		utxos, err := GetUnspentUtxos(stackConfig, stackConfig.Address)
+		if err != nil {
+			panic(err)
+		}
+
+		if len(utxos) == 0 {
+			panic(errors.New("No utxos found"))
+		}
+
+		for _, utxo := range utxos {
+			_, err := stackConfig.DogeClient.Request("gettxout", []interface{}{utxo.TxID, utxo.VOut, true})
+			if err != nil {
+				continue
+			}
+
+			selectedUtxo = utxo
+		}
+
+		if selectedUtxo.TxID != "" {
+			break
+		}
+
+		time.Sleep(20 * time.Second)
+		retries++
+		if retries >= maxRetries {
+			panic(errors.New("Max retries exceeded"))
+		}
 	}
 
-	if len(utxos) == 0 {
-		panic(errors.New("No utxos found"))
-	}
+	fmt.Println("Selected UTXO:", selectedUtxo.TxID)
+	fmt.Println("", selectedUtxo.VOut)
+	fmt.Println("", selectedUtxo.Value)
 
 	inputs := []interface{}{
 		map[string]interface{}{
-			"txid": utxos[0].TxID,
-			"vout": utxos[0].VOut,
+			"txid": selectedUtxo.TxID,
+			"vout": selectedUtxo.VOut,
 		},
 	}
 
 	address := stackConfig.Address
+	fee, _ := koinu.ParseKoinu("1")
+	koinuAmount := koinu.Koinu(amount * koinu.OneDoge)
 
 	var outputs map[string]interface{}
-	if paymentAddress == address {
+	if paymentAddress == "" && paymentAddress == address {
 		outputs = map[string]interface{}{
 			"data":  hexBody,
-			address: utxos[0].Amount - amount,
+			address: selectedUtxo.Value - koinuAmount - fee,
 		}
 	} else {
 		outputs = map[string]interface{}{
 			"data":         hexBody,
-			paymentAddress: amount,
-			address:        utxos[0].Amount - amount,
+			paymentAddress: koinuAmount,
+			address:        selectedUtxo.Value - koinuAmount - fee,
 		}
 	}
 
@@ -228,7 +367,7 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 	encodedTx, err := doge.SignRawTransaction(rawTxResponse, stackConfig.PrivKey, []doge.PrevOutput{
 		{
 			Address: address,
-			Amount:  int64(utxos[0].Amount),
+			Amount:  int64(selectedUtxo.Value),
 		},
 	}, chainCfg)
 
@@ -246,6 +385,11 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 	if err := json.Unmarshal(*res, &txid); err != nil {
 		panic(err)
 	}
+
+	spentUtxos = append(spentUtxos, selectedUtxo.TxID)
+
+	TopUp(stackConfig)
+	ConfirmBlocks(stackConfig)
 
 	return txid
 }
@@ -295,22 +439,14 @@ func TopUp(stackConfig *StackConfig) {
 	fmt.Println("Topped up address " + stackConfig.Address)
 }
 
-func TrackAddress(stackConfig *StackConfig) {
-	err := stackConfig.BalanceMasterClient.TrackAddress(stackConfig.Address)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Tracking address " + stackConfig.Address)
-}
-
 func Payment(buyerConfig *StackConfig, sellerConfig *StackConfig, invoiceHash string, quantity int, price int) string {
 	envelope := protocol.NewPaymentTransactionEnvelope(invoiceHash, protocol.ACTION_PAYMENT)
 	encodedTransactionBody := envelope.Serialize()
 
-	total := float64(quantity*price + 1)
+	total := int64(quantity * price)
 
 	txId := WriteToBlockchain(buyerConfig, sellerConfig.Address, hex.EncodeToString(encodedTransactionBody), total)
+	ConfirmBlocks(sellerConfig)
 	ConfirmBlocks(buyerConfig)
 
 	return txId
@@ -340,6 +476,7 @@ func Invoice(stackConfig *StackConfig, buyerAddress string, mintHash string, qua
 	}
 
 	invoiceRequest.Signature = signature
+	invoiceRequest.PublicKey = stackConfig.PubKey
 
 	res, err := stackConfig.TokenisationClient.CreateInvoice(&invoiceRequest)
 	if err != nil {
@@ -350,7 +487,7 @@ func Invoice(stackConfig *StackConfig, buyerAddress string, mintHash string, qua
 	encodedTransactionBody := envelope.Serialize()
 
 	// just network fees
-	WriteToBlockchain(stackConfig, stackConfig.Address, hex.EncodeToString(encodedTransactionBody), float64(1))
+	WriteToBlockchain(stackConfig, stackConfig.Address, hex.EncodeToString(encodedTransactionBody), int64(5))
 
 	ConfirmBlocks(stackConfig)
 
@@ -395,7 +532,7 @@ func Mint(stackConfig *StackConfig) string {
 	encodedTransactionBody := envelope.Serialize()
 
 	// Only need 1 to cover network fees
-	WriteToBlockchain(stackConfig, stackConfig.Address, hex.EncodeToString(encodedTransactionBody), 1)
+	WriteToBlockchain(stackConfig, stackConfig.Address, hex.EncodeToString(encodedTransactionBody), 5)
 
 	ConfirmBlocks(stackConfig)
 
@@ -422,59 +559,36 @@ func makeStackConfigsAndPeer(stackCount int) []*StackConfig {
 			panic(err)
 		}
 
-		stackA.DogeClient.AddPeer(stackB.DogeHost)
+		for {
+			nodesA, err := stackA.DogeNetClient.GetNodes()
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println("Nodes A:", nodesA)
+
+			nodesB, err := stackB.DogeNetClient.GetNodes()
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println("Nodes B:", nodesB)
+
+			if len(nodesA) >= 1 && len(nodesB) >= 1 {
+				break
+			}
+
+			time.Sleep(5 * time.Second)
+		}
+
+		time.Sleep(1 * time.Minute)
+
+		// ignore error incase of re-add
+		// err = stackA.DogeClient.AddPeer(stackB.DogeHost + ":" + strconv.Itoa(stackB.DogeP2PPort))
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
 	}
 
 	return stacks
-}
-
-func populateStackHosts(stackConfig *StackConfig, cli *client.Client) {
-	ctx := context.Background()
-	inspectRes, err := cli.NetworkInspect(ctx, "fractal-shared", network.InspectOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	instanceId := strconv.Itoa(stackConfig.InstanceId)
-
-	for _, ct := range inspectRes.Containers {
-		if ct.Name == "fractalengine-"+instanceId {
-			stackConfig.FractalHost = strings.Split(ct.IPv4Address, "/")[0]
-		}
-
-		if ct.Name == "dogecoin-"+instanceId {
-			stackConfig.DogeHost = strings.Split(ct.IPv4Address, "/")[0]
-		}
-
-		if ct.Name == "dogenet-"+instanceId {
-			stackConfig.DogeNetHost = strings.Split(ct.IPv4Address, "/")[0]
-			res, err := cli.ContainerLogs(ctx, ct.Name, container.LogsOptions{
-				ShowStderr: true,
-			})
-			if err != nil {
-				panic(err)
-			}
-
-			logBytes, err := io.ReadAll(res)
-			if err != nil {
-				panic(err)
-			}
-
-			logs := string(logBytes)
-			re := regexp.MustCompile(`Node PubKey is: ([0-9a-fA-F]+)`)
-			matches := re.FindStringSubmatch(logs)
-			if len(matches) > 1 {
-				stackConfig.DogeNetPubKey = matches[1]
-			}
-		}
-
-		if ct.Name == "fractalstore-"+instanceId {
-			stackConfig.PostgresHost = "localhost" // Connect from outside Docker context
-		}
-
-		if ct.Name == "balance-master-"+instanceId {
-			stackConfig.BalanceMasterHost = strings.Split(ct.IPv4Address, "/")[0]
-		}
-	}
-
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	"dogecoin.org/fractal-engine/pkg/health"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"github.com/golang-migrate/migrate"
 )
 
 type TokenisationService struct {
@@ -47,10 +47,23 @@ func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetCl
 func (s *TokenisationService) Start() {
 	log.Println("Starting tokenisation service")
 
-	err := s.Store.Migrate()
+	failures := 0
+	maxFails := 5
 
-	if err != nil && err.Error() != migrate.ErrNoChange.Error() {
-		log.Fatalf("Failed to migrate tokenisation store: %v", err)
+	for {
+		err := s.Store.Migrate()
+		if err != nil && err.Error() != "no change" {
+			if failures < maxFails {
+				failures++
+				fmt.Printf("Migration failed: %s\n", err)
+			} else {
+				log.Fatalf("Failed to migrate tokenisation store: %v", err)
+			}
+		} else {
+			break
+		}
+
+		time.Sleep(5 * time.Second)
 	}
 
 	statusChan := make(chan string)

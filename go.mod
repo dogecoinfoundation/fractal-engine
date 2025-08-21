@@ -12,11 +12,9 @@ require (
 	github.com/charmbracelet/huh v0.7.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/cosmos/btcutil v1.0.5
-	github.com/docker/go-connections v0.5.0
-	github.com/dogecoinfoundation/balance-master v0.0.0-20250720101753-eed1617866b1
 	github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3
 	github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9
-	github.com/dogeorg/doge v0.0.15
+	github.com/dogeorg/doge v0.1.2-0.20250818072130-2d2e0619e480
 	github.com/golang-migrate/migrate v3.5.4+incompatible
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
@@ -66,6 +64,7 @@ require (
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/docker v28.3.3+incompatible // indirect
+	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect

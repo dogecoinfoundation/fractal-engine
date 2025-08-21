@@ -23,6 +23,7 @@ func (c *DogeNetClient) GossipUnconfirmedInvoice(record store.UnconfirmedInvoice
 			Price:          int32(record.Price),
 			SellerAddress:  record.SellerAddress,
 		},
+		Hash:      record.Hash,
 		CreatedAt: timestamppb.New(record.CreatedAt),
 	}
 
@@ -66,13 +67,22 @@ func (c *DogeNetClient) recvInvoice(msg dnet.Message) {
 
 	invoice := envelope.Payload
 
-	invoicePayload, err := json.Marshal(invoice)
+	invoiceSignaturePayload := &protocol.InvoicePayload{
+		PaymentAddress: invoice.Payload.PaymentAddress,
+		BuyerAddress:   invoice.Payload.BuyerAddress,
+		MintHash:       invoice.Payload.MintHash,
+		Quantity:       invoice.Payload.Quantity,
+		Price:          invoice.Payload.Price,
+		SellerAddress:  invoice.Payload.SellerAddress,
+	}
+
+	invoiceSignaturePayloadBytes, err := json.Marshal(invoiceSignaturePayload)
 	if err != nil {
 		log.Println("Error marshalling invoice:", err)
 		return
 	}
 
-	err = doge.ValidateSignature(invoicePayload, envelope.PublicKey, envelope.Signature)
+	err = doge.ValidateSignature(invoiceSignaturePayloadBytes, envelope.PublicKey, envelope.Signature)
 	if err != nil {
 		log.Println("Error validating signature:", err)
 		return

@@ -3,12 +3,12 @@ package rpc
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
-	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/store"
 	dogelib "github.com/dogeorg/doge"
 )
@@ -16,14 +16,13 @@ import (
 // setupDemoBalance
 
 type DemoRoutes struct {
-	store        *store.TokenisationStore
-	gossipClient dogenet.GossipClient
-	cfg          *config.Config
-	dogeClient   *doge.RpcClient
+	store      *store.TokenisationStore
+	cfg        *config.Config
+	dogeClient *doge.RpcClient
 }
 
-func HandleDemoRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux, cfg *config.Config, dogeClient *doge.RpcClient) {
-	dr := &DemoRoutes{store: store, gossipClient: gossipClient, cfg: cfg, dogeClient: dogeClient}
+func HandleDemoRoutes(store *store.TokenisationStore, mux *http.ServeMux, cfg *config.Config, dogeClient *doge.RpcClient) {
+	dr := &DemoRoutes{store: store, cfg: cfg, dogeClient: dogeClient}
 
 	mux.HandleFunc("/setup-demo-balance", dr.handleSetupDemoBalance)
 	mux.HandleFunc("/list-unspent", dr.handleListUnspent)
@@ -86,28 +85,28 @@ func (dr *DemoRoutes) getListUnspent(w http.ResponseWriter, r *http.Request) {
 func (dr *DemoRoutes) postSetupDemoBalance(w http.ResponseWriter, r *http.Request) {
 	_, err := dr.dogeClient.Generate(101)
 	if err != nil {
-		log.Println("error generating blocks", err)
+		fmt.Println("error generating blocks", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	address := r.URL.Query().Get("address")
 	if address == "" {
-		log.Println("address is required")
+		fmt.Println("address is required")
 		http.Error(w, "Address is required", http.StatusBadRequest)
 		return
 	}
 
-	_, err = dr.dogeClient.SendToAddress(address, float64(1000))
+	_, err = dr.dogeClient.SendToAddress(address, 1000)
 	if err != nil {
-		log.Println("error sending to address", err)
+		fmt.Println("error sending to address", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	_, err = dr.dogeClient.Generate(1)
 	if err != nil {
-		log.Println("error generating blocks", err)
+		fmt.Println("error generating blocks", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -115,7 +114,7 @@ func (dr *DemoRoutes) postSetupDemoBalance(w http.ResponseWriter, r *http.Reques
 	respondJSON(w, http.StatusOK, address)
 }
 
-func (dr *DemoRoutes) SetupAddress(label string, initialBalance float64) (Address, error) {
+func (dr *DemoRoutes) SetupAddress(label string, initialBalance int64) (Address, error) {
 	_, err := dr.dogeClient.Generate(100)
 	if err != nil {
 		return Address{}, err
@@ -142,7 +141,7 @@ func (dr *DemoRoutes) SetupAddress(label string, initialBalance float64) (Addres
 	pubKey := dogelib.ECPubKeyFromECPrivKey(privKeyBytes)
 	pubKeyHex := hex.EncodeToString(pubKey[:])
 
-	_, err = dr.dogeClient.SendToAddress(address, float64(initialBalance))
+	_, err = dr.dogeClient.SendToAddress(address, initialBalance)
 	if err != nil {
 		return Address{}, err
 	}

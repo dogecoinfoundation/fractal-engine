@@ -54,7 +54,7 @@ func (mr *MintRoutes) handleMint(w http.ResponseWriter, r *http.Request) {
 
 func (mr *MintRoutes) getMint(w http.ResponseWriter, r *http.Request) {
 	hash := validation.SanitizeQueryParam(mux.Vars(r)["hash"])
-	
+
 	// Validate hash format
 	if err := validation.ValidateHash(hash); err != nil {
 		http.Error(w, "Invalid hash format", http.StatusBadRequest)
@@ -105,8 +105,9 @@ func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 	}
 
 	publicKey := validation.SanitizeQueryParam(r.URL.Query().Get("public_key"))
+	address := validation.SanitizeQueryParam(r.URL.Query().Get("address"))
 	includeUnconfirmed := validation.SanitizeQueryParam(r.URL.Query().Get("include_unconfirmed")) == "true"
-	
+
 	// Validate public key format if provided
 	if publicKey != "" {
 		if err := validation.ValidatePublicKey(publicKey); err != nil {
@@ -123,6 +124,13 @@ func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 
 	if publicKey != "" {
 		mints, err = mr.store.GetMintsByPublicKey(start, end, publicKey, includeUnconfirmed)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+	} else if address != "" {
+		mints, err = mr.store.GetMintsByAddress(start, end, address, includeUnconfirmed)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Invalid JSON", http.StatusBadRequest)

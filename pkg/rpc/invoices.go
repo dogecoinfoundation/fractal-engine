@@ -161,6 +161,7 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:      time.Now(),
 		SellerAddress:  request.Payload.SellerAddress,
 		PublicKey:      request.PublicKey,
+		Signature:      request.Signature,
 	}
 
 	newInvoiceWithoutId.Hash, err = newInvoiceWithoutId.GenerateHash()

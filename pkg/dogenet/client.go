@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
 
@@ -59,6 +60,8 @@ type DogeNetClient struct {
 	Running  bool
 }
 
+const GossipInterval = 71 * time.Second // gossip a random identity to peers
+
 func convertToStructPBMap(m map[string]interface{}) map[string]*structpb.Value {
 	fields := make(map[string]*structpb.Value)
 	for k, v := range m {
@@ -78,7 +81,7 @@ func NewDogeNetClient(cfg *config.Config, store *store.TokenisationStore) *DogeN
 }
 
 func (c *DogeNetClient) GetNodes() (GetNodesResponse, error) {
-	resp, err := http.Get("http://" + c.cfg.DogeNetWebAddress + "/peers")
+	resp, err := http.Get("http://" + c.cfg.DogeNetWebAddress + "/nodes")
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +93,11 @@ func (c *DogeNetClient) GetNodes() (GetNodesResponse, error) {
 	}
 
 	var nodes GetNodesResponse
-	json.Unmarshal(body, &nodes)
+
+	err = json.Unmarshal(body, &nodes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response body: %s", err)
+	}
 
 	return nodes, nil
 }
@@ -197,8 +204,8 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 	}
 	log.Printf("[FE] completed handshake.")
 
-	// go s.gossipMyIdentity(sock)
-	// go s.gossipRandomIdentities(sock)
+	// go c.gossipRandomMints()
+	// go c.gossipRandomInvoices()
 
 	if statusChan != nil {
 		statusChan <- "Running"
@@ -223,6 +230,8 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 			log.Printf("[FE] ignored message: [%s][%s]", msg.Chan, msg.Tag)
 			continue
 		}
+
+		log.Printf("[FE] message received\n")
 
 		switch msg.Tag {
 		case TagMint:
@@ -254,4 +263,61 @@ func (c *DogeNetClient) Stop() error {
 	}
 
 	return nil
+}
+
+func (s *DogeNetClient) gossipRandomMints() {
+	for !s.Stopping {
+		// wait for next turn
+		time.Sleep(GossipInterval)
+
+		// choose a random identity
+		mint, err := s.store.ChooseMint()
+		if err != nil {
+			log.Printf("[FE] cannot choose mint: %v", err)
+			continue
+		}
+
+		log.Printf("[FE] Gossiping random mint\n")
+
+		err = s.GossipMint(mint)
+		if err != nil {
+			log.Printf("[FE] cannot gossip mint: %v", err)
+		}
+	}
+}
+
+func (s *DogeNetClient) gossipRandomInvoices() {
+	for !s.Stopping {
+		// wait for next turn
+		time.Sleep(GossipInterval)
+
+		// choose a random identity
+		invoice, err := s.store.ChooseInvoice()
+		log.Println("Choose Invoice")
+
+		if err != nil {
+			log.Printf("[FE] cannot choose invoice: %v", err)
+			continue
+		}
+
+		log.Printf("[FE] Gossiping random invoice\n")
+		unconfirmedInvoice := store.UnconfirmedInvoice{
+			Id:             invoice.Id,
+			Hash:           invoice.Hash,
+			PaymentAddress: invoice.PaymentAddress,
+			BuyerAddress:   invoice.BuyerAddress,
+			MintHash:       invoice.MintHash,
+			Quantity:       invoice.Quantity,
+			Price:          invoice.Price,
+			CreatedAt:      invoice.CreatedAt,
+			SellerAddress:  invoice.SellerAddress,
+			PublicKey:      invoice.PublicKey,
+			Signature:      invoice.Signature,
+		}
+
+		err = s.GossipUnconfirmedInvoice(unconfirmedInvoice)
+		if err != nil {
+			log.Printf("[FE] cannot gossip invoice: %v", err)
+		}
+	}
 }

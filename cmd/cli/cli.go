@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+
 	(&cli.Command{
 		Name:      "Fractal Engine CLI",
 		Usage:     "fecli",
@@ -19,7 +20,7 @@ func main() {
 			commands.HealthCommand,
 			commands.MintCommand,
 			commands.DemoCommand,
-			commands.BmCommand,
+			commands.IndexerCommand,
 			commands.DebugCommand,
 			commands.SellOffersCommand,
 			commands.BuyOffersCommand,

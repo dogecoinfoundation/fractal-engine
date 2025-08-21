@@ -9,3 +9,5 @@ bin
 coverage
 coverage.out
 coverage_*out
+nix/result
+result

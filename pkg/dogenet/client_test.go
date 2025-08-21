@@ -48,7 +48,7 @@ func TestDogeNetClientGetNodes(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/peers", r.URL.Path)
+		assert.Equal(t, "/nodes", r.URL.Path)
 		assert.Equal(t, "GET", r.Method)
 
 		json.NewEncoder(w).Encode(mockNodes)
