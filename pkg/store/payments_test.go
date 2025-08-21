@@ -111,7 +111,7 @@ func TestMatchPaymentSuccess(t *testing.T) {
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
 	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 3, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, map[string]interface{}{
-		buyerAddress: value,
+		sellerAddress: value,
 	})
 	assert.NilError(t, err)
 
@@ -287,7 +287,7 @@ func TestMatchPaymentPendingBalanceMismatch(t *testing.T) {
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
 
 	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, map[string]interface{}{
-		buyerAddress: 5000,
+		sellerAddress: 5000,
 	})
 	assert.NilError(t, err)
 

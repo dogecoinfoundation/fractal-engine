@@ -58,7 +58,7 @@ func TestInvoiceMatch(t *testing.T) {
 	AssertTokenBalance(t, ownerAddress, hash, 100, tokenisationStore)
 	AssertPendingTokenBalance(t, invoiceHash, hash, 50, tokenisationStore)
 
-	CreateOnChainPaymentMessage(t, txHash4, invoiceHash, buyerAddress, 1, 1, 50*100, tokenisationStore)
+	CreateOnChainPaymentMessage(t, txHash4, invoiceHash, buyerAddress, ownerAddress, 1, 1, 50*100, tokenisationStore)
 	processor.Process()
 
 	AssertTokenBalance(t, buyerAddress, hash, 50, tokenisationStore)
@@ -115,7 +115,7 @@ func TestPaymentIsLessThanExpected(t *testing.T) {
 
 	AssertPendingTokenBalance(t, invoiceHash, hash, 50, tokenisationStore)
 
-	CreateOnChainPaymentMessage(t, txHash3, invoiceHash, ownerAddress, 1, 1, 49, tokenisationStore)
+	CreateOnChainPaymentMessage(t, txHash3, invoiceHash, buyerAddress, ownerAddress, 1, 1, 49, tokenisationStore)
 	processor.Process()
 
 	AssertTokenBalance(t, buyerAddress, hash, 0, tokenisationStore)
@@ -209,7 +209,7 @@ func AssertTokenBalance(t *testing.T, s, hash string, i int, tokenisationStore *
 	assert.Equal(t, i, totalQuantity)
 }
 
-func CreateOnChainPaymentMessage(t *testing.T, trxnHash string, invoiceHash string, ownerAddress string, blockHeight int64, trxnNo int, value float64, tokenisationStore *store.TokenisationStore) {
+func CreateOnChainPaymentMessage(t *testing.T, trxnHash string, invoiceHash string, buyerAddress string, sellerAddress string, blockHeight int64, trxnNo int, value float64, tokenisationStore *store.TokenisationStore) {
 	message3 := protocol.OnChainPaymentMessage{
 		Hash: invoiceHash,
 	}
@@ -219,8 +219,8 @@ func CreateOnChainPaymentMessage(t *testing.T, trxnHash string, invoiceHash stri
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, blockHeight, "blockHash", trxnNo, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedMessage3, ownerAddress, map[string]interface{}{
-		ownerAddress: value,
+	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, blockHeight, "blockHash", trxnNo, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedMessage3, buyerAddress, map[string]interface{}{
+		sellerAddress: value,
 	})
 	if err != nil {
 		t.Fatalf("Failed to save on chain transaction: %v", err)

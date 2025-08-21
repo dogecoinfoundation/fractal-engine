@@ -200,7 +200,7 @@ func TestProcessPaymentTransaction(t *testing.T) {
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
 	_, err = tokenStore.SaveOnChainTransaction("txPayment", 3, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, map[string]interface{}{
-		buyerAddress: 5000,
+		sellerAddress: 5000,
 	})
 	if err != nil {
 		t.Fatalf("Failed to save payment transaction: %v", err)
