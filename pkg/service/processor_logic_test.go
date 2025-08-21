@@ -56,7 +56,9 @@ func TestProcessMintTransactionMatched(t *testing.T) {
 	}
 
 	// Create the on-chain transaction
-	_, err = tokenStore.SaveOnChainTransaction("txHash001", 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMsg, "ownerAddress", 100)
+	_, err = tokenStore.SaveOnChainTransaction("txHash001", 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMsg, "ownerAddress", map[string]interface{}{
+		"ownerAddress": 100,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save on-chain transaction: %v", err)
 	}
@@ -99,7 +101,9 @@ func TestProcessMintTransactionNotMatched(t *testing.T) {
 	}
 	encodedMsg, _ := proto.Marshal(mintMsg)
 
-	_, err := tokenStore.SaveOnChainTransaction("txHash002", 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMsg, "ownerAddress", 100)
+	_, err := tokenStore.SaveOnChainTransaction("txHash002", 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMsg, "ownerAddress", map[string]interface{}{
+		"ownerAddress": 100,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save on-chain transaction: %v", err)
 	}
@@ -152,7 +156,9 @@ func TestProcessPaymentTransaction(t *testing.T) {
 	// Create and process mint transaction
 	mintMsg := &protocol.OnChainMintMessage{Hash: mintHash}
 	encodedMintMsg, _ := proto.Marshal(mintMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txMint", 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMintMsg, sellerAddress, 100)
+	_, err = tokenStore.SaveOnChainTransaction("txMint", 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMintMsg, sellerAddress, map[string]interface{}{
+		sellerAddress: 100,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save mint transaction: %v", err)
 	}
@@ -180,7 +186,9 @@ func TestProcessPaymentTransaction(t *testing.T) {
 		Quantity:      50,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, 50)
+	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, map[string]interface{}{
+		sellerAddress: 50,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save invoice transaction: %v", err)
 	}
@@ -191,7 +199,9 @@ func TestProcessPaymentTransaction(t *testing.T) {
 		Hash: invoiceHash,
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txPayment", 3, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, 5000)
+	_, err = tokenStore.SaveOnChainTransaction("txPayment", 3, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, map[string]interface{}{
+		buyerAddress: 5000,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save payment transaction: %v", err)
 	}
@@ -246,7 +256,9 @@ func TestProcessInvoiceTransaction(t *testing.T) {
 	// Create and process mint transaction
 	mintMsg := &protocol.OnChainMintMessage{Hash: mintHash}
 	encodedMintMsg, _ := proto.Marshal(mintMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txMint", 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMintMsg, ownerAddress, 100)
+	_, err = tokenStore.SaveOnChainTransaction("txMint", 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMintMsg, ownerAddress, map[string]interface{}{
+		ownerAddress: 100,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save mint transaction: %v", err)
 	}
@@ -261,7 +273,9 @@ func TestProcessInvoiceTransaction(t *testing.T) {
 		Quantity:      30,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
-	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, ownerAddress, 30)
+	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, ownerAddress, map[string]interface{}{
+		ownerAddress: 30,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save invoice transaction: %v", err)
 	}
@@ -299,7 +313,9 @@ func TestProcessPagination(t *testing.T) {
 		encodedMsg, _ := proto.Marshal(mintMsg)
 
 		txHash := fmt.Sprintf("tx%d", i)
-		_, err := tokenStore.SaveOnChainTransaction(txHash, int64(i+1), "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMsg, "ownerAddress", 1)
+		_, err := tokenStore.SaveOnChainTransaction(txHash, int64(i+1), "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMsg, "ownerAddress", map[string]interface{}{
+			"ownerAddress": 1,
+		})
 		if err != nil {
 			t.Fatalf("Failed to save transaction %d: %v", i, err)
 		}
@@ -329,7 +345,9 @@ func TestProcessUnknownActionType(t *testing.T) {
 	processor := service.NewFractalEngineProcessor(tokenStore, rpcClient)
 
 	// Create transaction with unknown action type (use a valid uint8 value)
-	_, err := tokenStore.SaveOnChainTransaction("txUnknown", 1, "blockHash", 1, 99, protocol.DEFAULT_VERSION, []byte{}, "ownerAddress", 0)
+	_, err := tokenStore.SaveOnChainTransaction("txUnknown", 1, "blockHash", 1, 99, protocol.DEFAULT_VERSION, []byte{}, "ownerAddress", map[string]interface{}{
+		"ownerAddress": 0,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save transaction: %v", err)
 	}

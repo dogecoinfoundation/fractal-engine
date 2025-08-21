@@ -17,9 +17,7 @@ func (s *TokenisationStore) ProcessPayment(onchainTransaction OnChainTransaction
 
 	defer tx.Rollback()
 
-	fmt.Println("UPDATING INVOIC; SET PAID AT", invoice.Id)
-
-	_, err = tx.Exec("UPDATE invoices SET paid_at = $2 WHERE id = $1", invoice.Id, time.Now())
+	_, err = tx.Exec("UPDATE invoices SET paid_at = $1 WHERE id = $2", time.Now().UTC(), invoice.Id)
 	if err != nil {
 		log.Println("Error updating invoice:", err)
 		return err

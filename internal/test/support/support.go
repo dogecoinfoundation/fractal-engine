@@ -17,7 +17,6 @@ import (
 )
 
 func SetupTestDB() *store.TokenisationStore {
-
 	randoDb := rand.Intn(10000)
 
 	url := "file:memdb" + fmt.Sprintf("%d", randoDb) + "?mode=memory&cache=shared"

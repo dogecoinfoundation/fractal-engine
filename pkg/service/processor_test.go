@@ -58,7 +58,7 @@ func TestInvoiceMatch(t *testing.T) {
 	AssertTokenBalance(t, ownerAddress, hash, 100, tokenisationStore)
 	AssertPendingTokenBalance(t, invoiceHash, hash, 50, tokenisationStore)
 
-	CreateOnChainPaymentMessage(t, txHash4, invoiceHash, ownerAddress, 1, 1, 50*100, tokenisationStore)
+	CreateOnChainPaymentMessage(t, txHash4, invoiceHash, buyerAddress, 1, 1, 50*100, tokenisationStore)
 	processor.Process()
 
 	AssertTokenBalance(t, buyerAddress, hash, 50, tokenisationStore)
@@ -219,7 +219,9 @@ func CreateOnChainPaymentMessage(t *testing.T, trxnHash string, invoiceHash stri
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, blockHeight, "blockHash", trxnNo, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedMessage3, ownerAddress, value)
+	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, blockHeight, "blockHash", trxnNo, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedMessage3, ownerAddress, map[string]interface{}{
+		ownerAddress: value,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save on chain transaction: %v", err)
 	}
@@ -256,7 +258,9 @@ func CreateOnChainInvoiceMessage(t *testing.T, trxnHash string, blockHeight int6
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, blockHeight, "blockHash", trxnNo, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedMessage, ownerAddress, float64(quantity))
+	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, blockHeight, "blockHash", trxnNo, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedMessage, ownerAddress, map[string]interface{}{
+		ownerAddress: quantity,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save on chain transaction: %v", err)
 	}
@@ -312,7 +316,9 @@ func CreateUnconfirmedMint(t *testing.T, trxnHash string, tokenisationStore *sto
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMessage, ownerAddress, 100)
+	_, err = tokenisationStore.SaveOnChainTransaction(trxnHash, 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMessage, ownerAddress, map[string]interface{}{
+		ownerAddress: 100,
+	})
 	if err != nil {
 		t.Fatalf("Failed to save on chain transaction: %v", err)
 	}

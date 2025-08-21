@@ -289,21 +289,21 @@ type InvoiceHash struct {
 }
 
 type Invoice struct {
-	Id                    string    `json:"id"`
-	Hash                  string    `json:"hash"`
-	PaymentAddress        string    `json:"payment_address"`
-	BuyerAddress          string    `json:"buyer_address"`
-	MintHash              string    `json:"mint_hash"`
-	Quantity              int       `json:"quantity"`
-	Price                 int       `json:"price"`
-	CreatedAt             time.Time `json:"created_at"`
-	SellerAddress         string    `json:"seller_address"`
-	BlockHeight           int64     `json:"block_height"`
-	TransactionHash       string    `json:"transaction_hash"`
-	PendingTokenBalanceId string    `json:"pending_token_balance_id"`
-	PublicKey             string    `json:"public_key"`
-	Signature             string    `json:"signature"`
-	PaidAt                time.Time `json:"paid_at"`
+	Id                    string       `json:"id"`
+	Hash                  string       `json:"hash"`
+	PaymentAddress        string       `json:"payment_address"`
+	BuyerAddress          string       `json:"buyer_address"`
+	MintHash              string       `json:"mint_hash"`
+	Quantity              int          `json:"quantity"`
+	Price                 int          `json:"price"`
+	CreatedAt             time.Time    `json:"created_at"`
+	SellerAddress         string       `json:"seller_address"`
+	BlockHeight           int64        `json:"block_height"`
+	TransactionHash       string       `json:"transaction_hash"`
+	PendingTokenBalanceId string       `json:"pending_token_balance_id"`
+	PublicKey             string       `json:"public_key"`
+	Signature             string       `json:"signature"`
+	PaidAt                sql.NullTime `json:"paid_at"`
 }
 
 func (i *Invoice) GenerateHash() (string, error) {
