@@ -78,7 +78,7 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		DogeNetPort:    basePort + 3,
 		DogeNetWebPort: basePort + 4,
 		DogeNetHost:    "0.0.0.0",
-		IndexerURL:     "http://0.0.0.0:" + strconv.Itoa(basePort+5),
+		IndexerURL:     "http://0.0.0.0:" + strconv.Itoa(basePortFirst+5),
 		// IndexerURL:         "http://0.0.0.0:8888",
 		PortgresPort:       basePort + 6,
 		PostgresHost:       "0.0.0.0",
@@ -278,39 +278,77 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 	}
 	chainCfg := doge.GetChainCfg(chainByte)
 
-	utxos, err := GetUnspentUtxos(stackConfig, stackConfig.Address)
-	if err != nil {
-		panic(err)
+	var selectedUtxo indexer.UTXOItem
+	retries := 0
+	maxRetries := 10
+
+	for {
+		utxos, err := GetUnspentUtxos(stackConfig, stackConfig.Address)
+		if err != nil {
+			panic(err)
+		}
+
+		if len(utxos) == 0 {
+			panic(errors.New("No utxos found"))
+		}
+
+		for _, utxo := range utxos {
+			_, err := stackConfig.DogeClient.Request("gettxout", []interface{}{utxo.TxID, utxo.VOut, true})
+			if err != nil {
+				continue
+			}
+
+			selectedUtxo = utxo
+		}
+
+		if selectedUtxo.TxID != "" {
+			break
+		}
+
+		time.Sleep(20 * time.Second)
+		retries++
+		if retries >= maxRetries {
+			panic(errors.New("Max retries exceeded"))
+		}
 	}
 
-	if len(utxos) == 0 {
-		panic(errors.New("No utxos found"))
-	}
+	fmt.Println("Selected UTXO:", selectedUtxo.TxID)
+	fmt.Println("", selectedUtxo.VOut)
+	fmt.Println("", selectedUtxo.Value)
 
 	inputs := []interface{}{
 		map[string]interface{}{
-			"txid": utxos[0].TxID,
-			"vout": utxos[0].VOut,
+			"txid": selectedUtxo.TxID,
+			"vout": selectedUtxo.VOut,
 		},
 	}
 
 	address := stackConfig.Address
-
+	fee, _ := koinu.ParseKoinu("1")
 	koinuAmount := koinu.Koinu(amount * koinu.OneDoge)
 
 	var outputs map[string]interface{}
-	if paymentAddress == address {
+	if paymentAddress == "" && paymentAddress == address {
 		outputs = map[string]interface{}{
 			"data":  hexBody,
-			address: utxos[0].Value - koinuAmount,
+			address: selectedUtxo.Value - koinuAmount - fee,
 		}
 	} else {
 		outputs = map[string]interface{}{
 			"data":         hexBody,
 			paymentAddress: koinuAmount,
-			address:        utxos[0].Value - koinuAmount,
+			address:        selectedUtxo.Value - koinuAmount - fee,
 		}
 	}
+
+	fmt.Println("VIN:")
+	fmt.Println(selectedUtxo.Value)
+	fmt.Println("PAYMENT AMOUNT:")
+	fmt.Println(koinuAmount)
+	fmt.Println("INPUT:")
+	fmt.Println(inputs)
+	fmt.Println("OUTPUT:")
+	fmt.Println(outputs)
 
 	rawTx, err := stackConfig.DogeClient.Request("createrawtransaction", []interface{}{inputs, outputs})
 	if err != nil {
@@ -325,7 +363,7 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 	encodedTx, err := doge.SignRawTransaction(rawTxResponse, stackConfig.PrivKey, []doge.PrevOutput{
 		{
 			Address: address,
-			Amount:  int64(utxos[0].Value),
+			Amount:  int64(selectedUtxo.Value),
 		},
 	}, chainCfg)
 
@@ -344,7 +382,7 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 		panic(err)
 	}
 
-	spentUtxos = append(spentUtxos, utxos[0].TxID)
+	spentUtxos = append(spentUtxos, selectedUtxo.TxID)
 
 	TopUp(stackConfig)
 	ConfirmBlocks(stackConfig)
@@ -401,7 +439,7 @@ func Payment(buyerConfig *StackConfig, sellerConfig *StackConfig, invoiceHash st
 	envelope := protocol.NewPaymentTransactionEnvelope(invoiceHash, protocol.ACTION_PAYMENT)
 	encodedTransactionBody := envelope.Serialize()
 
-	total := int64(quantity*price + 1)
+	total := int64(quantity * price)
 
 	txId := WriteToBlockchain(buyerConfig, sellerConfig.Address, hex.EncodeToString(encodedTransactionBody), total)
 	ConfirmBlocks(sellerConfig)
@@ -434,6 +472,7 @@ func Invoice(stackConfig *StackConfig, buyerAddress string, mintHash string, qua
 	}
 
 	invoiceRequest.Signature = signature
+	invoiceRequest.PublicKey = stackConfig.PubKey
 
 	res, err := stackConfig.TokenisationClient.CreateInvoice(&invoiceRequest)
 	if err != nil {
@@ -541,10 +580,10 @@ func makeStackConfigsAndPeer(stackCount int) []*StackConfig {
 		time.Sleep(1 * time.Minute)
 
 		// ignore error incase of re-add
-		err = stackA.DogeClient.AddPeer(stackB.DogeHost + ":" + strconv.Itoa(stackB.DogeP2PPort))
-		if err != nil {
-			fmt.Println(err)
-		}
+		// err = stackA.DogeClient.AddPeer(stackB.DogeHost + ":" + strconv.Itoa(stackB.DogeP2PPort))
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
 	}
 
 	return stacks

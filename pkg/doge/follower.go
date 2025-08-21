@@ -82,13 +82,20 @@ func (f *DogeFollower) Start() error {
 						continue
 					}
 
+					addressValues := make(map[string]interface{})
 					for _, vout := range tx.VOut {
-						fmt.Println(vout.Value, vout.ScriptPubKey.Addresses)
+						if len(vout.ScriptPubKey.Addresses) == 1 {
+							addy := vout.ScriptPubKey.Addresses[0]
+							value := vout.Value.InexactFloat64()
+							if _, ok := addressValues[addy]; !ok {
+								addressValues[addy] = value
+							} else {
+								addressValues[addy] = addressValues[addy].(float64) + value
+							}
+						}
 					}
 
-					value := tx.VOut[0].Value.InexactFloat64()
-
-					_, err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, blockHash, transactionNumber, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data, address, value)
+					_, err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, blockHash, transactionNumber, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data, address, addressValues)
 					if err != nil {
 						log.Println("Error saving on chain transaction:", err)
 					}

@@ -320,19 +320,23 @@ func TestMatchMint(t *testing.T) {
 	assert.NilError(t, err)
 
 	// Save onchain transaction
-	txId, err := db.SaveOnChainTransaction("matchTxHash", 1000, "blockHash", 1, protocol.ACTION_MINT, 1, actionData, "addr", 0)
+	txId, err := db.SaveOnChainTransaction("matchTxHash", 1000, "blockHash", 1, protocol.ACTION_MINT, 1, actionData, "addr", map[string]interface{}{
+		"addr": 0,
+	})
 	assert.NilError(t, err)
 
 	// Create OnChainTransaction
 	onchainTx := store.OnChainTransaction{
-		Id:                txId,
-		TxHash:            "matchTxHash",
-		Height:            1000,
-		ActionType:        protocol.ACTION_MINT,
-		ActionVersion:     1,
-		ActionData:        actionData,
-		Address:           "addr",
-		Value:             0,
+		Id:            txId,
+		TxHash:        "matchTxHash",
+		Height:        1000,
+		ActionType:    protocol.ACTION_MINT,
+		ActionVersion: 1,
+		ActionData:    actionData,
+		Address:       "addr",
+		Values: map[string]interface{}{
+			"addr": 0,
+		},
 		TransactionNumber: 1,
 	}
 
@@ -373,19 +377,23 @@ func TestMatchUnconfirmedMint(t *testing.T) {
 	assert.NilError(t, err)
 
 	// Save onchain transaction
-	txId, err := db.SaveOnChainTransaction("confirmTxHash", 2000, "blockHash", 1, protocol.ACTION_MINT, 1, actionData, "confirmedAddr", 0)
+	txId, err := db.SaveOnChainTransaction("confirmTxHash", 2000, "blockHash", 1, protocol.ACTION_MINT, 1, actionData, "confirmedAddr", map[string]interface{}{
+		"addr": 0,
+	})
 	assert.NilError(t, err)
 
 	// Create OnChainTransaction
 	onchainTx := store.OnChainTransaction{
-		Id:                txId,
-		TxHash:            "confirmTxHash",
-		Height:            2000,
-		ActionType:        protocol.ACTION_MINT,
-		ActionVersion:     1,
-		ActionData:        actionData,
-		Address:           "confirmedAddr",
-		Value:             0,
+		Id:            txId,
+		TxHash:        "confirmTxHash",
+		Height:        2000,
+		ActionType:    protocol.ACTION_MINT,
+		ActionVersion: 1,
+		ActionData:    actionData,
+		Address:       "confirmedAddr",
+		Values: map[string]interface{}{
+			"addr": 0,
+		},
 		TransactionNumber: 1,
 	}
 

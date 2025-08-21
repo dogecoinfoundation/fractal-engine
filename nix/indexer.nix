@@ -1,4 +1,4 @@
-{ lib, buildGoModule, fetchFromGitHub, pkg-config, systemd, zeromq }:
+{ lib, buildGoModule, fetchFromGitHub, pkg-config, systemd, zeromq, pkgs }:
 
 buildGoModule rec {
   pname = "indexer";
@@ -8,10 +8,10 @@ buildGoModule rec {
     owner = "dogeorg";
     repo = "indexer";
     rev = "main";
-    sha256 = "sha256-RNJ1H4t56OK8tGUEL3mvyNivFcG5JX8OrVSYii+653M=";
+    sha256 = "sha256-CVwZLwiE83h8SbkW+EMzymuTyziNOAzA82q59Qhsx20=";
   };
 
-  vendorHash = "sha256-d0sLMxinLp3C2NaTzq6oFUtKIpUvoEVLor+tDt6yO7E=";
+  vendorHash = "sha256-EpogYqHjdxiXK9WgpR/3P86BvlvmDuuGFvMrRpkubH0=";
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ systemd zeromq ];
@@ -30,10 +30,13 @@ buildGoModule rec {
     cat > $out/bin/indexer-start << 'EOF'
     #!/usr/bin/env bash
 
+    mkdir -p /data
+    rm -f /data/index.db
+
     # Default environment variables
     export INDEXER_BINDAPI=''${INDEXER_BINDAPI:-localhost:8888}
     export INDEXER_CHAIN=''${INDEXER_CHAIN:-regtest}
-    export INDEXER_DBURL=''${INDEXER_DBURL:-index.db}
+    export INDEXER_DBURL=''${INDEXER_DBURL:-/data/index.db}
     export INDEXER_LISTENPORT=''${INDEXER_LISTENPORT:-8001}
     export INDEXER_RPCHOST=''${INDEXER_RPCHOST:-127.0.0.1}
     export INDEXER_RPCPASS=''${INDEXER_RPCPASS:-dogecoin}

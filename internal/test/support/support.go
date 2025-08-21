@@ -1,18 +1,39 @@
 package support
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"strings"
 	"time"
 
+	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
+	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/dogecoinfoundation/dogetest/pkg/dogetest"
 )
+
+func SetupTestDB() *store.TokenisationStore {
+
+	randoDb := rand.Intn(10000)
+
+	url := "file:memdb" + fmt.Sprintf("%d", randoDb) + "?mode=memory&cache=shared"
+
+	tokenStore, err := store.NewTokenisationStore(url, config.Config{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = tokenStore.Migrate()
+	if err != nil && err.Error() != "no change" {
+		log.Fatal(err)
+	}
+
+	return tokenStore
+}
 
 func WriteMintToCore(dogeTest *dogetest.DogeTest, addressBook *dogetest.AddressBook, mintResponse *rpc.CreateMintResponse) error {
 	unspent, err := dogeTest.Rpc.ListUnspent(addressBook.Addresses[0].Address)

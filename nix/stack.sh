@@ -19,13 +19,12 @@ PROJECT_NAME="fractal-stack-$INSTANCE_ID"
 
 # Port ranges - each instance gets a block of 100 ports
 BASE_PORT=$((8600 + (INSTANCE_ID * 100)))
-DOGE_RPC_PORT=$((BASE_PORT + 14556))
+DOGE_RPC_PORT=$((8700 + 14556))
 DOGE_ZMQ_PORT=$((BASE_PORT + 20000))
 FRACTAL_ENGINE_PORT=$((BASE_PORT + 2))
 DOGENET_PORT=$((BASE_PORT + 3))
 DOGENET_WEB_PORT=$((BASE_PORT + 4))
 INDEXER_PORT=$((BASE_PORT + 5))
-POSTGRES_PORT=$((BASE_PORT + 6))
 DOGENET_HANDLER_PORT=$((BASE_PORT + 7))
 DOGENET_BIND_PORT=$((42000 + INSTANCE_ID))
 FRACTAL_ADMIN_PORT=$((BASE_PORT + 8))
@@ -33,7 +32,6 @@ DOGE_P2P_PORT=$((BASE_PORT + 10))
 
 # Data directories for instance isolation
 BASE_DIR="$HOME/.fractal-stack-$INSTANCE_ID"
-POSTGRES_DATA="$BASE_DIR/postgres-$INSTANCE_ID"
 DOGECOIN_DATA="$BASE_DIR/dogecoin-$INSTANCE_ID"
 FRACTAL_ADMIN_DATA="$BASE_DIR/admin-$INSTANCE_ID"
 INDEXER_DATA="$BASE_DIR/indexer-$INSTANCE_ID"
@@ -41,24 +39,21 @@ DOGENET_DATA="$BASE_DIR/dogenet-$INSTANCE_ID"
 LOGS_DIR="$BASE_DIR/logs"
 PIDS_FILE="$BASE_DIR/pids"
 
-# Create instance directories
-mkdir -p "$BASE_DIR" "$POSTGRES_DATA" "$DOGECOIN_DATA" "$FRACTAL_ADMIN_DATA" "$INDEXER_DATA" "$DOGENET_DATA" "$LOGS_DIR"
+INDEXER_DB_URL=$BASE_DIR/indexerstore/indexer.db
+FRACTAL_STORE_URL=$BASE_DIR/fractalstore/fractal.db
 
-# Configuration for this instance
-export POSTGRES_USER=fractalstore
-export POSTGRES_PASSWORD=fractalstore
-export POSTGRES_DB=fractalstore
-export PGDATA="$POSTGRES_DATA"
-export PGPORT=$POSTGRES_PORT
+# Create instance directories
+mkdir -p "$BASE_DIR" "$DOGECOIN_DATA" "$FRACTAL_ADMIN_DATA" "$INDEXER_DATA" "$DOGENET_DATA" "$LOGS_DIR"
+mkdir -p $BASE_DIR/indexerstore
+mkdir -p $BASE_DIR/fractalstore
 
 export FRACTAL_ENGINE_HOST=localhost
 export FRACTAL_ENGINE_PORT=$FRACTAL_ENGINE_PORT
-export FRACTAL_ENGINE_DB="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:$POSTGRES_PORT/${POSTGRES_DB}"
 
 export DOGECOIN_RPC_HOST=0.0.0.0
 export DOGECOIN_RPC_PORT=$DOGE_RPC_PORT
 export DOGECOIN_RPC_USER=dogecoinrpc
-export DOGECOIN_RPC_PASSWORD=changeme$INSTANCE_ID
+export DOGECOIN_RPC_PASSWORD=changeme1
 export DOGECOIN_DATADIR="$DOGECOIN_DATA"
 
 export DOGE_NET_HANDLER="0.0.0.0:$DOGENET_HANDLER_PORT"
@@ -66,7 +61,7 @@ export DOGENET_WEB_PORT=$DOGENET_WEB_PORT
 export DOGENET_BIND_HOST=0.0.0.0
 export DOGENET_BIND_PORT=$DOGENET_BIND_PORT
 
-export INDEXER_DOGECOIN_RPC="http://dogecoinrpc:changeme$INSTANCE_ID@0.0.0.0:$DOGE_RPC_PORT"
+export INDEXER_DOGECOIN_RPC="http://dogecoinrpc:changeme1@0.0.0.0:$DOGE_RPC_PORT"
 export INDEXER_ENGINE_URL="http://0.0.0.0:$FRACTAL_ENGINE_PORT"
 export INDEXER_PORT=$INDEXER_PORT
 export INDEXER_STARTINGHEIGHT=0
@@ -85,11 +80,6 @@ cleanup() {
       fi
     done < "$PIDS_FILE"
     rm -f "$PIDS_FILE"
-  fi
-
-  # Additional cleanup for postgres instances
-  if [ -f "$POSTGRES_DATA/postmaster.pid" ]; then
-    @postgresql@/bin/pg_ctl -D "$POSTGRES_DATA" stop || true
   fi
 }
 
@@ -129,7 +119,6 @@ show_status() {
   echo "  Indexer API:      $INDEXER_PORT"
   echo "  Indexer Listen:   $((INDEXER_PORT + 1))"
   echo "  Indexer Web:      $((INDEXER_PORT + 2))"
-  echo "  PostgreSQL:       $POSTGRES_PORT"
   echo "  Fractal Admin:    $FRACTAL_ADMIN_PORT"
   echo ""
 
@@ -154,50 +143,33 @@ case "$COMMAND" in
     echo "Starting Fractal Stack Instance $INSTANCE_ID..."
     show_status
 
-    # Start PostgreSQL instances first
-    start_service "fractalstore" "env POSTGRES_USER=$POSTGRES_USER POSTGRES_PASSWORD=$POSTGRES_PASSWORD POSTGRES_DB=$POSTGRES_DB PGDATA=$PGDATA PGPORT=$POSTGRES_PORT @fractalstore@/bin/fractalstore"
-
-    # Wait for fractalstore PostgreSQL to be ready
-    echo "Waiting for fractalstore PostgreSQL to be ready on port $POSTGRES_PORT..."
-    timeout=30
-    while [ $timeout -gt 0 ]; do
-      if @postgresql@/bin/pg_isready -h localhost -p $POSTGRES_PORT >/dev/null 2>&1; then
-        echo "Fractalstore PostgreSQL is ready!"
-        break
-      fi
-      echo "Waiting for fractalstore PostgreSQL... ($timeout seconds left)"
-      sleep 2
-      timeout=$((timeout - 2))
-    done
-
-    if [ $timeout -le 0 ]; then
-      echo "ERROR: Fractalstore PostgreSQL failed to start within 30 seconds"
-      exit 1
-    fi
-
     # Start Dogecoin
-    start_service "dogecoin" "env ZMQ_PORT=$DOGE_ZMQ_PORT P2P_PORT=$DOGE_P2P_PORT RPC_USER=$DOGECOIN_RPC_USER RPC_PASSWORD=$DOGECOIN_RPC_PASSWORD RPC_PORT=$DOGECOIN_RPC_PORT INSTANCE_ID=$INSTANCE_ID @dogecoin@/bin/dogecoind"
+    if [ "$INSTANCE_ID" = "1" ]; then
+      start_service "dogecoin" "env ZMQ_PORT=$DOGE_ZMQ_PORT P2P_PORT=$DOGE_P2P_PORT RPC_USER=$DOGECOIN_RPC_USER RPC_PASSWORD=$DOGECOIN_RPC_PASSWORD RPC_PORT=$DOGECOIN_RPC_PORT INSTANCE_ID=$INSTANCE_ID @dogecoin@/bin/dogecoind"
 
-    # Wait for Dogecoin RPC to be ready
-    echo "Waiting for Dogecoin RPC to be ready on port $DOGE_RPC_PORT..."
-    timeout=60
-    while [ $timeout -gt 0 ]; do
-      if curl -s --user "$DOGECOIN_RPC_USER:$DOGECOIN_RPC_PASSWORD" \
-         --data-binary '{"jsonrpc":"1.0","id":"test","method":"getblockchaininfo","params":[]}' \
-         -H 'content-type: text/plain;' \
-         "http://localhost:$DOGE_RPC_PORT/" >/dev/null 2>&1; then
-        echo "Dogecoin RPC is ready!"
-        break
-      fi
-      echo "Waiting for Dogecoin RPC... ($timeout seconds left)"
-      sleep 2
-      timeout=$((timeout - 2))
-    done
+        # Wait for Dogecoin RPC to be ready
+        echo "Waiting for Dogecoin RPC to be ready on port $DOGE_RPC_PORT..."
+        timeout=60
+        while [ $timeout -gt 0 ]; do
+          if curl -s --user "$DOGECOIN_RPC_USER:$DOGECOIN_RPC_PASSWORD" \
+             --data-binary '{"jsonrpc":"1.0","id":"test","method":"getblockchaininfo","params":[]}' \
+             -H 'content-type: text/plain;' \
+             "http://localhost:$DOGE_RPC_PORT/" >/dev/null 2>&1; then
+            echo "Dogecoin RPC is ready!"
+            break
+          fi
+          echo "Waiting for Dogecoin RPC... ($timeout seconds left)"
+          sleep 2
+          timeout=$((timeout - 2))
+        done
 
-    if [ $timeout -le 0 ]; then
-      echo "ERROR: Dogecoin RPC failed to start within 60 seconds"
-      exit 1
+        if [ $timeout -le 0 ]; then
+          echo "ERROR: Dogecoin RPC failed to start within 60 seconds"
+          exit 1
+        fi
     fi
+
+
 
     start_service "dogenet" "env INSTANCE_ID=$INSTANCE_ID DOGE_NET_HANDLER=$DOGE_NET_HANDLER DOGENET_HOME=$DOGENET_DATA DOGENET_WEB_PORT=$DOGENET_WEB_PORT DOGENET_BIND_HOST=$DOGENET_BIND_HOST DOGENET_BIND_PORT=$DOGENET_BIND_PORT @dogenet@/bin/dogenet-start"
 
@@ -227,10 +199,14 @@ case "$COMMAND" in
       --doge-port $DOGE_RPC_PORT \
       --doge-user $DOGECOIN_RPC_USER \
       --doge-password $DOGECOIN_RPC_PASSWORD \
-      --database-url $FRACTAL_ENGINE_DB?sslmode=disable"
+      --database-url sqlite://$FRACTAL_STORE_URL"
 
+    rm -rf $INDEXER_DB_URL
+
+    if [ "$INSTANCE_ID" = "1" ]; then
     start_service "indexer" "@indexer@/bin/indexer \
       -bindapi localhost:$INDEXER_PORT \
+      -dburl $INDEXER_DB_URL \
       -chain regtest \
       -listenport $((INDEXER_PORT + 1)) \
       -rpchost localhost \
@@ -242,6 +218,9 @@ case "$COMMAND" in
       -zmqport $DOGE_ZMQ_PORT \
       -startingheight $INDEXER_STARTINGHEIGHT \
       $INDEXER_ARGS"
+
+    fi
+
     start_service "fractaladmin" "@fractaladmin@/bin/fractaladmin -p $FRACTAL_ADMIN_PORT"
 
     echo ""
@@ -260,9 +239,6 @@ case "$COMMAND" in
   down)
 
     cleanup
-
-    echo "Purging PostgreSQL data directories for instance $INSTANCE_ID..."
-    rm -rf "$POSTGRES_DATA" "$INDEXER_POSTGRES_DATA"
     ;;
 
 

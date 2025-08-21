@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
@@ -53,7 +54,9 @@ func TestMatchPaymentSuccess(t *testing.T) {
 
 	mintMsg := &protocol.OnChainMintMessage{Hash: mintHash}
 	encodedMintMsg, _ := proto.Marshal(mintMsg)
-	mintTxId, err := tokenStore.SaveOnChainTransaction("mintTx", 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMintMsg, sellerAddress, 100)
+	mintTxId, err := tokenStore.SaveOnChainTransaction("mintTx", 1, "blockHash", 1, protocol.ACTION_MINT, protocol.DEFAULT_VERSION, encodedMintMsg, sellerAddress, map[string]interface{}{
+		sellerAddress: 100,
+	})
 	assert.NilError(t, err)
 
 	txs, err := tokenStore.GetOnChainTransactions(0, 10)
@@ -84,7 +87,9 @@ func TestMatchPaymentSuccess(t *testing.T) {
 		Quantity:      int32(quantity),
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
-	invoiceTxId, err := tokenStore.SaveOnChainTransaction("invoiceTx", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, float64(quantity))
+	invoiceTxId, err := tokenStore.SaveOnChainTransaction("invoiceTx", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, map[string]interface{}{
+		sellerAddress: quantity,
+	})
 	assert.NilError(t, err)
 
 	txs, err = tokenStore.GetOnChainTransactions(0, 10)
@@ -105,7 +110,9 @@ func TestMatchPaymentSuccess(t *testing.T) {
 		Hash: invoiceHash,
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
-	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 3, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, value)
+	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 3, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, map[string]interface{}{
+		buyerAddress: value,
+	})
 	assert.NilError(t, err)
 
 	txs, err = tokenStore.GetOnChainTransactions(0, 10)
@@ -120,24 +127,23 @@ func TestMatchPaymentSuccess(t *testing.T) {
 	err = tokenStore.ProcessPayment(*paymentTx, invoice)
 	assert.NilError(t, err)
 
-	// Verify results
-	// Check invoice is paid
-	tx, _ := tokenStore.DB.Begin()
-	defer tx.Rollback()
-
+	row := tokenStore.DB.QueryRow("SELECT paid_at FROM invoices WHERE id = $1", invoice.Id)
 	var paidAt sql.NullTime
-	err = tx.QueryRow("SELECT paid_at FROM invoices WHERE hash = $1", invoiceHash).Scan(&paidAt)
+	if err := row.Scan(&paidAt); err != nil { /* handle */
+	}
+	fmt.Printf("paid_at after commit: valid=%v, time=%v\n", paidAt.Valid, paidAt.Time)
+
 	assert.NilError(t, err)
 	assert.Assert(t, paidAt.Valid, "Invoice should be marked as paid")
 
 	// Check payment transaction was deleted
 	var count int
-	err = tx.QueryRow("SELECT COUNT(*) FROM onchain_transactions WHERE id = $1", paymentTx.Id).Scan(&count)
+	err = tokenStore.DB.QueryRow("SELECT COUNT(*) FROM onchain_transactions WHERE id = $1", paymentTx.Id).Scan(&count)
 	assert.NilError(t, err)
 	assert.Equal(t, 0, count, "Payment transaction should be deleted")
 
 	// Check pending balance was removed
-	_, err = tokenStore.GetPendingTokenBalance(invoiceHash, mintHash, tx)
+	_, err = tokenStore.GetPendingTokenBalance(invoiceHash, mintHash, nil)
 	assert.Assert(t, err != nil, "Pending balance should be removed")
 
 	// Check buyer received tokens
@@ -193,7 +199,9 @@ func TestMatchPaymentInvoiceNotFound(t *testing.T) {
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
 
-	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, 50.0)
+	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, map[string]interface{}{
+		buyerAddress: 50,
+	})
 	assert.NilError(t, err)
 
 	txs, err := tokenStore.GetOnChainTransactions(0, 10)
@@ -232,7 +240,9 @@ func TestMatchPaymentValueMismatch(t *testing.T) {
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
 
-	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, 25.0) // Wrong value
+	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, map[string]interface{}{
+		buyerAddress: 25,
+	}) // Wrong value
 	assert.NilError(t, err)
 
 	txs, err := tokenStore.GetOnChainTransactions(0, 10)
@@ -276,7 +286,9 @@ func TestMatchPaymentPendingBalanceMismatch(t *testing.T) {
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
 
-	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, 5000.0)
+	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, map[string]interface{}{
+		buyerAddress: 5000,
+	})
 	assert.NilError(t, err)
 
 	txs, err := tokenStore.GetOnChainTransactions(0, 10)
@@ -318,7 +330,9 @@ func TestMatchPaymentNoPendingBalance(t *testing.T) {
 	}
 	encodedPaymentMsg, _ := proto.Marshal(paymentMsg)
 
-	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, 50.0)
+	paymentTxId, err := tokenStore.SaveOnChainTransaction("paymentTx", 1, "blockHash", 1, protocol.ACTION_PAYMENT, protocol.DEFAULT_VERSION, encodedPaymentMsg, buyerAddress, map[string]interface{}{
+		buyerAddress: 50,
+	})
 	assert.NilError(t, err)
 
 	txs, err := tokenStore.GetOnChainTransactions(0, 10)

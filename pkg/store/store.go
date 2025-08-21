@@ -31,28 +31,7 @@ func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, 
 		return nil, err
 	}
 
-	if u.Scheme == "memory" {
-		sqlite, err := sql.Open("sqlite3", ":memory:")
-		if err != nil {
-			return nil, err
-		}
-
-		return &TokenisationStore{DB: sqlite, backend: "sqlite", cfg: cfg}, nil
-	} else if u.Scheme == "sqlite" {
-		var url string
-		if u.Host == "" {
-			url = u.Path
-		} else {
-			url = u.Host
-		}
-
-		sqlite, err := sql.Open("sqlite3", url)
-		if err != nil {
-			return nil, err
-		}
-
-		return &TokenisationStore{DB: sqlite, backend: "sqlite", cfg: cfg}, nil
-	} else if u.Scheme == "postgres" {
+	if u.Scheme == "postgres" {
 		postgres, err := sql.Open("postgres", dbUrl)
 		if err != nil {
 			return nil, err
@@ -61,7 +40,12 @@ func NewTokenisationStore(dbUrl string, cfg config.Config) (*TokenisationStore, 
 		return &TokenisationStore{DB: postgres, backend: "postgres", cfg: cfg}, nil
 	}
 
-	return nil, fmt.Errorf("unsupported database scheme: %s", u.Scheme)
+	sqlite, err := sql.Open("sqlite3", dbUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokenisationStore{DB: sqlite, backend: "sqlite", cfg: cfg}, nil
 }
 
 func (s *TokenisationStore) Migrate() error {

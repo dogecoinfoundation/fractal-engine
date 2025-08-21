@@ -3,6 +3,7 @@ package store
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"google.golang.org/protobuf/proto"
@@ -16,7 +17,9 @@ func (s *TokenisationStore) ProcessPayment(onchainTransaction OnChainTransaction
 
 	defer tx.Rollback()
 
-	_, err = tx.Exec("UPDATE invoices SET paid_at = now() WHERE id = $1", invoice.Id)
+	fmt.Println("UPDATING INVOIC; SET PAID AT", invoice.Id)
+
+	_, err = tx.Exec("UPDATE invoices SET paid_at = $2 WHERE id = $1", invoice.Id, time.Now())
 	if err != nil {
 		log.Println("Error updating invoice:", err)
 		return err
@@ -83,8 +86,10 @@ func (s *TokenisationStore) MatchPayment(onchainTransaction OnChainTransaction) 
 
 	value := float64(invoice.Quantity * invoice.Price)
 
-	if onchainTransaction.Value != value {
-		return Invoice{}, fmt.Errorf("payment value is not equal to buy offer value: %f != %f", onchainTransaction.Value, value)
+	paymentValue := onchainTransaction.Values[invoice.BuyerAddress]
+
+	if paymentValue != value {
+		return Invoice{}, fmt.Errorf("payment value is not equal to buy offer value: %f != %f", paymentValue, value)
 	}
 
 	return invoice, nil

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"dogecoin.org/fractal-engine/internal/test/support"
+	"dogecoin.org/fractal-engine/pkg/store"
 	"gotest.tools/assert"
 )
 
@@ -17,7 +18,9 @@ func TestSaveOnChainTransaction(t *testing.T) {
 	actionVersion := uint8(1)
 	actionData := []byte("test action data")
 	address := "DTestAddress123"
-	value := 100.5
+	value := map[string]interface{}{
+		address: 100.5,
+	}
 
 	id, err := db.SaveOnChainTransaction(txHash, height, "blockHash", transactionNumber, actionType, actionVersion, actionData, address, value)
 	assert.NilError(t, err)
@@ -34,18 +37,24 @@ func TestSaveOnChainTransaction(t *testing.T) {
 	assert.Equal(t, transactions[0].ActionVersion, actionVersion)
 	assert.DeepEqual(t, transactions[0].ActionData, actionData)
 	assert.Equal(t, transactions[0].Address, address)
-	assert.Equal(t, transactions[0].Value, value)
+	assert.Assert(t, transactions[0].Values.Equal(store.StringInterfaceMap{address: 100.5}))
 }
 
 func TestGetOldOnchainTransactions(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save transactions at different block heights
-	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", 10.0)
+	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", map[string]interface{}{
+		"addr1": 10,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx2", 200, "blockHash", 1, 1, 1, []byte("data2"), "addr2", 20.0)
+	_, err = db.SaveOnChainTransaction("tx2", 200, "blockHash", 1, 1, 1, []byte("data2"), "addr2", map[string]interface{}{
+		"addr2": 20,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx3", 300, "blockHash", 1, 1, 1, []byte("data3"), "addr3", 30.0)
+	_, err = db.SaveOnChainTransaction("tx3", 300, "blockHash", 1, 1, 1, []byte("data3"), "addr3", map[string]interface{}{
+		"addr3": 30,
+	})
 	assert.NilError(t, err)
 
 	// Get transactions older than block height 250
@@ -60,11 +69,17 @@ func TestTrimOldOnChainTransactions(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save transactions at different block heights
-	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", 10.0)
+	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", map[string]interface{}{
+		"addr1": 10,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx2", 200, "blockHash", 1, 1, 1, []byte("data2"), "addr2", 20.0)
+	_, err = db.SaveOnChainTransaction("tx2", 200, "blockHash", 1, 1, 1, []byte("data2"), "addr2", map[string]interface{}{
+		"addr2": 20,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx3", 300, "blockHash", 1, 1, 1, []byte("data3"), "addr3", 30.0)
+	_, err = db.SaveOnChainTransaction("tx3", 300, "blockHash", 1, 1, 1, []byte("data3"), "addr3", map[string]interface{}{
+		"addr3": 30,
+	})
 	assert.NilError(t, err)
 
 	// Trim transactions older than block height 250
@@ -82,7 +97,9 @@ func TestRemoveOnChainTransaction(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save a transaction
-	id, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", 10.0)
+	id, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", map[string]interface{}{
+		"addr1": 10,
+	})
 	assert.NilError(t, err)
 
 	// Remove the transaction
@@ -99,11 +116,17 @@ func TestCountOnChainTransactions(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save transactions at different block heights
-	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", 10.0)
+	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", map[string]interface{}{
+		"addr1": 10,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 1, 1, []byte("data2"), "addr2", 20.0)
+	_, err = db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 1, 1, []byte("data2"), "addr2", map[string]interface{}{
+		"addr2": 20,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx3", 200, "blockHash", 1, 1, 1, []byte("data3"), "addr3", 30.0)
+	_, err = db.SaveOnChainTransaction("tx3", 200, "blockHash", 1, 1, 1, []byte("data3"), "addr3", map[string]interface{}{
+		"addr3": 30,
+	})
 	assert.NilError(t, err)
 
 	// Count transactions at block height 100
@@ -126,15 +149,25 @@ func TestGetOnChainTransactionsPagination(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save 5 transactions with different heights and transaction numbers
-	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", 10.0)
+	_, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte("data1"), "addr1", map[string]interface{}{
+		"addr1": 10,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 1, 1, []byte("data2"), "addr2", 20.0)
+	_, err = db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 1, 1, []byte("data2"), "addr2", map[string]interface{}{
+		"addr2": 20,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx3", 200, "blockHash", 1, 1, 1, []byte("data3"), "addr3", 30.0)
+	_, err = db.SaveOnChainTransaction("tx3", 200, "blockHash", 1, 1, 1, []byte("data3"), "addr3", map[string]interface{}{
+		"addr3": 30,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx4", 200, "blockHash", 2, 1, 1, []byte("data4"), "addr4", 40.0)
+	_, err = db.SaveOnChainTransaction("tx4", 200, "blockHash", 2, 1, 1, []byte("data4"), "addr4", map[string]interface{}{
+		"addr4": 40,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx5", 300, "blockHash", 1, 1, 1, []byte("data5"), "addr5", 50.0)
+	_, err = db.SaveOnChainTransaction("tx5", 300, "blockHash", 1, 1, 1, []byte("data5"), "addr5", map[string]interface{}{
+		"addr5": 50,
+	})
 	assert.NilError(t, err)
 
 	// Test pagination - first page
@@ -162,20 +195,28 @@ func TestGetOnChainTransactionsOrdering(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Save transactions out of order
-	_, err := db.SaveOnChainTransaction("tx1", 200, "blockHash", 2, 1, 1, []byte("data1"), "addr1", 10.0)
+	_, err := db.SaveOnChainTransaction("tx1", 200, "blockHash", 2, 1, 1, []byte("data1"), "addr1", map[string]interface{}{
+		"addr1": 10,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 1, 1, []byte("data2"), "addr2", 20.0)
+	_, err = db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 1, 1, []byte("data2"), "addr2", map[string]interface{}{
+		"addr2": 20,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx3", 200, "blockHash", 1, 1, 1, []byte("data3"), "addr3", 30.0)
+	_, err = db.SaveOnChainTransaction("tx3", 200, "blockHash", 1, 1, 1, []byte("data3"), "addr3", map[string]interface{}{
+		"addr3": 30,
+	})
 	assert.NilError(t, err)
-	_, err = db.SaveOnChainTransaction("tx4", 100, "blockHash", 1, 1, 1, []byte("data4"), "addr4", 40.0)
+	_, err = db.SaveOnChainTransaction("tx4", 100, "blockHash", 1, 1, 1, []byte("data4"), "addr4", map[string]interface{}{
+		"addr4": 40,
+	})
 	assert.NilError(t, err)
 
 	// Get all transactions and verify ordering
 	transactions, err := db.GetOnChainTransactions(0, 10)
 	assert.NilError(t, err)
 	assert.Equal(t, len(transactions), 4)
-	
+
 	// Should be ordered by block height first, then transaction number
 	assert.Equal(t, transactions[0].TxHash, "tx4") // height 100, tx_num 1
 	assert.Equal(t, transactions[1].TxHash, "tx2") // height 100, tx_num 2
@@ -187,12 +228,16 @@ func TestOnChainTransactionEdgeCases(t *testing.T) {
 	db := support.SetupTestDB()
 
 	// Test with empty action data
-	id, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte{}, "addr1", 0.0)
+	id, err := db.SaveOnChainTransaction("tx1", 100, "blockHash", 1, 1, 1, []byte{}, "addr1", map[string]interface{}{
+		"addr1": 10,
+	})
 	assert.NilError(t, err)
 	assert.Assert(t, id != "")
 
 	// Test with zero value
-	id2, err := db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 0, 0, []byte("data"), "addr2", 0.0)
+	id2, err := db.SaveOnChainTransaction("tx2", 100, "blockHash", 2, 0, 0, []byte("data"), "addr2", map[string]interface{}{
+		"addr2": 0,
+	})
 	assert.NilError(t, err)
 	assert.Assert(t, id2 != "")
 
@@ -201,7 +246,7 @@ func TestOnChainTransactionEdgeCases(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, len(transactions), 2)
 	assert.Equal(t, len(transactions[0].ActionData), 0)
-	assert.Equal(t, transactions[0].Value, 0.0)
+	assert.Assert(t, transactions[0].Values.Equal(store.StringInterfaceMap{"addr1": 10}))
 	assert.Equal(t, transactions[1].ActionType, uint8(0))
 	assert.Equal(t, transactions[1].ActionVersion, uint8(0))
 }
