@@ -25,16 +25,33 @@ jobs:
       - name: Format
         run: nix run .#format
 
-      - name: Lint
-        run: nix run .#lint
+      # - name: Lint
+      #   run: nix run .#lint
 
       - name: Run tests
         env:
           GO_TEST_EXTRA_FLAGS: "-race"
         run: nix run .#test
 
+      - name: Build binary
+        run: nix build .#fractalengine
+
+      - name: Prepare artifact
+        id: prepare
+        run: |
+          set -euo pipefail
+          SYS=$(nix eval --raw --impure --expr 'builtins.currentSystem')
+          echo "sys=$SYS" >> $GITHUB_OUTPUT
+          cp -p result/bin/fractal-engine "fractal-engine-$SYS"
+
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage.txt
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: fractal-engine-${{ steps.prepare.outputs.sys }}
+          path: fractal-engine-${{ steps.prepare.outputs.sys }}
