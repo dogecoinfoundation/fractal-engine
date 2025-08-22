@@ -1,7 +1,6 @@
 {
   lib,
-  buildGoModule,
-  pkg-config,
+  pkgs,
   rev,
   date,
 }:
@@ -9,7 +8,7 @@
 let
   releaseVersion = "0.0.1";
 in
-buildGoModule rec {
+pkgs.buildGo124Module rec {
   pname = "fractal-engine";
   version = releaseVersion;
 
@@ -17,7 +16,7 @@ buildGoModule rec {
 
   vendorHash = "sha256-VSxnayMOT+ctF27IOH4okWD5pUisANJn77Ksb2yXR6I=";
 
-  nativeBuildInputs = [ pkg-config ];
+  nativeBuildInputs = [ pkgs.pkg-config ];
   buildInputs = [ ];
 
   # Build the main binary
