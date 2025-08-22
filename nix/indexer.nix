@@ -1,4 +1,10 @@
-{ lib, buildGoModule, fetchFromGitHub, pkg-config, zeromq }:
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  pkg-config,
+  zeromq,
+}:
 
 buildGoModule rec {
   pname = "indexer";
@@ -21,7 +27,8 @@ buildGoModule rec {
   env.CGO_ENABLED = "1";
 
   ldflags = [
-    "-s" "-w"
+    "-s"
+    "-w"
   ];
 
   meta = with lib; {
