@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
-	"os/signal"
+	"time"
 
+	dn "code.dogecoin.org/dogenet/pkg/dogenet"
+	"code.dogecoin.org/dogenet/pkg/spec"
 	"code.dogecoin.org/gossip/dnet"
+	"code.dogecoin.org/governor"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/service"
@@ -31,12 +33,14 @@ func main() {
 	var invoiceLimit int
 	var buyOfferLimit int
 	var sellOfferLimit int
+	var embedDogenet bool
 
 	flag.StringVar(&rpcServerHost, "rpc-server-host", "0.0.0.0", "RPC Server Host")
 	flag.StringVar(&rpcServerPort, "rpc-server-port", "8891", "RPC Server Port")
 	flag.StringVar(&dogeNetNetwork, "doge-net-network", "tcp", "DogeNet Network")
 	flag.StringVar(&dogeNetAddress, "doge-net-address", "0.0.0.0:8086", "DogeNet Address")
 	flag.StringVar(&dogeNetWebAddress, "doge-net-web-address", "0.0.0.0:8085", "DogeNet Web Address")
+	flag.BoolVar(&embedDogenet, "embed-dogenet", false, "Embed the DogeNet service")
 	flag.StringVar(&dogeScheme, "doge-scheme", "http", "Doge Scheme")
 	flag.StringVar(&dogeHost, "doge-host", "0.0.0.0", "Doge Host")
 	flag.StringVar(&dogePort, "doge-port", "22556", "Doge Port")
@@ -84,15 +88,44 @@ func main() {
 
 	cfg.DogeNetKeyPair = kp
 
+	gov := governor.New().CatchSignals().Restart(1 * time.Second)
+
 	dogenetClient := dogenet.NewDogeNetClient(cfg, tokenStore)
+	gov.Add("dogenetClient", dogenetClient)
+
+	if embedDogenet {
+		const WebAPIDefaultPort = 8085
+		const DogeNetDefaultPort = dnet.DogeNetDefaultPort
+		const DBFile = "dogenet.db"
+		const DefaultStorage = "./storage"
+
+		dogeNetServerKp, err := dnet.GenerateKeyPair()
+		if err != nil {
+			log.Fatalf("Failed to generate key pair: %v", err)
+		}
+
+		var HandlerDefaultBind = spec.BindTo{Network: dogeNetNetwork, Address: dogeNetAddress} // const
+
+		err = dn.DogeNet(gov, dn.DogeNetConfig{
+			Dir:          DefaultStorage,
+			DBFile:       DBFile,
+			Binds:        []dnet.Address{},
+			BindWeb:      []dnet.Address{},
+			HandlerBind:  HandlerDefaultBind,
+			NodeKey:      dogeNetServerKp,
+			AllowLocal:   true,
+			Public:       dnet.Address{},
+			UseReflector: false,
+		})
+
+		if err != nil {
+			log.Fatal("Failed to setup DogeNet")
+		}
+	}
 
 	service := service.NewTokenisationService(cfg, dogenetClient, tokenStore)
-	service.Start()
+	gov.Add("tokenService", service)
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-
-	<-signalChan
-
-	service.Stop()
+	gov.Start()
+	gov.WaitForShutdown()
 }

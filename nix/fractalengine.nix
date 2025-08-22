@@ -1,4 +1,9 @@
-{ lib, buildGoModule, pkg-config, systemd }:
+{
+  lib,
+  buildGoModule,
+  pkg-config,
+  systemd,
+}:
 
 buildGoModule rec {
   pname = "fractalengine";
@@ -6,7 +11,7 @@ buildGoModule rec {
 
   src = lib.cleanSource ../.;
 
-  vendorHash = "sha256-2QMbtXJ5tt3pQq0t7CJVIsh1h2CgG9uFGDdmG8WgAzg=";
+  vendorHash = "sha256-Ll0T8pgW4Fj/hWukEuVynfiUwhFNcPZqmiJ3l5QkZ4Q=";
 
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ systemd ];
@@ -16,7 +21,8 @@ buildGoModule rec {
 
   # Set build flags
   ldflags = [
-    "-s" "-w"
+    "-s"
+    "-w"
   ];
 
   # Environment variables for build

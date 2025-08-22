@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
@@ -180,4 +181,21 @@ func GenerateRandomHash() string {
 		return "0000000000000000000000000000000000000000000000000000000000000000"
 	}
 	return hex.EncodeToString(randomBytes)
+}
+
+func WaitForDogeNetClient(client *dogenet.DogeNetClient) {
+	counter := 0
+	for {
+		if client.Running {
+			break
+		}
+
+		if counter > 100 {
+			log.Fatal("DogeNet did not start.")
+		}
+
+		counter++
+
+		time.Sleep(100 * time.Millisecond)
+	}
 }

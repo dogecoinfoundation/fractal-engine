@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.dogecoin.org/gossip/dnet"
+	"dogecoin.org/fractal-engine/internal/test/support"
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
@@ -34,12 +35,11 @@ func TestGossipMint(t *testing.T) {
 	defer serverConn.Close()
 
 	// Start client with connection
-	statusChan := make(chan string, 1)
 	go func() {
 		defer func() {
 			recover() // Recover from any panics during handshake/message processing
 		}()
-		client.StartWithConn(statusChan, serverConn)
+		client.StartWithConn(serverConn)
 	}()
 
 	// Handle handshake
@@ -54,12 +54,7 @@ func TestGossipMint(t *testing.T) {
 	clientConn.Write(br_buf[:])
 
 	// Wait for client to be ready
-	select {
-	case status := <-statusChan:
-		assert.Equal(t, "Running", status)
-	case <-time.After(500 * time.Millisecond):
-		// Continue even if handshake doesn't complete fully
-	}
+	support.WaitForDogeNetClient(client)
 
 	// Create test mint record
 	testTime := time.Now()
@@ -167,10 +162,9 @@ func TestGossipMintWithNilMetadata(t *testing.T) {
 	defer serverConn.Close()
 
 	// Start client with connection
-	statusChan := make(chan string, 1)
 	go func() {
 		defer func() { recover() }()
-		client.StartWithConn(statusChan, serverConn)
+		client.StartWithConn(serverConn)
 	}()
 
 	// Handle handshake
@@ -183,10 +177,7 @@ func TestGossipMintWithNilMetadata(t *testing.T) {
 	clientConn.Write(br_buf[:])
 
 	// Wait for ready
-	select {
-	case <-statusChan:
-	case <-time.After(100 * time.Millisecond):
-	}
+	support.WaitForDogeNetClient(client)
 
 	// Create test mint record with nil metadata
 	mint := store.Mint{
@@ -244,10 +235,9 @@ func TestRecvMintViaStartWithConn(t *testing.T) {
 	defer serverConn.Close()
 
 	// Start client with connection
-	statusChan := make(chan string, 1)
 	go func() {
 		defer func() { recover() }()
-		client.StartWithConn(statusChan, serverConn)
+		client.StartWithConn(serverConn)
 	}()
 
 	// Handle handshake
@@ -260,10 +250,7 @@ func TestRecvMintViaStartWithConn(t *testing.T) {
 	clientConn.Write(br_buf[:])
 
 	// Wait for ready
-	select {
-	case <-statusChan:
-	case <-time.After(500 * time.Millisecond):
-	}
+	support.WaitForDogeNetClient(client)
 
 	// Create test mint message to send TO the client
 	testTime := time.Now()
@@ -354,10 +341,9 @@ func TestRecvMintInvalidEnvelope(t *testing.T) {
 	defer serverConn.Close()
 
 	// Start client
-	statusChan := make(chan string, 1)
 	go func() {
 		defer func() { recover() }()
-		client.StartWithConn(statusChan, serverConn)
+		client.StartWithConn(serverConn)
 	}()
 
 	// Handle handshake
@@ -370,10 +356,7 @@ func TestRecvMintInvalidEnvelope(t *testing.T) {
 	clientConn.Write(br_buf[:])
 
 	// Wait for ready
-	select {
-	case <-statusChan:
-	case <-time.After(100 * time.Millisecond):
-	}
+	support.WaitForDogeNetClient(client)
 
 	// Send invalid protobuf data
 	invalidData := []byte("invalid protobuf data")
@@ -407,10 +390,9 @@ func TestRecvMintWrongActionType(t *testing.T) {
 	defer serverConn.Close()
 
 	// Start client
-	statusChan := make(chan string, 1)
 	go func() {
 		defer func() { recover() }()
-		client.StartWithConn(statusChan, serverConn)
+		client.StartWithConn(serverConn)
 	}()
 
 	// Handle handshake
@@ -423,10 +405,7 @@ func TestRecvMintWrongActionType(t *testing.T) {
 	clientConn.Write(br_buf[:])
 
 	// Wait for ready
-	select {
-	case <-statusChan:
-	case <-time.After(100 * time.Millisecond):
-	}
+	support.WaitForDogeNetClient(client)
 
 	// Create mint message with wrong action type
 	mintMessage := &protocol.MintMessage{

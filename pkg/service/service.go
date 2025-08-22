@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"code.dogecoin.org/governor"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
@@ -14,6 +15,7 @@ import (
 )
 
 type TokenisationService struct {
+	governor.ServiceCtx
 	RpcServer      *rpc.RpcServer
 	Store          *store.TokenisationStore
 	DogeNetClient  *dogenet.DogeNetClient
@@ -28,23 +30,23 @@ func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetCl
 	dogeClient := doge.NewRpcClient(cfg)
 	follower := doge.NewFollower(cfg, tokenStore)
 
-	// trimmerService := NewTrimmerService(20160, 100, tokenStore, dogeClient)
+	trimmerService := NewTrimmerService(20160, 100, tokenStore, dogeClient)
 	processor := NewFractalEngineProcessor(tokenStore, dogeClient)
 	healthService := health.NewHealthService(dogeClient, tokenStore)
 
 	return &TokenisationService{
-		RpcServer:     rpc.NewRpcServer(cfg, tokenStore, dogenetClient, dogeClient),
-		Store:         tokenStore,
-		DogeNetClient: dogenetClient,
-		DogeClient:    dogeClient,
-		Follower:      follower,
-		// TrimmerService: trimmerService,
-		Processor:     processor,
-		HealthService: healthService,
+		RpcServer:      rpc.NewRpcServer(cfg, tokenStore, dogenetClient, dogeClient),
+		Store:          tokenStore,
+		DogeNetClient:  dogenetClient,
+		DogeClient:     dogeClient,
+		Follower:       follower,
+		TrimmerService: trimmerService,
+		Processor:      processor,
+		HealthService:  healthService,
 	}
 }
 
-func (s *TokenisationService) Start() {
+func (s *TokenisationService) Run() {
 	log.Println("Starting tokenisation service")
 
 	failures := 0
@@ -66,18 +68,10 @@ func (s *TokenisationService) Start() {
 		time.Sleep(5 * time.Second)
 	}
 
-	statusChan := make(chan string)
-
-	log.Println("Starting dogenet client")
-	go s.DogeNetClient.Start(statusChan)
-
-	<-statusChan
-	log.Println("Dogenet client started")
-
 	go s.HealthService.Start()
 	go s.RpcServer.Start()
 	go s.Follower.Start()
-	// go s.TrimmerService.Start()
+	go s.TrimmerService.Start()
 	go s.Processor.Start()
 }
 
@@ -114,6 +108,6 @@ func (s *TokenisationService) Stop() {
 	s.Follower.Stop()
 	s.Store.Close()
 	s.RpcServer.Stop()
-	// s.TrimmerService.Stop()
+	s.TrimmerService.Stop()
 	s.DogeNetClient.Stop()
 }

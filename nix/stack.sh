@@ -204,23 +204,23 @@ case "$COMMAND" in
 
 
 
-    start_service "dogenet" "env INSTANCE_ID=$INSTANCE_ID DOGE_NET_HANDLER=$DOGE_NET_HANDLER DOGENET_HOME=$DOGENET_DATA DOGENET_WEB_PORT=$DOGENET_WEB_PORT DOGENET_BIND_HOST=$DOGENET_BIND_HOST DOGENET_BIND_PORT=$DOGENET_BIND_PORT @dogenet@/bin/dogenet-start"
+    # start_service "dogenet" "env INSTANCE_ID=$INSTANCE_ID DOGE_NET_HANDLER=$DOGE_NET_HANDLER DOGENET_HOME=$DOGENET_DATA DOGENET_WEB_PORT=$DOGENET_WEB_PORT DOGENET_BIND_HOST=$DOGENET_BIND_HOST DOGENET_BIND_PORT=$DOGENET_BIND_PORT @dogenet@/bin/dogenet-start"
 
-     echo "Waiting for Dogenet /nodes on port $DOGENET_WEB_PORT..."
-    timeout=30
-    while [ $timeout -gt 0 ]; do
-      if curl -sf "http://localhost:$DOGENET_WEB_PORT/nodes" >/dev/null 2>&1; then
-        echo "Dogenet is ready!"
-        break
-      fi
-      echo "Waiting for Dogenet... ($timeout seconds left)"
-      sleep 2
-      timeout=$((timeout - 2))
-    done
-    if [ $timeout -le 0 ]; then
-      echo "ERROR: Dogenet failed to become healthy within 30 seconds"
-      exit 1
-    fi
+    #  echo "Waiting for Dogenet /nodes on port $DOGENET_WEB_PORT..."
+    # timeout=30
+    # while [ $timeout -gt 0 ]; do
+    #   if curl -sf "http://localhost:$DOGENET_WEB_PORT/nodes" >/dev/null 2>&1; then
+    #     echo "Dogenet is ready!"
+    #     break
+    #   fi
+    #   echo "Waiting for Dogenet... ($timeout seconds left)"
+    #   sleep 2
+    #   timeout=$((timeout - 2))
+    # done
+    # if [ $timeout -le 0 ]; then
+    #   echo "ERROR: Dogenet failed to become healthy within 30 seconds"
+    #   exit 1
+    # fi
     start_service "fractalengine" "@fractalengine@/bin/fractal-engine \
       --rpc-server-host 0.0.0.0 \
       --rpc-server-port $FRACTAL_ENGINE_PORT \
@@ -232,6 +232,7 @@ case "$COMMAND" in
       --doge-port $DOGE_RPC_PORT \
       --doge-user $DOGECOIN_RPC_USER \
       --doge-password $DOGECOIN_RPC_PASSWORD \
+      --embed-dogenet true \
       --database-url $FRACTAL_ENGINE_DB?sslmode=disable"
 
     rm -rf $INDEXER_DB_URL
