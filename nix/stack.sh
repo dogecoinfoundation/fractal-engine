@@ -123,8 +123,6 @@ show_status() {
   echo "  Dogenet Web:      $DOGENET_WEB_PORT"
   echo "  Dogenet Bind:     $DOGENET_BIND_PORT"
   echo "  Indexer API:      $INDEXER_PORT"
-  echo "  Indexer Listen:   $((INDEXER_PORT + 1))"
-  echo "  Indexer Web:      $((INDEXER_PORT + 2))"
   echo ""
 
   if [ -f "$PIDS_FILE" ]; then
@@ -195,9 +193,7 @@ case "$COMMAND" in
         fi
     fi
 
-
-
-    start_service "dogenet" "env INSTANCE_ID=$INSTANCE_ID DOGE_NET_HANDLER=$DOGE_NET_HANDLER DOGENET_HOME=$DOGENET_DATA DOGENET_WEB_PORT=$DOGENET_WEB_PORT DOGENET_BIND_HOST=$DOGENET_BIND_HOST DOGENET_BIND_PORT=$DOGENET_BIND_PORT @dogenet@/bin/dogenet-start"
+    start_service "dogenet" "env INSTANCE_ID=$INSTANCE_ID DOGE_NET_HANDLER=$DOGE_NET_HANDLER DOGENET_HOME=$DOGENET_DATA DOGENET_WEB_PORT=$DOGENET_WEB_PORT DOGENET_BIND_HOST=$DOGENET_BIND_HOST DOGENET_BIND_PORT=$DOGENET_BIND_PORT @dogenet@/bin/dogenet"
 
      echo "Waiting for Dogenet /nodes on port $DOGENET_WEB_PORT..."
     timeout=30
@@ -231,15 +227,13 @@ case "$COMMAND" in
 
     if [ "$INSTANCE_ID" = "1" ]; then
     start_service "indexer" "@indexer@/bin/indexer \
-      -bindapi localhost:$INDEXER_PORT \
+      -bindapi localhost:${INDEXER_PORT} \
       -dburl $INDEXER_DB_URL \
       -chain regtest \
-      -listenport $((INDEXER_PORT + 1)) \
       -rpchost localhost \
       -rpcpass $DOGECOIN_RPC_PASSWORD \
       -rpcport $DOGE_RPC_PORT \
       -rpcuser $DOGECOIN_RPC_USER \
-      -webport $((INDEXER_PORT + 2)) \
       -zmqhost localhost \
       -zmqport $DOGE_ZMQ_PORT \
       -startingheight $INDEXER_STARTINGHEIGHT \
@@ -252,7 +246,6 @@ case "$COMMAND" in
     echo "Fractal Engine: http://localhost:$FRACTAL_ENGINE_PORT"
     echo "Dogenet Web:    http://localhost:$DOGENET_WEB_PORT"
     echo "Indexer API:    http://localhost:$INDEXER_PORT"
-    echo "Indexer Web:    http://localhost:$((INDEXER_PORT + 2))"
     echo ""
     echo "Press Ctrl+C to stop all services"
     wait
