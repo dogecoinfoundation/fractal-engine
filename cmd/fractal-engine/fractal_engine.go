@@ -11,6 +11,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/version"
 )
 
 func main() {
@@ -31,6 +32,8 @@ func main() {
 	var invoiceLimit int
 	var buyOfferLimit int
 	var sellOfferLimit int
+	var corsAllowedOrigins string
+	var showVersion bool
 
 	flag.StringVar(&rpcServerHost, "rpc-server-host", "0.0.0.0", "RPC Server Host")
 	flag.StringVar(&rpcServerPort, "rpc-server-port", "8891", "RPC Server Port")
@@ -49,8 +52,15 @@ func main() {
 	flag.IntVar(&invoiceLimit, "invoice-limit", 100, "Invoice Limit (per mint)")
 	flag.IntVar(&buyOfferLimit, "buy-offer-limit", 3, "Buy Offer Limit (per buyer per mint)")
 	flag.IntVar(&sellOfferLimit, "sell-offer-limit", 3, "Sell Offer Limit (per seller per mint)")
+	flag.StringVar(&corsAllowedOrigins, "cors-allowed-origins", "*", "Comma-separated list of allowed CORS origins or *")
+	flag.BoolVar(&showVersion, "version", false, "Print version and exit")
 
 	flag.Parse()
+
+	if showVersion {
+		log.Printf("fractal-engine %s\n", version.String())
+		return
+	}
 
 	cfg := &config.Config{
 		RpcServerHost:      rpcServerHost,
@@ -70,6 +80,7 @@ func main() {
 		InvoiceLimit:       invoiceLimit,
 		BuyOfferLimit:      buyOfferLimit,
 		SellOfferLimit:     sellOfferLimit,
+		CORSAllowedOrigins: corsAllowedOrigins,
 	}
 
 	tokenStore, err := store.NewTokenisationStore(cfg.DatabaseURL, *cfg)
