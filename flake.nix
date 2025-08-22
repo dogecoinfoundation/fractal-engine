@@ -18,6 +18,8 @@
         pkgs = nixpkgs.legacyPackages.${system};
         lib = nixpkgs.lib;
 
+        goVersion = pkgs.go_1_24;
+
         dateFormatter =
           d: "${builtins.substring 0 4 d}/${builtins.substring 4 2 d}/${builtins.substring 6 2 d}";
 
@@ -107,7 +109,7 @@
         # Development shells
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            go_1_24
+            goVersion
             nodejs_22
             postgresql
             git
@@ -127,17 +129,16 @@
             name = "fractal-stack";
           };
 
-          # Development task apps (migrated from Makefile)
           test = {
             type = "app";
             program = "${
               pkgs.writeShellApplication {
                 name = "fractal-test";
-                runtimeInputs = [ pkgs.go_1_24 ];
+                runtimeInputs = [ goVersion ];
                 text = ''
                   set -euo pipefail
-                  IFS=' ' read -r -a EXTRA <<< "''${GO_TEST_EXTRA_FLAGS:-}"
-                  ENV=test TZ=UTC go test "''${EXTRA[@]}" -p 1 -covermode=count -coverprofile=coverage.txt -timeout=30m ./...
+                  go test ./pkg/... -count=1
+                  printf "\n\nTo run integration tests; refer to ./internal/stack/README.md\n";
                 '';
               }
             }/bin/fractal-test";
@@ -148,7 +149,7 @@
             program = "${
               pkgs.writeShellApplication {
                 name = "fractal-coverage";
-                runtimeInputs = [ pkgs.go_1_24 ];
+                runtimeInputs = [ goVersion ];
                 text = ''
                   set -euo pipefail
                   go tool cover -func=coverage.txt
@@ -162,7 +163,7 @@
             program = "${
               pkgs.writeShellApplication {
                 name = "fractal-coverage-html";
-                runtimeInputs = [ pkgs.go_1_24 ];
+                runtimeInputs = [ goVersion ];
                 text = ''
                   set -euo pipefail
                   go tool cover -html=coverage.txt
@@ -204,7 +205,7 @@
             program = "${
               pkgs.writeShellApplication {
                 name = "fractal-tidy";
-                runtimeInputs = [ pkgs.go_1_24 ];
+                runtimeInputs = [ goVersion ];
                 text = ''
                   set -euo pipefail
                   go mod tidy
