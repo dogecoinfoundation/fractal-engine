@@ -17,7 +17,10 @@ nix run .#stack 2 ports
 # Running tests
 go test ./internal/test/stack/...
 
-# Cleanup
+# Logs
+ls ~/.fractal-stack-<N>/logs
+
+# Cleanup data dirs
 nix run .#stack 1 clean
 nix run .#stack 2 clean
 ```
