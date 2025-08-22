@@ -15,7 +15,6 @@ require (
 	github.com/dogecoinfoundation/chainfollower v0.0.0-20250627015426-488188828ea3
 	github.com/dogecoinfoundation/dogetest v0.0.0-20250620045423-cd7468b764b9
 	github.com/dogeorg/doge v0.1.2-0.20250818072130-2d2e0619e480
-	github.com/golang-migrate/migrate v3.5.4+incompatible
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.7.4

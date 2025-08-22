@@ -28,14 +28,12 @@ INDEXER_PORT=$((BASE_PORT + 5))
 POSTGRES_PORT=$((BASE_PORT + 6))
 DOGENET_HANDLER_PORT=$((BASE_PORT + 7))
 DOGENET_BIND_PORT=$((42000 + INSTANCE_ID))
-FRACTAL_ADMIN_PORT=$((BASE_PORT + 8))
 DOGE_P2P_PORT=$((BASE_PORT + 10))
 
 # Data directories for instance isolation
 BASE_DIR="$HOME/.fractal-stack-$INSTANCE_ID"
 DOGECOIN_DATA="$BASE_DIR/dogecoin-$INSTANCE_ID"
 POSTGRES_DATA="$BASE_DIR/postgres-$INSTANCE_ID"
-FRACTAL_ADMIN_DATA="$BASE_DIR/admin-$INSTANCE_ID"
 INDEXER_DATA="$BASE_DIR/indexer-$INSTANCE_ID"
 DOGENET_DATA="$BASE_DIR/dogenet-$INSTANCE_ID"
 LOGS_DIR="$BASE_DIR/logs"
@@ -44,7 +42,7 @@ PIDS_FILE="$BASE_DIR/pids"
 INDEXER_DB_URL=$BASE_DIR/indexerstore/indexer.db
 
 # Create instance directories
-mkdir -p "$BASE_DIR" "$POSTGRES_DATA" "$DOGECOIN_DATA" "$FRACTAL_ADMIN_DATA" "$INDEXER_DATA" "$DOGENET_DATA" "$LOGS_DIR"
+mkdir -p "$BASE_DIR" "$POSTGRES_DATA" "$DOGECOIN_DATA" "$INDEXER_DATA" "$DOGENET_DATA" "$LOGS_DIR"
 mkdir -p $BASE_DIR/indexerstore
 
 export POSTGRES_USER=fractalstore
@@ -72,10 +70,6 @@ export INDEXER_DOGECOIN_RPC="http://dogecoinrpc:changeme1@0.0.0.0:$DOGE_RPC_PORT
 export INDEXER_ENGINE_URL="http://0.0.0.0:$FRACTAL_ENGINE_PORT"
 export INDEXER_PORT=$INDEXER_PORT
 export INDEXER_STARTINGHEIGHT=0
-
-export DATABASE_URL="file:$FRACTAL_ADMIN_DATA/dev.db"
-export NEXT_TELEMETRY_DISABLED=1
-export FRACTAL_ADMIN_PORT=$FRACTAL_ADMIN_PORT
 
 cleanup() {
   echo "Stopping stack instance $INSTANCE_ID..."
@@ -131,7 +125,6 @@ show_status() {
   echo "  Indexer API:      $INDEXER_PORT"
   echo "  Indexer Listen:   $((INDEXER_PORT + 1))"
   echo "  Indexer Web:      $((INDEXER_PORT + 2))"
-  echo "  Fractal Admin:    $FRACTAL_ADMIN_PORT"
   echo ""
 
   if [ -f "$PIDS_FILE" ]; then
@@ -254,12 +247,9 @@ case "$COMMAND" in
 
     fi
 
-    start_service "fractaladmin" "@fractaladmin@/bin/fractaladmin -p $FRACTAL_ADMIN_PORT"
-
     echo ""
     echo "=== Stack $INSTANCE_ID Ready ==="
     echo "Fractal Engine: http://localhost:$FRACTAL_ENGINE_PORT"
-    echo "Fractal Admin:  http://localhost:$FRACTAL_ADMIN_PORT"
     echo "Dogenet Web:    http://localhost:$DOGENET_WEB_PORT"
     echo "Indexer API:    http://localhost:$INDEXER_PORT"
     echo "Indexer Web:    http://localhost:$((INDEXER_PORT + 2))"
