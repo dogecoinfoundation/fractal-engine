@@ -1,21 +1,26 @@
-# Stack Testing
-A stack is running Fractal Engine + all dependancies.
+# E2E Testing Stack
 
-- This is achieved by configuring dockerfiles and a docker compose.
-- We also have shell scripts so that we can run multiple stacks at the same time without conflicts so that they can be peered.
+## Quick Start
+```sh
 
-## Running stacks
-./scripts/run_stack.sh 1
-./scripts/run_stack.sh 2
+# Build stack
+nix build .#fractal-stack
 
-Will spin up two entire stacks
+# Run stacks
+nix run .#stack 1 up
+nix run .#stack 2 up
 
-## Running stack tests
-go test -v ./internal/test/stack/stack_test.go
+# Check ports/PIDs for stacks
+nix run .#stack 1 ports
+nix run .#stack 2 ports
 
-- This will connect to the stacks + retrieve configuration for ports/keys.
-- This will also peer the DogeNet peers and the Dogecoin RPCs.
-- It will then run through a series of real world tests.
+# Running tests
+go test ./internal/test/stack/...
 
-## Note
-The advantage of this setup is it will be as close as possible to a real world test because all the apps are built and deployed.
+# Logs
+ls ~/.fractal-stack-<N>/logs
+
+# Cleanup data dirs
+nix run .#stack 1 clean
+nix run .#stack 2 clean
+```

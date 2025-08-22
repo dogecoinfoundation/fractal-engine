@@ -6,8 +6,14 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         lib = nixpkgs.lib;
@@ -15,24 +21,26 @@
       {
         packages = rec {
           # Required services (always included)
-          fractalengine = pkgs.callPackage ./nix/fractalengine.nix {};
-          fractalstore = pkgs.callPackage ./nix/fractalstore.nix {};
+          fractalengine = pkgs.callPackage ./nix/fractalengine.nix { };
+          fractalstore = pkgs.callPackage ./nix/fractalstore.nix { };
 
           # Optional services
-          dogecoin = pkgs.callPackage ./nix/dogecoin.nix {};
-          dogenet = pkgs.callPackage ./nix/dogenet.nix {};
-          indexer = pkgs.callPackage ./nix/indexer.nix {};
-          indexerstore = pkgs.callPackage ./nix/indexerstore.nix {};
-          fractaladmin = pkgs.callPackage ./nix/fractaladmin.nix {};
+          dogecoin = pkgs.callPackage ./nix/dogecoin.nix { };
+          dogenet = pkgs.callPackage ./nix/dogenet.nix { };
+          indexer = pkgs.callPackage ./nix/indexer.nix { };
+          indexerstore = pkgs.callPackage ./nix/indexerstore.nix { };
 
           # Service orchestration
 
-          fractal-stack = pkgs.callPackage ./nix/stack.nix {};
+          fractal-stack = pkgs.callPackage ./nix/stack.nix { };
 
           # Predefined configurations
           minimal = pkgs.buildEnv {
             name = "fractal-minimal";
-            paths = [ fractalengine fractalstore ];
+            paths = [
+              fractalengine
+              fractalstore
+            ];
           };
 
           full = pkgs.buildEnv {
@@ -44,25 +52,26 @@
               dogenet
               indexer
               indexerstore
-              fractaladmin
             ];
           };
 
           # Custom configurable build
-          custom = {
-            withDogecoin ? false,
-            withDogenet ? false,
-            withIndexer ? false,
-            withAdmin ? false
-          }:
+          custom =
+            {
+              withDogecoin ? false,
+              withDogenet ? false,
+              withIndexer ? false,
+            }:
             pkgs.buildEnv {
               name = "fractal-custom";
-              paths = [ fractalengine fractalstore ]
-                ++ lib.optional withDogecoin dogecoin
-                ++ lib.optional withDogenet dogenet
-                ++ lib.optional withIndexer indexer
-                ++ lib.optional withIndexer indexerstore
-                ++ lib.optional withAdmin fractaladmin;
+              paths = [
+                fractalengine
+                fractalstore
+              ]
+              ++ lib.optional withDogecoin dogecoin
+              ++ lib.optional withDogenet dogenet
+              ++ lib.optional withIndexer indexer
+              ++ lib.optional withIndexer indexerstore;
             };
 
           default = minimal;
