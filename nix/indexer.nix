@@ -7,8 +7,8 @@ buildGoModule rec {
   src = fetchFromGitHub {
     owner = "dogeorg";
     repo = "indexer";
-    rev = "main";
-    sha256 = "sha256-CVwZLwiE83h8SbkW+EMzymuTyziNOAzA82q59Qhsx20=";
+    rev = "v0.0.4";
+    sha256 = "sha256-ISRemdryweYlXFyx3TSMpW2hRxic1tGbMqgBJ0FAObE=";
   };
 
   vendorHash = "sha256-EpogYqHjdxiXK9WgpR/3P86BvlvmDuuGFvMrRpkubH0=";
@@ -54,7 +54,7 @@ buildGoModule rec {
       -bindapi $INDEXER_BINDAPI \
       -chain $INDEXER_CHAIN \
       -dburl $INDEXER_DBURL \
-      -listenport $INDEXER_LISTENPORT \
+      -bindapi $INDEXER_LISTENPORT \
       -rpchost $INDEXER_RPCHOST \
       -rpcpass $INDEXER_RPCPASS \
       -rpcport $INDEXER_RPCPORT \

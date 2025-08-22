@@ -21,24 +21,27 @@
         iso8601FromLastModifiedDate = d:
           "${builtins.substring 0 4 d}-${builtins.substring 4 2 d}-${builtins.substring 6 2 d}"
           + "T${builtins.substring 8 2 d}:${builtins.substring 10 2 d}:${builtins.substring 12 2 d}Z";
+
+        # Required services (always included)
+        fractalengine = pkgs.callPackage ./nix/fractalengine.nix {
+          rev = if self ? rev then self.rev else "dirty";
+          date = if self ? lastModifiedDate then iso8601FromLastModifiedDate self.lastModifiedDate else "unknown-date";
+        };
+        fractalstore = pkgs.callPackage ./nix/fractalstore.nix {};
+
+        # Optional services
+        dogecoin = pkgs.callPackage ./nix/dogecoin.nix {};
+        dogenet = pkgs.callPackage ./nix/dogenet.nix {};
+        indexer = pkgs.callPackage ./nix/indexer.nix {};
+        indexerstore = pkgs.callPackage ./nix/indexerstore.nix {};
+        fractaladmin = pkgs.callPackage ./nix/fractaladmin.nix {};
       in
       {
         packages = rec {
-          # Required services (always included)
-          fractalengine = pkgs.callPackage ./nix/fractalengine.nix {
-            rev = if self ? rev then self.rev else "dirty";
-            date = if self ? lastModifiedDate then iso8601FromLastModifiedDate self.lastModifiedDate else "unknown-date";
-          };
-          fractalstore = pkgs.callPackage ./nix/fractalstore.nix {};
-
-          # Optional services
-          dogecoin = pkgs.callPackage ./nix/dogecoin.nix { };
-          dogenet = pkgs.callPackage ./nix/dogenet.nix { };
-          indexer = pkgs.callPackage ./nix/indexer.nix { };
-          indexerstore = pkgs.callPackage ./nix/indexerstore.nix { };
-
           # Service orchestration
-          fractal-stack = pkgs.callPackage ./nix/stack.nix {};
+          fractal-stack = pkgs.callPackage ./nix/stack.nix {
+            inherit fractalengine fractalstore dogecoin dogenet indexer indexerstore;
+          };
 
           # Predefined configurations
           minimal = pkgs.buildEnv {

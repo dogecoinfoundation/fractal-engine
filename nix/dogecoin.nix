@@ -1,13 +1,19 @@
-{ lib, fetchurl, autoPatchelfHook, writeShellScriptBin, gettext, gcc-unwrapped, xorg, libxkbcommon, fontconfig, freetype }:
+{ lib
+, stdenv
+, fetchurl
+, writeShellScriptBin
+, pkgs
+}:
 
 let
-  core = pkgs.callPackage (pkgs.fetchurl {
-    url = "https://raw.githubusercontent.com/Dogebox-WG/dogebox-nur-packages/f485a380d516436c2310b289622f39bf21382f9c/pkgs/dogecoin-core/default.nix";
-    sha256 = "sha256-n27e6ZpRJDKXpL8Fs5QNqELFec5htai33lLY566tHoo=";
+  dogecoin = pkgs.callPackage (pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/Dogebox-WG/dogebox-nur-packages/92d4675dcb1f0412dee0e53f9c433422abca12da/pkgs/dogecoin-core/default.nix";
+    sha256 = "sha256-UQfTBL2XoXqP2ZkYfE+Bocsqr+LuHiQuEKaT3u6evFY=";
   }) {
-    disableWallet = true;
+    disableWallet = false;
     disableGUI = true;
     disableTests = true;
+    enableZMQ = true;
   };
 
   # Wrapper that starts regtest with your env-driven ports + ZMQ on one socket
@@ -30,7 +36,7 @@ let
 
     # Generate config if you have a template
     if [[ -f "${../regtest.conf}" ]]; then
-      ${gettext}/bin/envsubst < ${../regtest.conf} > "$CONF"
+      ${pkgs.gettext}/bin/envsubst < ${../regtest.conf} > "$CONF"
       echo "Generated dogecoin.conf:"
       cat "$CONF"
     else
@@ -47,7 +53,7 @@ txindex=1
 EOF
     fi
 
-    exec ${core}/bin/dogecoind \
+    exec ${dogecoin}/bin/dogecoind \
       -printtoconsole \
       -regtest \
       -reindex-chainstate \
