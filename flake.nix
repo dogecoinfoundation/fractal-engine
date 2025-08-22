@@ -38,6 +38,8 @@
       in
       {
         packages = rec {
+          inherit fractalengine fractalstore dogecoin dogenet indexer indexerstore fractaladmin;
+
           # Service orchestration
           fractal-stack = pkgs.callPackage ./nix/stack.nix {
             inherit fractalengine fractalstore dogecoin dogenet indexer indexerstore;

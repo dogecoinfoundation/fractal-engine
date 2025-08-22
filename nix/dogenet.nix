@@ -1,36 +1,11 @@
-{ lib, buildGoModule, fetchFromGitHub, pkg-config }:
+{ pkgs, ... }:
 
-buildGoModule rec {
-  pname = "dogenet";
-  version = "main";
-
-  src = fetchFromGitHub {
-    owner = "Dogebox-WG";
-    repo = "dogenet";
-    rev = "main"; # Can be overridden
-    sha256 = "sha256-VJzY8NegXLyTNk4PlXxMnNGYwyzRFWdfBmA4WDVgaa8="; # TODO: Update with the correct hash
-  };
-
-  vendorHash = "sha256-4XDgSVH+QAlIAv5/h30oqeVzMTEoAfEAySkVmMH6kFs="; # TODO: Update with the correct hash
-
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = [];
-
-  subPackages = [ "cmd/dogenet" ];
-
-  env.CGO_ENABLED = "1";
-
-  ldflags = [
-    "-s" "-w"
-  ];
-
-  # Post-build setup to generate keys and wrapper
-  postInstall = ''
-    # Keys are generated at runtime by the wrapper if missing
-
-    # Create wrapper script with runtime env defaults and public host:port derivation
-    cat > $out/bin/dogenet-start <<'EOF'
-#!/usr/bin/env bash
+let
+  dogenet_upstream = pkgs.callPackage (pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/dogebox-wg/dogebox-nur-packages/0ea16a94f4b7bbf3eedc2ab1c351e6f366bca23b/pkgs/dogenet/default.nix";
+    sha256 = "sha256-JUWuZxDO30H7tNeAu4roBmUHhZHsGs072Ex8QD9Lzz4=";
+  }) {};
+  dogenet = pkgs.writeShellScriptBin "dogenet" ''
 set -euo pipefail
 
 # Runtime-configurable env with defaults
@@ -50,10 +25,10 @@ mkdir -p "''${DOGENET_HOME}/storage"
 
 # Generate keys if missing
 if [ ! -f "''${DOGENET_HOME}/dev-key" ]; then
-  "__OUT_PATH__/bin/dogenet" genkey "''${DOGENET_HOME}/dev-key"
+  ${dogenet_upstream}/bin/dogenet genkey "''${DOGENET_HOME}/dev-key"
 fi
 if [ ! -f "''${DOGENET_HOME}/ident-pub" ]; then
-  "__OUT_PATH__/bin/dogenet" genkey "''${DOGENET_HOME}/ident-key" "''${DOGENET_HOME}/ident-pub"
+  ${dogenet_upstream}/bin/dogenet genkey "''${DOGENET_HOME}/ident-key" "''${DOGENET_HOME}/ident-pub"
 fi
 
 cd "''${DOGENET_HOME}"
@@ -62,24 +37,11 @@ cd "''${DOGENET_HOME}"
 export KEY="$(cat dev-key)"
 export IDENT="$(cat ident-pub)"
 
-exec "__OUT_PATH__/bin/dogenet" \
+exec ${dogenet_upstream}/bin/dogenet \
   --local \
   --public "''${DOGENET_PUBLIC_HOST}:''${DOGENET_PUBLIC_PORT}" \
   --handler "''${DOGE_NET_HANDLER}" \
   --web "0.0.0.0:''${DOGENET_WEB_PORT}" \
   --bind "''${DOGENET_BIND_HOST}:''${DOGENET_BIND_PORT}"
-EOF
-
-    # Inject the actual store path into the wrapper (while keeping runtime env expansion intact)
-    sed -i "s#__OUT_PATH__#$out#g" "$out/bin/dogenet-start"
-
-    chmod +x $out/bin/dogenet-start
-  '';
-
-  meta = with lib; {
-    description = "Dogenet networking service";
-    homepage = "https://github.com/Dogebox-WG/dogenet";
-    license = licenses.mit;
-    mainProgram = "dogenet-start";
-  };
-}
+'';
+in dogenet
