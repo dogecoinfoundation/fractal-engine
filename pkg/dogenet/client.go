@@ -4,16 +4,21 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strings"
+	"syscall"
 	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
 
 	"code.dogecoin.org/gossip/dnet"
+	"code.dogecoin.org/governor"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -45,11 +50,12 @@ type GossipClient interface {
 	GetNodes() (GetNodesResponse, error)
 	AddPeer(addPeer AddPeer) error
 	CheckRunning() error
-	Start(statusChan chan string) error
-	Stop() error
+	Run()
+	Stop()
 }
 
 type DogeNetClient struct {
+	governor.ServiceCtx
 	GossipClient
 	cfg      *config.Config
 	store    *store.TokenisationStore
@@ -77,6 +83,46 @@ func NewDogeNetClient(cfg *config.Config, store *store.TokenisationStore) *DogeN
 		Stopping: false,
 		feKey:    cfg.DogeNetKeyPair,
 		Messages: make(chan dnet.Message),
+	}
+}
+
+func (c *DogeNetClient) UnixSockActive() (bool, error) {
+	if !strings.HasSuffix(c.cfg.DogeNetAddress, ".sock") {
+		return true, nil
+	}
+
+	path := c.cfg.DogeNetAddress
+	timeout := 5 * time.Millisecond
+	// Optional sanity check: ensure the path is a socket (not a symlink/regular file)
+	if fi, err := os.Lstat(path); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil // no file → not active
+		}
+		return false, err
+	} else if fi.Mode()&os.ModeSocket == 0 {
+		return false, fmt.Errorf("%s exists but isn't a unix socket", path)
+	}
+
+	// Best check: try to connect
+	sock, err := net.DialTimeout("unix", path, timeout)
+	if err == nil {
+		_ = sock.Close()
+		return true, nil // connected → listener is alive
+	}
+
+	// Interpret common errors
+	switch {
+	case errors.Is(err, syscall.ECONNREFUSED):
+		// Stale socket file: exists but nothing is listening
+		return false, nil
+	case errors.Is(err, os.ErrNotExist):
+		// Race: file disappeared between Lstat and Dial
+		return false, nil
+	case errors.Is(err, syscall.EACCES):
+		// Might be active but you lack permission to connect
+		return false, fmt.Errorf("permission denied dialing %s", path)
+	default:
+		return false, err
 	}
 }
 
@@ -145,17 +191,15 @@ func (c *DogeNetClient) CheckRunning() error {
 	return nil
 }
 
-func (c *DogeNetClient) StartWithConn(statusChan chan string, conn net.Conn) error {
+func (c *DogeNetClient) StartWithConn(conn net.Conn) {
 	c.sock = conn
-
-	return c.Start(statusChan)
+	c.Run()
 }
 
-func (c *DogeNetClient) Start(statusChan chan string) error {
+func (c *DogeNetClient) Run() {
 	if c.Running {
-		statusChan <- "Running"
 		log.Println("Dogenet client already running")
-		return nil
+		return
 	}
 
 	c.Running = true
@@ -164,7 +208,7 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 		sock, err := net.Dial(c.cfg.DogeNetNetwork, c.cfg.DogeNetAddress)
 		if err != nil {
 			log.Printf("[FE] cannot connect: %v", err)
-			return err
+			return
 		}
 		c.sock = sock
 	}
@@ -176,7 +220,7 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 	if err != nil {
 		log.Printf("[FE] cannot send BindMessage: %v", err)
 		c.sock.Close()
-		return err
+		return
 	}
 
 	reader := bufio.NewReader(c.sock)
@@ -187,7 +231,7 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 	if err != nil {
 		log.Printf("[FE] reading BindMessage reply: %v", err)
 		c.sock.Close()
-		return err
+		return
 	}
 
 	log.Printf("[FE] reading DecodeBindMessage reply.")
@@ -200,23 +244,19 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 	} else {
 		log.Printf("[FE] invalid BindMessage reply: %v", err)
 		c.sock.Close()
-		return err
+		return
 	}
 	log.Printf("[FE] completed handshake.")
 
-	// go c.gossipRandomMints()
-	// go c.gossipRandomInvoices()
-
-	if statusChan != nil {
-		statusChan <- "Running"
-	}
+	go c.gossipRandomMints()
+	go c.gossipRandomInvoices()
 
 	for !c.Stopping {
 		msg, err := dnet.ReadMessage(reader)
 		if err != nil {
 			log.Printf("[FE] cannot receive from peer: %v", err)
 			c.sock.Close()
-			return err
+			return
 		}
 
 		log.Printf("[FE] received message: [%s][%s]", msg.Chan, msg.Tag)
@@ -250,19 +290,15 @@ func (c *DogeNetClient) Start(statusChan chan string) error {
 			log.Printf("[FE] unknown message: [%s][%s]", msg.Chan, msg.Tag)
 		}
 	}
-
-	return nil
 }
 
-func (c *DogeNetClient) Stop() error {
+func (c *DogeNetClient) Stop() {
 	fmt.Println("Stopping dogenet client")
 	c.Stopping = true
 
 	if c.sock != nil {
 		c.sock.Close()
 	}
-
-	return nil
 }
 
 func (s *DogeNetClient) gossipRandomMints() {

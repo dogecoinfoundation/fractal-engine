@@ -14,7 +14,6 @@ import (
 	"time"
 
 	feclient "dogecoin.org/fractal-engine/pkg/client"
-	"dogecoin.org/fractal-engine/pkg/config"
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
@@ -52,7 +51,7 @@ type StackConfig struct {
 	TokenisationStore  *store.TokenisationStore
 }
 
-var nodePubKeyRe = regexp.MustCompile(`Node PubKey is:\s*([0-9a-fA-F]{64})`)
+var nodePubKeyRe = regexp.MustCompile(`DogeNet PubKey is:\s*([0-9a-fA-F]{64})`)
 var spentUtxos []string
 
 func NewStackConfig(instanceId int, chain string) StackConfig {
@@ -74,14 +73,14 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		DogePort:           basePortFirst + 14556,
 		DogeHost:           "0.0.0.0",
 		DogeP2PPort:        basePortFirst + 10,
-		FractalPort:        basePort + 2,
+		FractalPort:        basePort + 20,
 		FractalHost:        "0.0.0.0",
-		DogeNetPort:        basePort + 3,
-		DogeNetWebPort:     basePort + 4,
+		DogeNetPort:        basePort + 30,
+		DogeNetWebPort:     basePort + 40,
 		DogeNetHost:        "0.0.0.0",
-		IndexerURL:         "http://0.0.0.0:" + strconv.Itoa(basePortFirst+5),
-		DogeNetHandlerPort: basePort + 7,
-		DogeNetBindPort:    42000 + instanceId,
+		IndexerURL:         "http://0.0.0.0:" + strconv.Itoa(basePortFirst+50),
+		DogeNetHandlerPort: basePort + 70,
+		DogeNetBindPort:    basePort + 77,
 		Address:            address,
 		PrivKey:            privHex,
 		PubKey:             pubHex,
@@ -92,7 +91,7 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		fmt.Println("Error:", err)
 	}
 
-	dogenetLogFile := home + "/.fractal-stack-" + strconv.Itoa(instanceId) + "/logs/dogenet.log"
+	dogenetLogFile := home + "/.fractal-stack-" + strconv.Itoa(instanceId) + "/logs/fractalengine.log"
 
 	_, err = os.Stat(dogenetLogFile)
 	if err != nil {
@@ -121,31 +120,8 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		DogePassword: "changeme1",
 	})
 
-	tokenStore, err := store.NewTokenisationStore("file:fractalstore?mode=memory&cache=shared", config.Config{})
-
+	tokenStore, err := store.NewTokenisationStore("postgres://fractalstore:fractalstore@0.0.0.0:"+strconv.Itoa(stackConfig.PortgresPort)+"/fractalstore?sslmode=disabled", fecfg.Config{})
 	stackConfig.TokenisationStore = tokenStore
-	if err != nil {
-		panic(err)
-	}
-
-	failures := 0
-	maxFails := 5
-
-	for {
-		err = tokenStore.Migrate()
-		if err != nil && err.Error() != "no change" {
-			if failures < maxFails {
-				failures++
-				fmt.Printf("Migration failed: %s\n", err)
-			} else {
-				panic(err)
-			}
-		} else {
-			break
-		}
-
-		time.Sleep(5 * time.Second)
-	}
 
 	stackConfig.DogeNetClient = dogenet.NewDogeNetClient(&fecfg.Config{
 		DogeNetWebAddress: "localhost" + ":" + strconv.Itoa(stackConfig.DogeNetWebPort),
