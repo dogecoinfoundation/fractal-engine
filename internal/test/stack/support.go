@@ -438,10 +438,6 @@ func makeStackConfigsAndPeer(stackCount int) []*StackConfig {
 		stackB := stacks[(i + 1)]
 
 		// Check for nodes, if doesnt exist, then add peer.
-		fmt.Println("===============================================")
-		fmt.Println(stackB.DogeNetPubKey)
-		fmt.Println(stackB.DogeNetHost + ":" + strconv.Itoa(stackB.DogeNetBindPort))
-
 		err := stackA.DogeNetClient.AddPeer(dogenet.AddPeer{
 			Key:  stackB.DogeNetPubKey,
 			Addr: stackB.DogeNetHost + ":" + strconv.Itoa(stackB.DogeNetBindPort),
