@@ -21,14 +21,14 @@ PROJECT_NAME="fractal-stack-$INSTANCE_ID"
 BASE_PORT=$((8600 + (INSTANCE_ID * 100)))
 DOGE_RPC_PORT=$((8700 + 14556))
 DOGE_ZMQ_PORT=$((BASE_PORT + 20000))
-FRACTAL_ENGINE_PORT=$((BASE_PORT + 2))
-DOGENET_PORT=$((BASE_PORT + 3))
-DOGENET_WEB_PORT=$((BASE_PORT + 4))
-INDEXER_PORT=$((BASE_PORT + 5))
-POSTGRES_PORT=$((BASE_PORT + 6))
-DOGENET_HANDLER_PORT=$((BASE_PORT + 7))
-DOGENET_BIND_PORT=$((42000 + INSTANCE_ID))
-DOGE_P2P_PORT=$((BASE_PORT + 10))
+FRACTAL_ENGINE_PORT=$((BASE_PORT + 20))
+DOGENET_PORT=$((BASE_PORT + 30))
+DOGENET_WEB_PORT=$((BASE_PORT + 40))
+INDEXER_PORT=$((BASE_PORT + 50))
+POSTGRES_PORT=$((BASE_PORT + 60))
+DOGENET_HANDLER_PORT=$((BASE_PORT + 70))
+DOGENET_BIND_PORT=$((BASE_PORT + 77))
+DOGE_P2P_PORT=$((BASE_PORT + 80))
 
 # Data directories for instance isolation
 BASE_DIR="$HOME/.fractal-stack-$INSTANCE_ID"
@@ -52,7 +52,6 @@ export PGDATA="$POSTGRES_DATA"
 export PGPORT=$POSTGRES_PORT
 
 export FRACTAL_ENGINE_HOST=localhost
-export FRACTAL_ENGINE_PORT=$FRACTAL_ENGINE_PORT
 export FRACTAL_ENGINE_DB="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:$POSTGRES_PORT/${POSTGRES_DB}"
 
 export DOGECOIN_RPC_HOST=0.0.0.0
@@ -67,7 +66,6 @@ export DOGENET_BIND_HOST=0.0.0.0
 export DOGENET_BIND_PORT=$DOGENET_BIND_PORT
 
 export INDEXER_DOGECOIN_RPC="http://dogecoinrpc:changeme1@0.0.0.0:$DOGE_RPC_PORT"
-export INDEXER_ENGINE_URL="http://0.0.0.0:$FRACTAL_ENGINE_PORT"
 export INDEXER_PORT=$INDEXER_PORT
 export INDEXER_STARTINGHEIGHT=0
 
@@ -213,16 +211,16 @@ case "$COMMAND" in
     start_service "fractalengine" "@fractalengine@/bin/fractal-engine \
       --rpc-server-host 0.0.0.0 \
       --rpc-server-port $FRACTAL_ENGINE_PORT \
-      --doge-net-network tcp \
-      --doge-net-address localhost:$DOGENET_HANDLER_PORT \
-      --doge-net-web-address localhost:$DOGENET_WEB_PORT \
+      --doge-net-network unix \
+      --doge-net-address $BASE_DIR/dogenet.sock \
+      --doge-net-web-address 0.0.0.0:$DOGENET_WEB_PORT \
       --doge-scheme http \
       --doge-host localhost \
       --doge-port $DOGE_RPC_PORT \
       --doge-user $DOGECOIN_RPC_USER \
       --doge-password $DOGECOIN_RPC_PASSWORD \
-      --embed-dogenet true \
-      --database-url $FRACTAL_ENGINE_DB?sslmode=disable"
+      --database-url $FRACTAL_ENGINE_DB?sslmode=disable \
+      --embed-dogenet true"
 
     rm -rf $INDEXER_DB_URL
 

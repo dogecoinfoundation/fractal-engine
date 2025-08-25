@@ -32,7 +32,6 @@
 
         # Optional services
         dogecoin = pkgs.callPackage ./nix/dogecoin.nix { };
-        dogenet = pkgs.callPackage ./nix/dogenet.nix { };
         indexer = pkgs.callPackage ./nix/indexer.nix { };
         indexerstore = pkgs.callPackage ./nix/indexerstore.nix { };
         fractaladmin = pkgs.callPackage ./nix/fractaladmin.nix { };
@@ -43,7 +42,6 @@
             fractalengine
             fractalstore
             dogecoin
-            dogenet
             indexer
             indexerstore
             fractaladmin
@@ -55,7 +53,6 @@
               fractalengine
               fractalstore
               dogecoin
-              dogenet
               indexer
               indexerstore
               ;
@@ -76,7 +73,6 @@
               fractalengine
               fractalstore
               dogecoin
-              dogenet
               indexer
               indexerstore
             ];
@@ -86,7 +82,6 @@
           custom =
             {
               withDogecoin ? false,
-              withDogenet ? false,
               withIndexer ? false,
             }:
             pkgs.buildEnv {
@@ -96,7 +91,6 @@
                 fractalstore
               ]
               ++ lib.optional withDogecoin dogecoin
-              ++ lib.optional withDogenet dogenet
               ++ lib.optional withIndexer indexer
               ++ lib.optional withIndexer indexerstore;
             };

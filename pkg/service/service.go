@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -57,7 +56,7 @@ func (s *TokenisationService) Run() {
 		if err != nil && err.Error() != "no change" {
 			if failures < maxFails {
 				failures++
-				fmt.Printf("Migration failed: %s\n", err)
+				log.Printf("Migration failed: %s\n", err)
 			} else {
 				log.Fatalf("Failed to migrate tokenisation store: %v", err)
 			}
@@ -67,6 +66,8 @@ func (s *TokenisationService) Run() {
 
 		time.Sleep(5 * time.Second)
 	}
+
+	log.Println("Migration successful")
 
 	go s.HealthService.Start()
 	go s.RpcServer.Start()
@@ -109,5 +110,4 @@ func (s *TokenisationService) Stop() {
 	s.Store.Close()
 	s.RpcServer.Stop()
 	s.TrimmerService.Stop()
-	s.DogeNetClient.Stop()
 }

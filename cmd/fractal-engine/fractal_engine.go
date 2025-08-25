@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
+	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	dn "code.dogecoin.org/dogenet/pkg/dogenet"
@@ -99,14 +102,12 @@ func main() {
 
 	cfg.DogeNetKeyPair = kp
 
-	gov := governor.New().CatchSignals().Restart(1 * time.Second)
+	gov := governor.New().CatchSignals()
 
 	dogenetClient := dogenet.NewDogeNetClient(cfg, tokenStore)
-	gov.Add("dogenetClient", dogenetClient)
 
 	if embedDogenet {
 		const WebAPIDefaultPort = 8085
-		const DogeNetDefaultPort = dnet.DogeNetDefaultPort
 		const DBFile = "dogenet.db"
 		const DefaultStorage = "./storage"
 
@@ -115,17 +116,31 @@ func main() {
 			log.Fatalf("Failed to generate key pair: %v", err)
 		}
 
+		fmt.Printf("DogeNet PubKey is: %s\n", hex.EncodeToString(dogeNetServerKp.Pub[:]))
+
 		var HandlerDefaultBind = spec.BindTo{Network: dogeNetNetwork, Address: dogeNetAddress} // const
+
+		webAddy, err := dnet.ParseAddress(dogeNetWebAddress)
+		if err != nil {
+			log.Fatalf("Failed to parse web address: %v", err)
+		}
+
+		rawAddy := "0.0.0.0:" + strconv.Itoa(int(webAddy.Port)+33)
+
+		addy, err := dnet.ParseAddress(rawAddy)
+		if err != nil {
+			log.Fatalf("Failed to parse web address: %v", err)
+		}
 
 		err = dn.DogeNet(gov, dn.DogeNetConfig{
 			Dir:          DefaultStorage,
 			DBFile:       DBFile,
-			Binds:        []dnet.Address{},
-			BindWeb:      []dnet.Address{},
+			Binds:        []dnet.Address{addy},
+			BindWeb:      []dnet.Address{webAddy},
 			HandlerBind:  HandlerDefaultBind,
 			NodeKey:      dogeNetServerKp,
 			AllowLocal:   true,
-			Public:       dnet.Address{},
+			Public:       addy,
 			UseReflector: false,
 		})
 
@@ -134,9 +149,23 @@ func main() {
 		}
 	}
 
-	service := service.NewTokenisationService(cfg, dogenetClient, tokenStore)
-	gov.Add("tokenService", service)
-
 	gov.Start()
+
+	if embedDogenet {
+		for {
+			active, err := dogenetClient.UnixSockActive()
+			if active || err != nil {
+				break
+			}
+
+			time.Sleep(200 * time.Millisecond)
+		}
+	}
+
+	go dogenetClient.Run()
+
+	service := service.NewTokenisationService(cfg, dogenetClient, tokenStore)
+	service.Run()
+
 	gov.WaitForShutdown()
 }

@@ -4,11 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strings"
+	"syscall"
 	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
@@ -79,6 +83,46 @@ func NewDogeNetClient(cfg *config.Config, store *store.TokenisationStore) *DogeN
 		Stopping: false,
 		feKey:    cfg.DogeNetKeyPair,
 		Messages: make(chan dnet.Message),
+	}
+}
+
+func (c *DogeNetClient) UnixSockActive() (bool, error) {
+	if !strings.HasSuffix(c.cfg.DogeNetAddress, ".sock") {
+		return true, nil
+	}
+
+	path := c.cfg.DogeNetAddress
+	timeout := 5 * time.Millisecond
+	// Optional sanity check: ensure the path is a socket (not a symlink/regular file)
+	if fi, err := os.Lstat(path); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil // no file → not active
+		}
+		return false, err
+	} else if fi.Mode()&os.ModeSocket == 0 {
+		return false, fmt.Errorf("%s exists but isn't a unix socket", path)
+	}
+
+	// Best check: try to connect
+	sock, err := net.DialTimeout("unix", path, timeout)
+	if err == nil {
+		_ = sock.Close()
+		return true, nil // connected → listener is alive
+	}
+
+	// Interpret common errors
+	switch {
+	case errors.Is(err, syscall.ECONNREFUSED):
+		// Stale socket file: exists but nothing is listening
+		return false, nil
+	case errors.Is(err, os.ErrNotExist):
+		// Race: file disappeared between Lstat and Dial
+		return false, nil
+	case errors.Is(err, syscall.EACCES):
+		// Might be active but you lack permission to connect
+		return false, fmt.Errorf("permission denied dialing %s", path)
+	default:
+		return false, err
 	}
 }
 
