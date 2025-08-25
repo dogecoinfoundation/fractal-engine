@@ -3,7 +3,6 @@
   fractalengine,
   fractalstore,
   dogecoin,
-  dogenet,
   indexer,
   indexerstore,
 }:
@@ -17,7 +16,6 @@ let
         "@fractalstore@"
         "@indexerstore@"
         "@dogecoin@"
-        "@dogenet@"
         "@fractalengine@"
         "@indexer@"
       ]
@@ -26,7 +24,6 @@ let
         "${fractalstore}"
         "${indexerstore}"
         "${dogecoin}"
-        "${dogenet}"
         "${fractalengine}"
         "${indexer}"
       ]

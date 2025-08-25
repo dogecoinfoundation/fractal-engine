@@ -34,9 +34,9 @@ func TestDogenet(t *testing.T) {
 
 	dogeClient := dogenet.NewDogeNetClient(cfg, tokenisationStore)
 
-	statusChan := make(chan string)
+	go dogeClient.StartWithConn(dogenetConn)
 
-	go dogeClient.StartWithConn(statusChan, dogenetConn)
+	test_support.WaitForDogeNetClient(dogeClient)
 
 	reader := bufio.NewReader(myConn)
 
@@ -49,9 +49,6 @@ func TestDogenet(t *testing.T) {
 	log.Printf("[FE] reading BindMessage reply: %v", br_buf)
 
 	myConn.Write(br_buf[:])
-
-	fmt.Println("Status:")
-	fmt.Println(<-statusChan)
 
 	record := store.Mint{
 		Id: "1",

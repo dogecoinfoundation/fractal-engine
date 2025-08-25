@@ -14,7 +14,7 @@ buildGoModule rec {
     owner = "dogeorg";
     repo = "indexer";
     rev = "v0.0.4";
-    sha256 = "sha256-ISRemdryweYlXFyx3TSMpW2hRxic1tGbMqgBJ0FAObE=";
+    sha256 = "sha256-CVwZLwiE83h8SbkW+EMzymuTyziNOAzA82q59Qhsx20=";
   };
 
   vendorHash = "sha256-EpogYqHjdxiXK9WgpR/3P86BvlvmDuuGFvMrRpkubH0=";

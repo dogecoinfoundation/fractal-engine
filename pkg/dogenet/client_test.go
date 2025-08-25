@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.dogecoin.org/gossip/dnet"
+	"dogecoin.org/fractal-engine/internal/test/support"
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
@@ -233,8 +234,7 @@ func TestDogeNetClientStartStop(t *testing.T) {
 	assert.Assert(t, !client.Stopping, "Client should not be stopping initially")
 
 	// Test Stop (should work even if not started)
-	err = client.Stop()
-	assert.NilError(t, err)
+	client.Stop()
 	assert.Assert(t, client.Stopping, "Client should be marked as stopping")
 }
 
@@ -252,15 +252,13 @@ func TestDogeNetClientStartWithConn(t *testing.T) {
 	defer clientConn.Close()
 	defer serverConn.Close()
 
-	statusChan := make(chan string, 1)
-
 	// Start client in goroutine since it will block
 	go func() {
 		defer func() {
 			// Recover from any panics during handshake
 			recover()
 		}()
-		client.StartWithConn(statusChan, serverConn)
+		client.StartWithConn(serverConn)
 	}()
 
 	// Give it a moment to start
@@ -277,43 +275,12 @@ func TestDogeNetClientStartWithConn(t *testing.T) {
 		clientConn.Write(br_buf[:])
 
 		// Wait for status
-		select {
-		case status := <-statusChan:
-			assert.Equal(t, "Running", status)
-		case <-time.After(100 * time.Millisecond):
-			// Timeout is OK, handshake might not complete
-		}
+		support.WaitForDogeNetClient(client)
 	}
 
 	// Test Stop
-	err = client.Stop()
-	assert.NilError(t, err)
+	client.Stop()
 	assert.Assert(t, client.Stopping, "Client should be stopping after Stop")
-}
-
-func TestDogeNetClientStartAlreadyRunning(t *testing.T) {
-	tokenStore := test_support.SetupTestDB()
-	cfg := config.NewConfig()
-	keyPair, err := dnet.GenerateKeyPair()
-	assert.NilError(t, err)
-	cfg.DogeNetKeyPair = keyPair
-
-	client := dogenet.NewDogeNetClient(cfg, tokenStore)
-	client.Running = true // Simulate already running
-
-	statusChan := make(chan string, 1)
-
-	// Test Start when already running
-	err = client.Start(statusChan)
-	assert.NilError(t, err)
-
-	// Should receive "Running" status
-	select {
-	case status := <-statusChan:
-		assert.Equal(t, "Running", status)
-	case <-time.After(100 * time.Millisecond):
-		t.Fatal("Should have received status")
-	}
 }
 
 func TestDogeNetClientMessageChannel(t *testing.T) {
