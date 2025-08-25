@@ -1,14 +1,13 @@
 {
   pkgs,
+  fractalengine,
+  fractalstore,
+  dogecoin,
+  indexer,
+  indexerstore,
 }:
 
 let
-  fractalengine = pkgs.callPackage ./fractalengine.nix { };
-  fractalstore = pkgs.callPackage ./fractalstore.nix { };
-  dogecoin = pkgs.callPackage ./dogecoin.nix { };
-  indexer = pkgs.callPackage ./indexer.nix { };
-  indexerstore = pkgs.callPackage ./indexerstore.nix { };
-
   # Stack management script with port isolation
   fractal-stack = pkgs.writeShellScriptBin "fractal-stack" (
     builtins.replaceStrings

@@ -1,85 +1,48 @@
-{ lib, buildGoModule, fetchFromGitHub, pkg-config, systemd }:
+{ pkgs, ... }:
 
-buildGoModule rec {
-  pname = "dogenet";
-  version = "main";
+let
+  dogenet_upstream = pkgs.callPackage (pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/dogebox-wg/dogebox-nur-packages/0ea16a94f4b7bbf3eedc2ab1c351e6f366bca23b/pkgs/dogenet/default.nix";
+    sha256 = "sha256-JUWuZxDO30H7tNeAu4roBmUHhZHsGs072Ex8QD9Lzz4=";
+  }) { };
+  dogenet = pkgs.writeShellScriptBin "dogenet" ''
+    set -euo pipefail
 
-  src = fetchFromGitHub {
-    owner = "Dogebox-WG";
-    repo = "dogenet";
-    rev = "main"; # Can be overridden
-    sha256 = "sha256-VJzY8NegXLyTNk4PlXxMnNGYwyzRFWdfBmA4WDVgaa8="; # TODO: Update with the correct hash
-  };
+    # Runtime-configurable env with defaults
+    export DOGE_NET_HANDLER="''${DOGE_NET_HANDLER:-127.0.0.1:42000}"
+    export DOGENET_WEB_PORT="''${DOGENET_WEB_PORT:-8085}"
+    export DOGENET_BIND_HOST="''${DOGENET_BIND_HOST:-0.0.0.0}"
+    export DOGENET_BIND_PORT="''${DOGENET_BIND_PORT:-41000}"
+    export INSTANCE_ID="''${INSTANCE_ID:-1}"
 
-  vendorHash = "sha256-4XDgSVH+QAlIAv5/h30oqeVzMTEoAfEAySkVmMH6kFs="; # TODO: Update with the correct hash
+    # Derive public from bind unless explicitly overridden
+    export DOGENET_PUBLIC_HOST="''${DOGENET_PUBLIC_HOST:-''${DOGENET_BIND_HOST}}"
+    export DOGENET_PUBLIC_PORT="''${DOGENET_PUBLIC_PORT:-''${DOGENET_BIND_PORT}}"
 
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ systemd ];
+    DOGENET_HOME="$HOME/.fractal-stack-$INSTANCE_ID/dogenet"
 
-  subPackages = [ "cmd/dogenet" ];
+    mkdir -p "''${DOGENET_HOME}/storage"
 
-  env.CGO_ENABLED = "1";
+    # Generate keys if missing
+    if [ ! -f "''${DOGENET_HOME}/dev-key" ]; then
+      ${dogenet_upstream}/bin/dogenet genkey "''${DOGENET_HOME}/dev-key"
+    fi
+    if [ ! -f "''${DOGENET_HOME}/ident-pub" ]; then
+      ${dogenet_upstream}/bin/dogenet genkey "''${DOGENET_HOME}/ident-key" "''${DOGENET_HOME}/ident-pub"
+    fi
 
-  ldflags = [
-    "-s" "-w"
-  ];
+    cd "''${DOGENET_HOME}"
 
-  # Post-build setup to generate keys and wrapper
-  postInstall = ''
-    # Keys are generated at runtime by the wrapper if missing
+    # Load keys into env (dogenet reads KEY)
+    export KEY="$(cat dev-key)"
+    export IDENT="$(cat ident-pub)"
 
-    # Create wrapper script with runtime env defaults and public host:port derivation
-    cat > $out/bin/dogenet-start <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-# Runtime-configurable env with defaults
-export DOGE_NET_HANDLER="''${DOGE_NET_HANDLER:-127.0.0.1:42000}"
-export DOGENET_WEB_PORT="''${DOGENET_WEB_PORT:-8085}"
-export DOGENET_BIND_HOST="''${DOGENET_BIND_HOST:-0.0.0.0}"
-export DOGENET_BIND_PORT="''${DOGENET_BIND_PORT:-41000}"
-export INSTANCE_ID="''${INSTANCE_ID:-1}"
-
-# Derive public from bind unless explicitly overridden
-export DOGENET_PUBLIC_HOST="''${DOGENET_PUBLIC_HOST:-''${DOGENET_BIND_HOST}}"
-export DOGENET_PUBLIC_PORT="''${DOGENET_PUBLIC_PORT:-''${DOGENET_BIND_PORT}}"
-
-DOGENET_HOME="$HOME/.fractal-stack-$INSTANCE_ID/dogenet"
-
-mkdir -p "''${DOGENET_HOME}/storage"
-
-# Generate keys if missing
-if [ ! -f "''${DOGENET_HOME}/dev-key" ]; then
-  "__OUT_PATH__/bin/dogenet" genkey "''${DOGENET_HOME}/dev-key"
-fi
-if [ ! -f "''${DOGENET_HOME}/ident-pub" ]; then
-  "__OUT_PATH__/bin/dogenet" genkey "''${DOGENET_HOME}/ident-key" "''${DOGENET_HOME}/ident-pub"
-fi
-
-cd "''${DOGENET_HOME}"
-
-# Load keys into env (dogenet reads KEY)
-export KEY="$(cat dev-key)"
-export IDENT="$(cat ident-pub)"
-
-exec "__OUT_PATH__/bin/dogenet" \
-  --local \
-  --public "''${DOGENET_PUBLIC_HOST}:''${DOGENET_PUBLIC_PORT}" \
-  --handler "''${DOGE_NET_HANDLER}" \
-  --web "0.0.0.0:''${DOGENET_WEB_PORT}" \
-  --bind "''${DOGENET_BIND_HOST}:''${DOGENET_BIND_PORT}"
-EOF
-
-    # Inject the actual store path into the wrapper (while keeping runtime env expansion intact)
-    sed -i "s#__OUT_PATH__#$out#g" "$out/bin/dogenet-start"
-
-    chmod +x $out/bin/dogenet-start
+    exec ${dogenet_upstream}/bin/dogenet \
+      --local \
+      --public "''${DOGENET_PUBLIC_HOST}:''${DOGENET_PUBLIC_PORT}" \
+      --handler "''${DOGE_NET_HANDLER}" \
+      --web "0.0.0.0:''${DOGENET_WEB_PORT}" \
+      --bind "''${DOGENET_BIND_HOST}:''${DOGENET_BIND_PORT}"
   '';
-
-  meta = with lib; {
-    description = "Dogenet networking service";
-    homepage = "https://github.com/Dogebox-WG/dogenet";
-    license = licenses.mit;
-    mainProgram = "dogenet-start";
-  };
-}
+in
+dogenet

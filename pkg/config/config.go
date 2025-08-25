@@ -21,6 +21,7 @@ type Config struct {
 	InvoiceLimit       int
 	BuyOfferLimit      int
 	SellOfferLimit     int
+	CORSAllowedOrigins string
 }
 
 func NewConfig() *Config {
@@ -43,5 +44,6 @@ func NewConfig() *Config {
 		InvoiceLimit:       10,
 		BuyOfferLimit:      10,
 		SellOfferLimit:     10,
+		CORSAllowedOrigins: "*",
 	}
 }

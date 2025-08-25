@@ -1,20 +1,23 @@
 {
   lib,
-  buildGoModule,
-  pkg-config,
-  systemd,
+  pkgs,
+  rev,
+  date,
 }:
 
-buildGoModule rec {
-  pname = "fractalengine";
-  version = "latest";
+let
+  releaseVersion = "0.0.1";
+in
+pkgs.buildGo124Module rec {
+  pname = "fractal-engine";
+  version = releaseVersion;
 
-  src = lib.cleanSource ../.;
+  src = ../.;
 
-  vendorHash = "sha256-Ll0T8pgW4Fj/hWukEuVynfiUwhFNcPZqmiJ3l5QkZ4Q=";
+  vendorHash = "sha256-BOO+irFFtdcvK9YMFPm6+PRp2D8CtBdOHeomsCrzD6s=";
 
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ systemd ];
+  nativeBuildInputs = [ pkgs.pkg-config ];
+  buildInputs = [ ];
 
   # Build the main binary
   subPackages = [ "cmd/fractal-engine" ];
@@ -23,18 +26,16 @@ buildGoModule rec {
   ldflags = [
     "-s"
     "-w"
+    "-X"
+    "dogecoin.org/fractal-engine/pkg/version.Version=${releaseVersion}"
+    "-X"
+    "dogecoin.org/fractal-engine/pkg/version.Commit=${rev}"
+    "-X"
+    "dogecoin.org/fractal-engine/pkg/version.Date=${date}"
   ];
 
   # Environment variables for build
   env.CGO_ENABLED = "1";
-
-  # Copy migrations after build
-  postInstall = ''
-    mkdir -p $out/share/fractalengine
-    if [ -d $src/db/migrations ]; then
-      cp -r $src/db/migrations $out/share/fractalengine/
-    fi
-  '';
 
   meta = with lib; {
     description = "Fractal Engine - Core Dogecoin service";

@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Enable Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Run tests
+        env:
+          GO_TEST_EXTRA_FLAGS: "-race"
+        run: nix run .#test
+
+      - name: Build binary
+        run: nix build .#fractalengine
+
+      - name: Prepare artifact
+        id: prepare
+        run: |
+          set -euo pipefail
+          SYS=$(nix eval --raw --impure --expr 'builtins.currentSystem')
+          echo "sys=$SYS" >> $GITHUB_OUTPUT
+          cp -p result/bin/fractal-engine "fractal-engine-$SYS"
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.txt
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: fractal-engine-${{ steps.prepare.outputs.sys }}
+          path: fractal-engine-${{ steps.prepare.outputs.sys }}

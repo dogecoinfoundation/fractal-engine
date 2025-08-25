@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"dogecoin.org/fractal-engine/pkg/config"
@@ -29,7 +30,7 @@ type RpcServer struct {
 func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClient dogenet.GossipClient, dogeClient *doge.RpcClient) *RpcServer {
 	mux := http.NewServeMux()
 
-	handler := withCORS(mux)
+	handler := withCORS(cfg.CORSAllowedOrigins, mux)
 
 	limiter := rate.NewLimiter(rate.Limit(cfg.RateLimitPerSecond), cfg.RateLimitPerSecond*3)
 	handler = rateLimitMiddleware(limiter, handler)
@@ -66,10 +67,21 @@ func rateLimitMiddleware(limiter *rate.Limiter, next http.Handler) http.Handler 
 	})
 }
 
-func withCORS(next http.Handler) http.Handler {
+func withCORS(allowedOrigins string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "*") // or specific origin
+		origin := r.Header.Get("Origin")
+		w.Header().Set("Vary", "Origin")
+
+		if allowedOrigins == "*" && origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		} else if origin != "" {
+			for _, o := range strings.Split(allowedOrigins, ",") {
+				if strings.TrimSpace(o) == origin {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					break
+				}
+			}
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 

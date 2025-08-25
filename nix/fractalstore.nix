@@ -1,4 +1,8 @@
-{ lib, postgresql, writeShellScriptBin }:
+{
+  lib,
+  postgresql,
+  writeShellScriptBin,
+}:
 
 let
   # Create a wrapper script for PostgreSQL
