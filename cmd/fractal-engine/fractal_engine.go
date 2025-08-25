@@ -46,7 +46,7 @@ func main() {
 	flag.StringVar(&dogeNetNetwork, "doge-net-network", "tcp", "DogeNet Network")
 	flag.StringVar(&dogeNetAddress, "doge-net-address", "0.0.0.0:8086", "DogeNet Address")
 	flag.StringVar(&dogeNetWebAddress, "doge-net-web-address", "0.0.0.0:8085", "DogeNet Web Address")
-	flag.BoolVar(&embedDogenet, "embed-dogenet", false, "Embed the DogeNet service")
+	flag.BoolVar(&embedDogenet, "embed-dogenet", true, "Embed the DogeNet service")
 	flag.StringVar(&dogeScheme, "doge-scheme", "http", "Doge Scheme")
 	flag.StringVar(&dogeHost, "doge-host", "0.0.0.0", "Doge Host")
 	flag.StringVar(&dogePort, "doge-port", "22556", "Doge Port")
@@ -116,6 +116,7 @@ func main() {
 			log.Fatalf("Failed to generate key pair: %v", err)
 		}
 
+		// Print this out for the Test stack to read from the logs
 		fmt.Printf("DogeNet PubKey is: %s\n", hex.EncodeToString(dogeNetServerKp.Pub[:]))
 
 		var HandlerDefaultBind = spec.BindTo{Network: dogeNetNetwork, Address: dogeNetAddress} // const
@@ -153,6 +154,7 @@ func main() {
 
 	if embedDogenet {
 		for {
+			log.Println("Checking for dogenet socket...")
 			active, err := dogenetClient.UnixSockActive()
 			if active || err != nil {
 				break
