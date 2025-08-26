@@ -7,6 +7,7 @@
 
 let
   releaseVersion = "0.0.1";
+  musl = pkgs.stdenv.hostPlatform.isMusl;
 in
 pkgs.buildGo124Module rec {
   pname = "fractal-engine";
@@ -32,6 +33,10 @@ pkgs.buildGo124Module rec {
     "dogecoin.org/fractal-engine/pkg/version.Commit=${rev}"
     "-X"
     "dogecoin.org/fractal-engine/pkg/version.Date=${date}"
+  ]
+  ++ lib.optionals musl [
+    "-linkmode=external"
+    "-extldflags=-static"
   ];
 
   # Environment variables for build
