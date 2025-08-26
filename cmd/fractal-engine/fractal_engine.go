@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"time"
 
@@ -41,25 +42,25 @@ func main() {
 	var corsAllowedOrigins string
 	var showVersion bool
 
-	flag.StringVar(&rpcServerHost, "rpc-server-host", "0.0.0.0", "RPC Server Host")
-	flag.StringVar(&rpcServerPort, "rpc-server-port", "8891", "RPC Server Port")
-	flag.StringVar(&dogeNetNetwork, "doge-net-network", "tcp", "DogeNet Network")
-	flag.StringVar(&dogeNetAddress, "doge-net-address", "0.0.0.0:8086", "DogeNet Address")
-	flag.StringVar(&dogeNetWebAddress, "doge-net-web-address", "0.0.0.0:8085", "DogeNet Web Address")
-	flag.BoolVar(&embedDogenet, "embed-dogenet", true, "Embed the DogeNet service")
-	flag.StringVar(&dogeScheme, "doge-scheme", "http", "Doge Scheme")
-	flag.StringVar(&dogeHost, "doge-host", "0.0.0.0", "Doge Host")
-	flag.StringVar(&dogePort, "doge-port", "22556", "Doge Port")
-	flag.StringVar(&dogeUser, "doge-user", "test", "Doge User")
-	flag.StringVar(&dogePassword, "doge-password", "test", "Doge Password")
-	flag.StringVar(&databaseURL, "database-url", "postgres://fractalstore:fractalstore@localhost:5432/fractalstore?sslmode=disable", "Database URL")
-	flag.StringVar(&migrationsPath, "migrations-path", "db/migrations", "Migrations Path")
-	flag.BoolVar(&persistFollower, "persist-follower", true, "Persist Follower")
-	flag.IntVar(&rateLimitPerSecond, "api-rate-limit-per-second", 10, "API Rate Limit Per Second")
-	flag.IntVar(&invoiceLimit, "invoice-limit", 100, "Invoice Limit (per mint)")
-	flag.IntVar(&buyOfferLimit, "buy-offer-limit", 3, "Buy Offer Limit (per buyer per mint)")
-	flag.IntVar(&sellOfferLimit, "sell-offer-limit", 3, "Sell Offer Limit (per seller per mint)")
-	flag.StringVar(&corsAllowedOrigins, "cors-allowed-origins", "*", "Comma-separated list of allowed CORS origins or *")
+	flag.StringVar(&rpcServerHost, "rpc-server-host", getEnv("RPC_SERVER_HOST", "0.0.0.0"), "RPC Server Host")
+	flag.StringVar(&rpcServerPort, "rpc-server-port", getEnv("RPC_SERVER_PORT", "8891"), "RPC Server Port")
+	flag.StringVar(&dogeNetNetwork, "doge-net-network", getEnv("DOGE_NET_NETWORK", "tcp"), "DogeNet Network")
+	flag.StringVar(&dogeNetAddress, "doge-net-address", getEnv("DOGE_NET_ADDRESS", "0.0.0.0:8086"), "DogeNet Address")
+	flag.StringVar(&dogeNetWebAddress, "doge-net-web-address", getEnv("DOGE_NET_WEB_ADDRESS", "0.0.0.0:8085"), "DogeNet Web Address")
+	flag.BoolVar(&embedDogenet, "embed-dogenet", getEnvBool("EMBED_DOGENET", true), "Embed the DogeNet service")
+	flag.StringVar(&dogeScheme, "doge-scheme", getEnv("DOGE_SCHEME", "http"), "Doge Scheme")
+	flag.StringVar(&dogeHost, "doge-host", getEnv("DOGE_HOST", "0.0.0.0"), "Doge Host")
+	flag.StringVar(&dogePort, "doge-port", getEnv("DOGE_PORT", "22556"), "Doge Port")
+	flag.StringVar(&dogeUser, "doge-user", getEnv("DOGE_USER", "test"), "Doge User")
+	flag.StringVar(&dogePassword, "doge-password", getEnv("DOGE_PASSWORD", "test"), "Doge Password")
+	flag.StringVar(&databaseURL, "database-url", getEnv("DATABASE_URL", "postgres://fractalstore:fractalstore@localhost:5432/fractalstore?sslmode=disable"), "Database URL")
+	flag.StringVar(&migrationsPath, "migrations-path", getEnv("MIGRATIONS_PATH", "db/migrations"), "Migrations Path")
+	flag.BoolVar(&persistFollower, "persist-follower", getEnvBool("PERSIST_FOLLOWER", true), "Persist Follower")
+	flag.IntVar(&rateLimitPerSecond, "api-rate-limit-per-second", getEnvInt("API_RATE_LIMIT_PER_SECOND", 10), "API Rate Limit Per Second")
+	flag.IntVar(&invoiceLimit, "invoice-limit", getEnvInt("INVOICE_LIMIT", 100), "Invoice Limit (per mint)")
+	flag.IntVar(&buyOfferLimit, "buy-offer-limit", getEnvInt("BUY_OFFER_LIMIT", 3), "Buy Offer Limit (per buyer per mint)")
+	flag.IntVar(&sellOfferLimit, "sell-offer-limit", getEnvInt("SELL_OFFER_LIMIT", 3), "Sell Offer Limit (per seller per mint)")
+	flag.StringVar(&corsAllowedOrigins, "cors-allowed-origins", getEnv("CORS_ALLOWED_ORIGINS", "*"), "Comma-separated list of allowed CORS origins or *")
 	flag.BoolVar(&showVersion, "version", false, "Print version and exit")
 
 	flag.Parse()
@@ -170,4 +171,30 @@ func main() {
 	service.Run()
 
 	gov.WaitForShutdown()
+}
+
+func getEnv(key, fallback string) string {
+	v := os.Getenv(key)
+	if v != "" {
+		return v
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if i, err := strconv.Atoi(v); err == nil {
+			return i
+		}
+	}
+	return fallback
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	if v := os.Getenv(key); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			return b
+		}
+	}
+	return fallback
 }
