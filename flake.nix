@@ -16,6 +16,7 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        pkgsMusl = pkgs.pkgsMusl;
         lib = nixpkgs.lib;
 
         goVersion = pkgs.go_1_24;
@@ -25,6 +26,10 @@
 
         # Required services (always included)
         fractalengine = pkgs.callPackage ./nix/fractalengine.nix {
+          rev = if self ? rev then self.rev else "dirty";
+          date = if self ? lastModifiedDate then dateFormatter self.lastModifiedDate else "unknown-date";
+        };
+        fractalengineMusl = pkgsMusl.callPackage ./nix/fractalengine.nix {
           rev = if self ? rev then self.rev else "dirty";
           date = if self ? lastModifiedDate then dateFormatter self.lastModifiedDate else "unknown-date";
         };
@@ -40,6 +45,7 @@
         packages = rec {
           inherit
             fractalengine
+            fractalengineMusl
             fractalstore
             dogecoin
             indexer
@@ -131,7 +137,7 @@
                 runtimeInputs = [ goVersion ];
                 text = ''
                   set -euo pipefail
-                  go test ./pkg/... -count=1
+                  go test ./pkg/... -count=1 -coverprofile=coverage.txt
                   printf "\n\nTo run integration tests; refer to ./internal/stack/README.md\n";
                 '';
               }
