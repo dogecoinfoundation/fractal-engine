@@ -137,7 +137,7 @@
                 runtimeInputs = [ goVersion ];
                 text = ''
                   set -euo pipefail
-                  go test ./pkg/... -count=1
+                  go test ./pkg/... -count=1 -coverprofile=coverage.txt
                   printf "\n\nTo run integration tests; refer to ./internal/stack/README.md\n";
                 '';
               }
