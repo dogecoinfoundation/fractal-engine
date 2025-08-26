@@ -32,6 +32,10 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClie
 
 	handler := withCORS(cfg.CORSAllowedOrigins, mux)
 
+	if cfg.RpcApiKey != "" {
+		handler = withSecureAPI(cfg.RpcApiKey, handler)
+	}
+
 	limiter := rate.NewLimiter(rate.Limit(cfg.RateLimitPerSecond), cfg.RateLimitPerSecond*3)
 	handler = rateLimitMiddleware(limiter, handler)
 
@@ -63,6 +67,29 @@ func rateLimitMiddleware(limiter *rate.Limiter, next http.Handler) http.Handler 
 			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 			return
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func withSecureAPI(apiKey string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extract Authorization header
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Get the token part
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+
+		// Validate
+		if token != apiKey {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Proceed to actual handler
 		next.ServeHTTP(w, r)
 	})
 }

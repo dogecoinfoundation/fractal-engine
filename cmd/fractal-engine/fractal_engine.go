@@ -23,6 +23,7 @@ import (
 func main() {
 	var rpcServerHost string
 	var rpcServerPort string
+	var rpcApiKey string
 	var dogeNetNetwork string
 	var dogeNetAddress string
 	var dogeNetWebAddress string
@@ -44,6 +45,7 @@ func main() {
 
 	flag.StringVar(&rpcServerHost, "rpc-server-host", getEnv("RPC_SERVER_HOST", "0.0.0.0"), "RPC Server Host")
 	flag.StringVar(&rpcServerPort, "rpc-server-port", getEnv("RPC_SERVER_PORT", "8891"), "RPC Server Port")
+	flag.StringVar(&rpcApiKey, "rpc-api-key", getEnv("RPC_API_KEY", ""), "RPC API Key, If set the RPC server is protected")
 	flag.StringVar(&dogeNetNetwork, "doge-net-network", getEnv("DOGE_NET_NETWORK", "tcp"), "DogeNet Network")
 	flag.StringVar(&dogeNetAddress, "doge-net-address", getEnv("DOGE_NET_ADDRESS", "0.0.0.0:8086"), "DogeNet Address")
 	flag.StringVar(&dogeNetWebAddress, "doge-net-web-address", getEnv("DOGE_NET_WEB_ADDRESS", "0.0.0.0:8085"), "DogeNet Web Address")
@@ -73,6 +75,7 @@ func main() {
 	cfg := &config.Config{
 		RpcServerHost:      rpcServerHost,
 		RpcServerPort:      rpcServerPort,
+		RpcApiKey:          rpcApiKey,
 		DogeNetNetwork:     dogeNetNetwork,
 		DogeNetAddress:     dogeNetAddress,
 		DogeNetWebAddress:  dogeNetWebAddress,

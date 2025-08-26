@@ -5,6 +5,7 @@ import "code.dogecoin.org/gossip/dnet"
 type Config struct {
 	RpcServerHost      string
 	RpcServerPort      string
+	RpcApiKey          string
 	DogeNetNetwork     string
 	DogeNetAddress     string
 	DogeNetWebAddress  string
