@@ -16,28 +16,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: ./fractal-engine/go.mod
-          cache: true
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
 
-      - name: Go mod download
-        working-directory: ./fractal-engine
-        run: go mod download
+      - name: Enable Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
 
-      - name: Run Go tests
-        working-directory: ./fractal-engine
+      - name: Run tests
         env:
-          CGO_ENABLED: 1
-        run: go test ./pkg/... -race -coverprofile=coverage.txt -covermode=atomic
+          GO_TEST_EXTRA_FLAGS: "-race"
+        run: nix run .#test
+
+      - name: Build binary
+        run: nix build .#fractalengineMusl
+
+      - name: Prepare Docker binary
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp -L result/bin/fractal-engine dist/fractal-engine
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: coverage
-          path: fractal-engine/coverage.txt
+          path: coverage.txt
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -62,8 +65,9 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./fractal-engine
-          file: ./fractal-engine/Dockerfile
+          context: .
+          file: Dockerfile
+          target: runtime-dist
           push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

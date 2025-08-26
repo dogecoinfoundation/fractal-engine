@@ -12,3 +12,4 @@ coverage_*out
 nix/result
 result
 dogenet.db
+dist

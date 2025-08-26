@@ -1,38 +1,9 @@
 # syntax=docker/dockerfile:1
 
-# ------------------------------------------------------------------------------
-# Builder stage: build the fractal-engine binary with CGO enabled
-# ------------------------------------------------------------------------------
-FROM golang:bookworm AS builder
+# Minimal runtime image that runs the Nix-built fractal-engine binary
+# Expectation: Nix build outputs symlink at ./result/bin/fractal-engine
 
-# Enable CGO (required for github.com/mattn/go-sqlite3)
-ENV CGO_ENABLED=1 \
-    GO111MODULE=on
-
-WORKDIR /src
-
-# Install build deps for CGO builds (gcc, libc headers, etc.)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
-
-# Cache module downloads first
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy the rest of the source
-COPY . .
-
-# Build the application binary
-# Target: cmd/fractal-engine/fractal_engine.go
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg/mod \
-    go build -trimpath -ldflags "-s -w" -o /out/fractal-engine ./cmd/fractal-engine
-
-# ------------------------------------------------------------------------------
-# Runtime stage: minimal image to run the binary
-# ------------------------------------------------------------------------------
-FROM debian:bookworm-slim AS runtime
+FROM debian:bookworm-slim AS runtime-dist
 
 # Install runtime dependencies: certificates, tzdata, curl for healthchecks
 RUN apt-get update && \
@@ -43,20 +14,44 @@ RUN apt-get update && \
 RUN groupadd -r app && useradd -r -g app -d /app app
 WORKDIR /app
 
-# Copy the built binary
-COPY --from=builder /out/fractal-engine /usr/local/bin/fractal-engine
+# Copy the prebuilt binary produced by Nix
+COPY ./dist/fractal-engine /app/fractal-engine
+RUN chmod +x /app/fractal-engine
 
 # Own the workdir
 RUN chown -R app:app /app
 
 USER app
 
-# Expose default RPC port (configurable via env/flags)
+# Default environment variables (can be overridden at runtime)
+ENV \
+  RPC_SERVER_HOST="0.0.0.0" \
+  RPC_SERVER_PORT="8891" \
+  RPC_API_KEY="" \
+  DOGE_NET_NETWORK="tcp" \
+  DOGE_NET_ADDRESS="0.0.0.0:8086" \
+  DOGE_NET_WEB_ADDRESS="0.0.0.0:8085" \
+  EMBED_DOGENET="true" \
+  DOGE_SCHEME="http" \
+  DOGE_HOST="0.0.0.0" \
+  DOGE_PORT="22556" \
+  DOGE_USER="test" \
+  DOGE_PASSWORD="test" \
+  DATABASE_URL="postgres://fractalstore:fractalstore@localhost:5432/fractalstore?sslmode=disable" \
+  MIGRATIONS_PATH="db/migrations" \
+  PERSIST_FOLLOWER="true" \
+  API_RATE_LIMIT_PER_SECOND="10" \
+  INVOICE_LIMIT="100" \
+  BUY_OFFER_LIMIT="3" \
+  SELL_OFFER_LIMIT="3" \
+  CORS_ALLOWED_ORIGINS="*"
+
+# Expose default RPC port (can be overridden via RPC_SERVER_PORT env)
 EXPOSE 8891
 
-# Optional healthcheck: assumes /health endpoint
+# Optional healthcheck using the configured port
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -fsS http://127.0.0.1:8891/health || exit 1
+  CMD sh -c 'curl -fsS "http://127.0.0.1:${RPC_SERVER_PORT:-8891}/health" || exit 1'
 
-# Default command. You can override/add flags with `docker run ... fractal-engine --flag value`
-ENTRYPOINT ["/usr/local/bin/fractal-engine"]
+# Default command. Override/add flags with `docker run ... fractal-engine --flag value`
+ENTRYPOINT ["/app/fractal-engine"]
