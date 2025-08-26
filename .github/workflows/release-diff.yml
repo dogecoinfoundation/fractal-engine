@@ -1,0 +1,163 @@
+name: Release diff (semver)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      base_tag:
+        description: "Override base tag to diff from"
+        required: false
+        type: string
+
+jobs:
+  generate-release-diff:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # update release notes
+      actions: read
+
+    steps:
+      - name: Checkout (full history + tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine semver previous tag
+        id: tags
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Current tag from event (release) or ref (manual)
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            CURR="${{ github.event.release.tag_name }}"
+          else
+            CURR="${GITHUB_REF_NAME}"
+          fi
+
+          # Normalize: we only consider tags that look like semver (with optional leading v and pre-release)
+          semver_regex='^v?[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'
+
+          if ! [[ "$CURR" =~ $semver_regex ]]; then
+            echo "Current tag '$CURR' does not look like semver. Proceeding but results may vary." >&2
+          fi
+
+          # Allow manual override
+          if [[ -n "${{ inputs.base_tag }}" ]]; then
+            PREV="${{ inputs.base_tag }}"
+          else
+            # Gather all semver-like tags and version-sort them
+            mapfile -t ALL < <(git tag --list | grep -E "$semver_regex" | sort -V)
+
+            # Helper: find last tag < CURR from a list
+            last_less_than () {
+              local cur="$1"; shift
+              awk -v c="$cur" '$0 < c {print}' | tail -n1
+            }
+
+            # Base (without pre-release) for CURR, e.g. v1.2.3 from v1.2.3-rc.1
+            BASE="${CURR%%-*}"
+
+            # Detect if CURR is a pre-release (contains a hyphen after the base or has .rc etc.)
+            if [[ "$CURR" == *-* ]]; then
+              # Prefer previous pre-release of the same base
+              mapfile -t PRELIST < <(printf "%s\n" "${ALL[@]}" | grep -E "^${BASE}-" | sort -V)
+              PREV="$(printf "%s\n" "${PRELIST[@]}" | awk -v c="$CURR" '$0 < c {print}' | tail -n1)"
+              # Fallback: any previous tag overall
+              if [[ -z "${PREV:-}" ]]; then
+                PREV="$(printf "%s\n" "${ALL[@]}" | awk -v c="$CURR" '$0 < c {print}' | tail -n1)"
+              fi
+            else
+              # Stable release: prefer last pre-release of same base (e.g. v1.2.3-rc.X)
+              mapfile -t PRELIST < <(printf "%s\n" "${ALL[@]}" | grep -E "^${BASE}-" | sort -V)
+              PREV="$(printf "%s\n" "${PRELIST[@]}" | awk -v c="$CURR" '$0 < c {print}' | tail -n1)"
+              # Fallback: previous tag overall
+              if [[ -z "${PREV:-}" ]]; then
+                PREV="$(printf "%s\n" "${ALL[@]}" | awk -v c="$CURR" '$0 < c {print}' | tail -n1)"
+              fi
+            fi
+
+            # First release: diff against parent of the tag
+            if [[ -z "${PREV:-}" ]]; then
+              PREV="${CURR}^"
+              echo "No previous semver tag found; diffing against ${CURR}^" >&2
+            fi
+          fi
+
+          echo "curr_tag=$CURR" >> "$GITHUB_OUTPUT"
+          echo "prev_ref=$PREV" >> "$GITHUB_OUTPUT"
+          echo "Base: $BASE | Current: $CURR | Previous: $PREV"
+
+      - name: Generate changelog (commits)
+        id: changelog
+        shell: bash
+        run: |
+          CURR="${{ steps.tags.outputs.curr_tag }}"
+          PREV="${{ steps.tags.outputs.prev_ref }}"
+          # Commit list (skip merges)
+          git log --no-merges --pretty="* %h %s (%an)" "$PREV..$CURR" > CHANGELOG_DIFF.md || true
+          echo "changelog_path=CHANGELOG_DIFF.md" >> "$GITHUB_OUTPUT"
+
+      - name: Generate file diff summary
+        id: filediff
+        shell: bash
+        run: |
+          CURR="${{ steps.tags.outputs.curr_tag }}"
+          PREV="${{ steps.tags.outputs.prev_ref }}"
+          git diff --name-status "$PREV..$CURR" > FILES_CHANGED.diff || true
+          {
+            echo "## Files changed"
+            echo
+            echo '```diff'
+            cat FILES_CHANGED.diff || true
+            echo '```'
+          } > FILES_CHANGED.md
+          echo "filediff_path=FILES_CHANGED.diff" >> "$GITHUB_OUTPUT"
+          echo "filediff_md_path=FILES_CHANGED.md" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-diff-${{ steps.tags.outputs.curr_tag }}
+          path: |
+            CHANGELOG_DIFF.md
+            FILES_CHANGED.diff
+            FILES_CHANGED.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Append diff to release notes
+        if: ${{ github.event_name == 'release' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const releaseId = context.payload.release.id;
+
+            const changelog = fs.existsSync('CHANGELOG_DIFF.md') ? fs.readFileSync('CHANGELOG_DIFF.md','utf8') : '';
+            const filesMD  = fs.existsSync('FILES_CHANGED.md') ? fs.readFileSync('FILES_CHANGED.md','utf8') : '';
+
+            const section = [
+              '---',
+              `## Diff for ${context.payload.release.tag_name}`,
+              '',
+              `**Base:** ${'${{ steps.tags.outputs.prev_ref }}'}`,
+              '',
+              '### Commits',
+              changelog || '_No commits found in range._',
+              '',
+              filesMD || '',
+              ''
+            ].join('\n');
+
+            const { data: rel } = await github.rest.repos.getRelease({ owner, repo, release_id: releaseId });
+            const newBody = (rel.body || '') + '\n' + section;
+
+            await github.rest.repos.updateRelease({
+              owner, repo, release_id: releaseId, body: newBody
+            });
+            core.info('Release notes updated with semver-aware diff.');
