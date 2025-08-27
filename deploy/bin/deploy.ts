@@ -2,6 +2,7 @@
 import * as cdk from "aws-cdk-lib";
 import { NetworkStack } from "../lib/network-stack";
 import { DogecoinStack } from "../lib/dogecoin-stack";
+import { DatabaseStack } from "../lib/database-stack";
 import { EngineStack } from "../lib/engine-stack";
 
 const app = new cdk.App();
@@ -18,11 +19,19 @@ const doge = new DogecoinStack(app, "DogecoinStack", {
   env,
 });
 
+const db = new DatabaseStack(app, "DatabaseStack", {
+  vpc: network.vpc,
+  rdsSecurityGroup: network.rdsSg,
+  env,
+});
+
 const engine = new EngineStack(app, "EngineStack", {
   vpc: network.vpc,
   albSecurityGroup: network.albSg,
   engineSecurityGroup: network.engineSg,
-  rdsSecurityGroup: network.rdsSg,
+  dbHost: db.rdsInstance.instanceEndpoint.hostname,
+  dbPort: db.rdsInstance.instanceEndpoint.port,
+  dbSecret: db.rdsSecret,
   dogecoin: {
     host: doge.instance.instancePrivateIp,
     rpcPort: 22555,
@@ -33,3 +42,4 @@ const engine = new EngineStack(app, "EngineStack", {
 
 // Ensure Dogecoin deploys before the Engine
 engine.addDependency(doge);
+engine.addDependency(db);

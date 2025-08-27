@@ -5,7 +5,6 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
-import * as rds from "aws-cdk-lib/aws-rds";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 
@@ -20,7 +19,12 @@ export interface EngineStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
   albSecurityGroup: ec2.ISecurityGroup;
   engineSecurityGroup: ec2.ISecurityGroup;
-  rdsSecurityGroup: ec2.ISecurityGroup;
+
+  // Database connection (from external DatabaseStack)
+  dbHost: string;
+  dbPort?: number;
+  dbSecret: secretsmanager.ISecret;
+  databaseName?: string;
 
   // Optionally pass Dogecoin connection details (from DogecoinStack)
   dogecoin?: DogecoinConnection;
@@ -33,19 +37,15 @@ export interface EngineStackProps extends cdk.StackProps {
   // Container image override
   engineContainerImage?: ecs.ContainerImage;
 
-  // Database configuration
-  databaseName?: string;
-
   // Subnets
   appSubnetSelection?: ec2.SubnetSelection; // defaults to PRIVATE_WITH_EGRESS
   albSubnetSelection?: ec2.SubnetSelection; // defaults to PUBLIC
-  dbSubnetSelection?: ec2.SubnetSelection; // defaults to PRIVATE_ISOLATED
 }
 
 /**
  * EngineStack
- * - Provisions RDS Postgres for the Fractal Engine
  * - Creates ECS Fargate service for the engine, fronted by an ALB
+ * - Consumes external PostgreSQL connection details (host/port and credentials secret)
  * - Accepts references to VPC and security groups from NetworkStack
  * - Optionally accepts Dogecoin connection details (from DogecoinStack) to set env vars
  */
@@ -53,8 +53,6 @@ export class EngineStack extends cdk.Stack {
   public readonly cluster: ecs.Cluster;
   public readonly service: ecs.FargateService;
   public readonly loadBalancer: elbv2.ApplicationLoadBalancer;
-  public readonly rdsInstance: rds.DatabaseInstance;
-  public readonly rdsSecret: secretsmanager.ISecret;
 
   constructor(scope: Construct, id: string, props: EngineStackProps) {
     super(scope, id, props);
@@ -62,43 +60,8 @@ export class EngineStack extends cdk.Stack {
     const databaseName = props.databaseName ?? "fractal";
 
     //
-    // Data layer: RDS PostgreSQL
+    // Data layer: External PostgreSQL (provided by DatabaseStack)
     //
-    const dbCredentials = rds.Credentials.fromGeneratedSecret(
-      "fractal_engine",
-      {
-        secretName: "FractalEngineRdsCredentials",
-        excludeCharacters: '"@/\\',
-      },
-    );
-
-    this.rdsInstance = new rds.DatabaseInstance(this, "FractalDb", {
-      vpc: props.vpc,
-      vpcSubnets: props.dbSubnetSelection ?? {
-        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-      },
-      securityGroups: [props.rdsSecurityGroup],
-      engine: rds.DatabaseInstanceEngine.postgres({
-        version: rds.PostgresEngineVersion.of("15", "15"),
-      }),
-      credentials: dbCredentials,
-      databaseName,
-      instanceType: ec2.InstanceType.of(
-        ec2.InstanceClass.T3,
-        ec2.InstanceSize.MICRO,
-      ),
-      multiAz: false,
-      allocatedStorage: 20,
-      maxAllocatedStorage: 100,
-      storageType: rds.StorageType.GP3,
-      publiclyAccessible: false,
-      deletionProtection: false,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // TODO: Change for production usage
-      cloudwatchLogsExports: ["postgresql"],
-      backupRetention: cdk.Duration.days(3),
-    });
-
-    this.rdsSecret = this.rdsInstance.secret as secretsmanager.ISecret;
 
     //
     // Compute: ECS Cluster + TaskDefinition + FargateService behind ALB
@@ -124,8 +87,8 @@ export class EngineStack extends cdk.Stack {
         "Task role for Fractal Engine (access to Secrets Manager, etc.)",
     });
 
-    // Allow the task to read the RDS generated secret
-    this.rdsSecret.grantRead(taskRole);
+    // Allow the task to read the database credentials secret
+    props.dbSecret.grantRead(taskRole);
 
     const taskDef = new ecs.FargateTaskDefinition(this, "FractalTaskDef", {
       memoryLimitMiB: props.memoryMiB ?? 1024,
@@ -142,7 +105,7 @@ export class EngineStack extends cdk.Stack {
     const image =
       props.engineContainerImage ??
       ecs.ContainerImage.fromRegistry(
-        "ghcr.io/dogecoinfoundation/fractal-engine:v0.0.1",
+        "ghcr.io/dogecoinfoundation/fractal-engine:sha-2b447c1265d202458fbe3a3aa07abadb8e29fe92",
       );
 
     const container = taskDef.addContainer("Engine", {
@@ -152,8 +115,8 @@ export class EngineStack extends cdk.Stack {
         RPC_SERVER_HOST: "0.0.0.0",
         RPC_SERVER_PORT: "8891",
         CORS_ALLOWED_ORIGINS: "*",
-        DATABASE_HOST: this.rdsInstance.instanceEndpoint.hostname,
-        DATABASE_PORT: this.rdsInstance.instanceEndpoint.port.toString(),
+        DATABASE_HOST: props.dbHost,
+        DATABASE_PORT: String(props.dbPort ?? 5432),
         DATABASE_NAME: databaseName,
         ...(props.dogecoin?.host
           ? {
@@ -165,11 +128,11 @@ export class EngineStack extends cdk.Stack {
       },
       secrets: {
         DATABASE_USERNAME: ecs.Secret.fromSecretsManager(
-          this.rdsSecret,
+          props.dbSecret,
           "username",
         ),
         DATABASE_PASSWORD: ecs.Secret.fromSecretsManager(
-          this.rdsSecret,
+          props.dbSecret,
           "password",
         ),
       },
@@ -235,14 +198,6 @@ export class EngineStack extends cdk.Stack {
     //
     new cdk.CfnOutput(this, "AlbDnsName", {
       value: this.loadBalancer.loadBalancerDnsName,
-    });
-
-    new cdk.CfnOutput(this, "RdsEndpoint", {
-      value: this.rdsInstance.instanceEndpoint.socketAddress,
-    });
-
-    new cdk.CfnOutput(this, "RdsSecretName", {
-      value: this.rdsSecret.secretName,
     });
   }
 }
