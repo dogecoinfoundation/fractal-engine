@@ -42,6 +42,11 @@ func main() {
 	var embedDogenet bool
 	var corsAllowedOrigins string
 	var showVersion bool
+	var databaseHost string
+	var databasePort string
+	var databaseName string
+	var databaseUsername string
+	var databasePassword string
 
 	flag.StringVar(&rpcServerHost, "rpc-server-host", getEnv("RPC_SERVER_HOST", "0.0.0.0"), "RPC Server Host")
 	flag.StringVar(&rpcServerPort, "rpc-server-port", getEnv("RPC_SERVER_PORT", "8891"), "RPC Server Port")
@@ -55,7 +60,14 @@ func main() {
 	flag.StringVar(&dogePort, "doge-port", getEnv("DOGE_PORT", "22556"), "Doge Port")
 	flag.StringVar(&dogeUser, "doge-user", getEnv("DOGE_USER", "test"), "Doge User")
 	flag.StringVar(&dogePassword, "doge-password", getEnv("DOGE_PASSWORD", "test"), "Doge Password")
+
 	flag.StringVar(&databaseURL, "database-url", getEnv("DATABASE_URL", "postgres://fractalstore:fractalstore@localhost:5432/fractalstore?sslmode=disable"), "Database URL")
+	flag.StringVar(&databaseHost, "database-host", getEnv("DATABASE_HOST", ""), "Database Host")
+	flag.StringVar(&databasePort, "database-port", getEnv("DATABASE_PORT", ""), "Database Port")
+	flag.StringVar(&databaseName, "database-name", getEnv("DATABASE_NAME", ""), "Database Name")
+	flag.StringVar(&databaseUsername, "database-username", getEnv("DATABASE_USERNAME", ""), "Database Username")
+	flag.StringVar(&databasePassword, "database-password", getEnv("DATABASE_PASSWORD", ""), "Database Password")
+
 	flag.StringVar(&migrationsPath, "migrations-path", getEnv("MIGRATIONS_PATH", "db/migrations"), "Migrations Path")
 	flag.BoolVar(&persistFollower, "persist-follower", getEnvBool("PERSIST_FOLLOWER", true), "Persist Follower")
 	flag.IntVar(&rateLimitPerSecond, "api-rate-limit-per-second", getEnvInt("API_RATE_LIMIT_PER_SECOND", 10), "API Rate Limit Per Second")
@@ -70,6 +82,10 @@ func main() {
 	if showVersion {
 		log.Printf("fractal-engine %s\n", version.String())
 		return
+	}
+
+	if databaseHost != "" {
+		databaseURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", databaseUsername, databasePassword, databaseHost, databasePort, databaseName)
 	}
 
 	cfg := &config.Config{
