@@ -105,7 +105,7 @@ export class EngineStack extends cdk.Stack {
     const image =
       props.engineContainerImage ??
       ecs.ContainerImage.fromRegistry(
-        "ghcr.io/dogecoinfoundation/fractal-engine:sha-2b447c1265d202458fbe3a3aa07abadb8e29fe92",
+        "ghcr.io/dogecoinfoundation/fractal-engine:v0.0.1",
       );
 
     const container = taskDef.addContainer("Engine", {
@@ -120,8 +120,8 @@ export class EngineStack extends cdk.Stack {
         DATABASE_NAME: databaseName,
         ...(props.dogecoin?.host
           ? {
-              DOGECOIN_RPC_HOST: props.dogecoin.host,
-              DOGECOIN_RPC_PORT: String(props.dogecoin.rpcPort ?? 22555),
+              DOGE_HOST: props.dogecoin.host,
+              DOGE_PORT: String(props.dogecoin.rpcPort ?? 22555),
               DOGECOIN_ZMQ_PORT: String(props.dogecoin.zmqPort ?? 28000),
             }
           : {}),
@@ -141,6 +141,11 @@ export class EngineStack extends cdk.Stack {
 
     container.addPortMappings({
       containerPort: 8891,
+      protocol: ecs.Protocol.TCP,
+    });
+
+    container.addPortMappings({
+      containerPort: 8086,
       protocol: ecs.Protocol.TCP,
     });
 

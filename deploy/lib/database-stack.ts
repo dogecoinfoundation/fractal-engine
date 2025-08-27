@@ -43,14 +43,15 @@ export class DatabaseStack extends cdk.Stack {
       {
         secretName:
           props.credentialsSecretName ?? "FractalEngineRdsCredentials",
-        excludeCharacters: '"@/\\',
+        excludeCharacters: '"@/\\:?#[]{}|^~;=%&+()<>',
       },
     );
 
     this.rdsInstance = new rds.DatabaseInstance(this, "FractalDb", {
       vpc: props.vpc,
-      vpcSubnets:
-        props.dbSubnetSelection ?? { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      vpcSubnets: props.dbSubnetSelection ?? {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
       securityGroups: [props.rdsSecurityGroup],
 
       engine: rds.DatabaseInstanceEngine.postgres({

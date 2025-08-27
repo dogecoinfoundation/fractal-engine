@@ -33,9 +33,9 @@ const engine = new EngineStack(app, "EngineStack", {
   dbPort: db.rdsInstance.instanceEndpoint.port,
   dbSecret: db.rdsSecret,
   dogecoin: {
-    host: doge.instance.instancePrivateIp,
-    rpcPort: 22555,
-    zmqPort: 28000,
+    host: doge.serviceDiscoveryName,
+    rpcPort: doge.rpcPort,
+    zmqPort: doge.zmqPort,
   },
   env,
 });
