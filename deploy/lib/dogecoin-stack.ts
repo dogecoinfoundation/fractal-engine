@@ -67,6 +67,7 @@ export class DogecoinStack extends cdk.Stack {
 
     const namespaceName = props.namespaceName ?? "fractal.local";
     const serviceName = props.serviceName ?? "dogecoin";
+    const vpcCidr = props.vpc.vpcCidrBlock;
 
     //
     // ECS Cluster
@@ -126,6 +127,24 @@ export class DogecoinStack extends cdk.Stack {
       environment: {
         ...props.environment,
       },
+      // Ensure RPC listens on the VPC and accepts connections from the VPC CIDR
+      command: [
+        "dogecoind",
+        "-server=1",
+        "-printtoconsole",
+        `-rpcbind=0.0.0.0`,
+        `-rpcallowip=${vpcCidr}`,
+        `-rpcuser=test`,
+        `-rpcpassword=test`,
+        `-rpcport=${rpcPort}`,
+        "-listen=1",
+        `-port=${p2pPort}`,
+        "-txindex=1",
+        `-zmqpubrawblock=tcp://0.0.0.0:${zmqPort}`,
+        `-zmqpubrawtx=tcp://0.0.0.0:${zmqPort}`,
+        `-zmqpubhashtx=tcp://0.0.0.0:${zmqPort}`,
+        `-zmqpubhashblock=tcp://0.0.0.0:${zmqPort}`,
+      ],
       essential: true,
     });
 

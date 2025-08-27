@@ -150,8 +150,12 @@ export class NetworkStack extends cdk.Stack {
       ec2.Port.tcp(22556),
       "Dogecoin P2P from Engine only",
     );
-    // Optionally allow ZMQ from Engine (uncomment if needed)
-    // this.dogeSg.addIngressRule(this.engineSg, ec2.Port.tcp(28000), "Dogecoin ZMQ from Engine only");
+    // Allow ZMQ from Engine
+    this.dogeSg.addIngressRule(
+      this.engineSg,
+      ec2.Port.tcp(28000),
+      "Dogecoin ZMQ from Engine only",
+    );
 
     //
     // Outputs
