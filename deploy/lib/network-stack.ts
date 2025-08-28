@@ -1,6 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as servicediscovery from "aws-cdk-lib/aws-servicediscovery";
 
 /**
  * NetworkStack sets up shared networking primitives:
@@ -26,6 +27,7 @@ export interface NetworkStackProps extends cdk.StackProps {
 export class NetworkStack extends cdk.Stack {
   // Shared network resources to be consumed by other stacks
   public readonly vpc: ec2.Vpc;
+  public readonly namespace: cdk.aws_servicediscovery.PrivateDnsNamespace;
 
   public readonly albSg: ec2.SecurityGroup;
   public readonly engineSg: ec2.SecurityGroup;
@@ -60,6 +62,16 @@ export class NetworkStack extends cdk.Stack {
       ],
     });
 
+    this.namespace = new servicediscovery.PrivateDnsNamespace(
+      this,
+      "ServiceNamespace",
+      {
+        name: "fractal.local",
+        vpc: this.vpc,
+        description: "Private DNS for Fractal services",
+      },
+    );
+
     //
     // VPC Endpoints (recommended for private networking)
     //
@@ -88,6 +100,19 @@ export class NetworkStack extends cdk.Stack {
 
     this.vpc.addInterfaceEndpoint("SecretsManagerEndpoint", {
       service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+      subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+    });
+
+    this.vpc.addInterfaceEndpoint("SsmEndpoint", {
+      service: ec2.InterfaceVpcEndpointAwsService.SSM,
+      subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+    });
+    this.vpc.addInterfaceEndpoint("SsmMessagesEndpoint", {
+      service: ec2.InterfaceVpcEndpointAwsService.SSM_MESSAGES,
+      subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+    });
+    this.vpc.addInterfaceEndpoint("Ec2MessagesEndpoint", {
+      service: ec2.InterfaceVpcEndpointAwsService.EC2_MESSAGES,
       subnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     });
 
@@ -167,5 +192,8 @@ export class NetworkStack extends cdk.Stack {
     });
     new cdk.CfnOutput(this, "RdsSgId", { value: this.rdsSg.securityGroupId });
     new cdk.CfnOutput(this, "DogeSgId", { value: this.dogeSg.securityGroupId });
+    new cdk.CfnOutput(this, "NamespaceId", {
+      value: this.namespace.namespaceId,
+    });
   }
 }

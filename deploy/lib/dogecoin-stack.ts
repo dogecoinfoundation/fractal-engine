@@ -11,6 +11,7 @@ export interface DogecoinStackProps extends cdk.StackProps {
   // Network resources from NetworkStack
   vpc: ec2.IVpc;
   dogeSecurityGroup: ec2.ISecurityGroup;
+  namespace: cdk.aws_servicediscovery.PrivateDnsNamespace;
 
   // Optional networking
   subnetSelection?: ec2.SubnetSelection; // defaults to PRIVATE_WITH_EGRESS
@@ -46,7 +47,6 @@ export interface DogecoinStackProps extends cdk.StackProps {
 export class DogecoinStack extends cdk.Stack {
   public readonly cluster: ecs.Cluster;
   public readonly service: ecs.FargateService;
-  public readonly namespace: servicediscovery.PrivateDnsNamespace;
   public readonly serviceDiscoveryName: string;
   public readonly rpcPort: number;
   public readonly zmqPort: number;
@@ -86,6 +86,9 @@ export class DogecoinStack extends cdk.Stack {
         iam.ManagedPolicy.fromAwsManagedPolicyName(
           "service-role/AmazonECSTaskExecutionRolePolicy",
         ),
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          "AmazonSSMManagedInstanceCore",
+        ),
       ],
     });
 
@@ -93,6 +96,47 @@ export class DogecoinStack extends cdk.Stack {
       assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
       description: "Task role for Dogecoin node",
     });
+
+    // Minimal SSM messages permissions on the task role for ECS Exec
+    taskRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "ssm:CreateControlChannel",
+          "ssm:CreateDataChannel",
+          "ssm:OpenControlChannel",
+          "ssm:OpenDataChannel",
+        ],
+        resources: ["*"],
+      }),
+    );
+
+    // Managed policy for operators to run ECS Exec against this service's tasks.
+    // Attach this policy to your human/operator IAM users or roles.
+    const ecsExecOperatorPolicy = new iam.ManagedPolicy(
+      this,
+      "EcsExecOperatorPolicy",
+      {
+        description: "Allows operators to run ECS Exec and manage SSM sessions",
+        statements: [
+          new iam.PolicyStatement({
+            actions: ["ecs:ExecuteCommand"],
+            resources: ["*"],
+          }),
+          new iam.PolicyStatement({
+            actions: [
+              "ssm:StartSession",
+              "ssm:DescribeSessions",
+              "ssm:TerminateSession",
+            ],
+            resources: ["*"],
+          }),
+          new iam.PolicyStatement({
+            actions: ["kms:Decrypt"],
+            resources: ["*"],
+          }),
+        ],
+      },
+    );
 
     //
     // Task Definition
@@ -127,24 +171,6 @@ export class DogecoinStack extends cdk.Stack {
       environment: {
         ...props.environment,
       },
-      // Ensure RPC listens on the VPC and accepts connections from the VPC CIDR
-      command: [
-        "dogecoind",
-        "-server=1",
-        "-printtoconsole",
-        `-rpcbind=0.0.0.0`,
-        `-rpcallowip=${vpcCidr}`,
-        `-rpcuser=test`,
-        `-rpcpassword=test`,
-        `-rpcport=${rpcPort}`,
-        "-listen=1",
-        `-port=${p2pPort}`,
-        "-txindex=1",
-        `-zmqpubrawblock=tcp://0.0.0.0:${zmqPort}`,
-        `-zmqpubrawtx=tcp://0.0.0.0:${zmqPort}`,
-        `-zmqpubhashtx=tcp://0.0.0.0:${zmqPort}`,
-        `-zmqpubhashblock=tcp://0.0.0.0:${zmqPort}`,
-      ],
       essential: true,
     });
 
@@ -156,24 +182,13 @@ export class DogecoinStack extends cdk.Stack {
     );
 
     //
-    // Service Discovery namespace (Private DNS in the VPC)
-    //
-    this.namespace = new servicediscovery.PrivateDnsNamespace(
-      this,
-      "DogecoinNamespace",
-      {
-        name: namespaceName,
-        vpc: props.vpc,
-      },
-    );
-
-    //
     // Fargate Service
     //
     this.service = new ecs.FargateService(this, "DogecoinService", {
       cluster: this.cluster,
       taskDefinition: taskDef,
       desiredCount,
+      enableExecuteCommand: true,
       securityGroups: [props.dogeSecurityGroup],
       vpcSubnets: props.subnetSelection ?? {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
@@ -183,7 +198,7 @@ export class DogecoinStack extends cdk.Stack {
       maxHealthyPercent: 200,
       cloudMapOptions: {
         name: serviceName,
-        cloudMapNamespace: this.namespace,
+        cloudMapNamespace: props.namespace,
         dnsRecordType: servicediscovery.DnsRecordType.A,
         dnsTtl: cdk.Duration.seconds(30),
       },

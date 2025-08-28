@@ -78,6 +78,9 @@ export class EngineStack extends cdk.Stack {
         iam.ManagedPolicy.fromAwsManagedPolicyName(
           "service-role/AmazonECSTaskExecutionRolePolicy",
         ),
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          "AmazonSSMManagedInstanceCore",
+        ),
       ],
     });
 
@@ -89,6 +92,47 @@ export class EngineStack extends cdk.Stack {
 
     // Allow the task to read the database credentials secret
     props.dbSecret.grantRead(taskRole);
+
+    // Minimal SSM messages permissions on the task role for ECS Exec
+    taskRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "ssm:CreateControlChannel",
+          "ssm:CreateDataChannel",
+          "ssm:OpenControlChannel",
+          "ssm:OpenDataChannel",
+        ],
+        resources: ["*"],
+      }),
+    );
+
+    // Managed policy for operators to run ECS Exec against this service's tasks.
+    // Attach this policy to your human/operator IAM users or roles.
+    const ecsExecOperatorPolicy = new iam.ManagedPolicy(
+      this,
+      "EcsExecOperatorPolicy",
+      {
+        description: "Allows operators to run ECS Exec and manage SSM sessions",
+        statements: [
+          new iam.PolicyStatement({
+            actions: ["ecs:ExecuteCommand"],
+            resources: ["*"],
+          }),
+          new iam.PolicyStatement({
+            actions: [
+              "ssm:StartSession",
+              "ssm:DescribeSessions",
+              "ssm:TerminateSession",
+            ],
+            resources: ["*"],
+          }),
+          new iam.PolicyStatement({
+            actions: ["kms:Decrypt"],
+            resources: ["*"],
+          }),
+        ],
+      },
+    );
 
     const taskDef = new ecs.FargateTaskDefinition(this, "FractalTaskDef", {
       memoryLimitMiB: props.memoryMiB ?? 1024,
@@ -153,6 +197,7 @@ export class EngineStack extends cdk.Stack {
       cluster: this.cluster,
       taskDefinition: taskDef,
       desiredCount: props.desiredCount ?? 1,
+      enableExecuteCommand: true,
       securityGroups: [props.engineSecurityGroup],
       vpcSubnets: props.appSubnetSelection ?? {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
@@ -203,6 +248,9 @@ export class EngineStack extends cdk.Stack {
     //
     new cdk.CfnOutput(this, "AlbDnsName", {
       value: this.loadBalancer.loadBalancerDnsName,
+    });
+    new cdk.CfnOutput(this, "EcsExecOperatorPolicyArn", {
+      value: ecsExecOperatorPolicy.managedPolicyArn,
     });
   }
 }
