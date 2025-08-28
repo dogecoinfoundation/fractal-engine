@@ -6,6 +6,7 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as servicediscovery from "aws-cdk-lib/aws-servicediscovery";
+import * as efs from "aws-cdk-lib/aws-efs";
 
 export interface DogecoinStackProps extends cdk.StackProps {
   // Network resources from NetworkStack
@@ -139,6 +140,27 @@ export class DogecoinStack extends cdk.Stack {
     );
 
     //
+    // Storage: EFS for persistent Dogecoin data
+    //
+    const dogeEfs = new efs.FileSystem(this, "DogecoinEfs", {
+      vpc: props.vpc,
+      lifecyclePolicy: efs.LifecyclePolicy.AFTER_14_DAYS,
+      performanceMode: efs.PerformanceMode.GENERAL_PURPOSE,
+      throughputMode: efs.ThroughputMode.BURSTING,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+    // Allow NFS from Dogecoin tasks
+    dogeEfs.connections.allowDefaultPortFrom(
+      props.dogeSecurityGroup,
+      "Allow NFS from Dogecoin tasks",
+    );
+    // Access Point for the container
+    const dogeEfsAp = new efs.AccessPoint(this, "DogecoinEfsAp", {
+      fileSystem: dogeEfs,
+      path: "/dogecoin",
+      createAcl: { ownerUid: "0", ownerGid: "0", permissions: "0777" },
+    });
+    //
     // Task Definition
     //
     const taskDef = new ecs.FargateTaskDefinition(this, "DogecoinTaskDef", {
@@ -149,6 +171,30 @@ export class DogecoinStack extends cdk.Stack {
       ephemeralStorageGiB,
     });
 
+    // Grant ECS task permission to mount the EFS access point
+    executionRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "elasticfilesystem:ClientMount",
+          "elasticfilesystem:ClientWrite",
+          "elasticfilesystem:DescribeMountTargets",
+          "elasticfilesystem:DescribeAccessPoints",
+        ],
+        resources: [dogeEfs.fileSystemArn, dogeEfsAp.accessPointArn],
+      }),
+    );
+    // Add EFS volume to the task definition
+    taskDef.addVolume({
+      name: "dogecoin-data",
+      efsVolumeConfiguration: {
+        fileSystemId: dogeEfs.fileSystemId,
+        transitEncryption: "ENABLED",
+        authorizationConfig: {
+          accessPointId: dogeEfsAp.accessPointId,
+          iam: "ENABLED",
+        },
+      },
+    });
     const logGroup = new logs.LogGroup(this, "DogecoinLogs", {
       retention: logs.RetentionDays.ONE_WEEK,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -174,6 +220,12 @@ export class DogecoinStack extends cdk.Stack {
       essential: true,
     });
 
+    // Mount EFS volume for persistent blockchain data
+    container.addMountPoints({
+      containerPath: "/data",
+      sourceVolume: "dogecoin-data",
+      readOnly: false,
+    });
     // Expose the typical Dogecoin ports
     container.addPortMappings(
       { containerPort: rpcPort, protocol: ecs.Protocol.TCP }, // RPC

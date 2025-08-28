@@ -43,6 +43,8 @@ export class NetworkStack extends cdk.Stack {
     this.vpc = new ec2.Vpc(this, "FractalVpc", {
       ipAddresses: ec2.IpAddresses.cidr(props?.cidr ?? "10.0.0.0/16"),
       natGateways: props?.natGateways ?? 1,
+      enableDnsHostnames: true,
+      enableDnsSupport: true,
       subnetConfiguration: [
         {
           name: "public",
