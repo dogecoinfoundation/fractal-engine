@@ -7,6 +7,7 @@ import (
 	"dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"gotest.tools/assert"
 )
@@ -28,7 +29,7 @@ func TestSaveMint(t *testing.T) {
 		BlockHeight:    12345,
 		Requirements:   store.StringInterfaceMap{"req": "value"},
 		LockupOptions:  store.StringInterfaceMap{"lockup": "option"},
-		FeedURL:        "https://example.com/feed",
+		FeedURL:        util.StrPtr("https://example.com/feed"),
 		PublicKey:      "publicKey123",
 		OwnerAddress:   "ownerAddress123",
 		Signature:      "signature123",
@@ -207,7 +208,7 @@ func TestSaveUnconfirmedMint(t *testing.T) {
 		Metadata:      store.StringInterfaceMap{"status": "unconfirmed"},
 		Requirements:  store.StringInterfaceMap{},
 		LockupOptions: store.StringInterfaceMap{},
-		FeedURL:       "https://example.com/unconfirmed",
+		FeedURL:       util.StrPtr("https://example.com/unconfirmed"),
 		PublicKey:     "unconfirmedPubKey",
 		OwnerAddress:  "unconfirmedOwner",
 		TransactionHash: sql.NullString{
@@ -363,7 +364,7 @@ func TestMatchUnconfirmedMint(t *testing.T) {
 		Metadata:      store.StringInterfaceMap{"key": "value"},
 		Requirements:  store.StringInterfaceMap{"req": "test"},
 		LockupOptions: store.StringInterfaceMap{"lockup": "test"},
-		FeedURL:       "https://example.com",
+		FeedURL:       util.StrPtr("https://example.com"),
 		PublicKey:     "pubKeyMatch",
 	}
 	_, err := db.SaveUnconfirmedMint(unconfirmedMint)
@@ -485,7 +486,7 @@ func TestMintWithComplexMetadata(t *testing.T) {
 			"duration": float64(86400),
 			"penalty":  float64(10),
 		},
-		FeedURL:   "https://example.com/complex",
+		FeedURL:   util.StrPtr("https://example.com/complex"),
 		PublicKey: "complexPubKey",
 	}
 

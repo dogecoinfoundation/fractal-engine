@@ -137,7 +137,7 @@ type CreateMintRequestPayload struct {
 	Metadata       store.StringInterfaceMap `json:"metadata"`
 	Requirements   store.StringInterfaceMap `json:"requirements"`
 	LockupOptions  store.StringInterfaceMap `json:"lockup_options"`
-	FeedURL        string                   `json:"feed_url"`
+	FeedURL        *string                  `json:"feed_url"`
 	ContractOfSale store.StringInterfaceMap `json:"contract_of_sale"`
 }
 
@@ -150,12 +150,7 @@ func (req *CreateMintRequest) Validate() error {
 		return fmt.Errorf("invalid public_key: %w", err)
 	}
 
-	payloadBytes, err := json.Marshal(req.Payload)
-	if err != nil {
-		return fmt.Errorf("invalid payload: %w", err)
-	}
-
-	if err := doge.ValidateSignature(payloadBytes, req.PublicKey, req.Signature); err != nil {
+	if err := doge.ValidateSignature(req.Payload, req.PublicKey, req.Signature); err != nil {
 		return err
 	}
 
@@ -428,6 +423,7 @@ type GetHealthResponse struct {
 	Chain              string    `json:"chain"`
 	WalletsEnabled     bool      `json:"wallets_enabled"`
 	UpdatedAt          time.Time `json:"updated_at"`
+	Version            string    `json:"version"`
 }
 
 type Address struct {

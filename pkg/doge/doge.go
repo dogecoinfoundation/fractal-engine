@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
@@ -15,6 +17,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"github.com/cosmos/btcutil/base58"
+	"github.com/gowebpki/jcs"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -225,37 +228,89 @@ func SignPayload(payload []byte, privHex string) (string, error) {
 	return sigHex, nil
 }
 
-func ValidateSignature(payload []byte, publicKey string, signature string) error {
-	// 2. Hash message
-	hash := sha256.Sum256(payload)
-
-	// 3. Decode public key
-	pubKeyBytes, err := hex.DecodeString(publicKey)
+func CanonicalHash(jsonBytes []byte) ([32]byte, error) {
+	canon, err := jcs.Transform(jsonBytes) // returns canonical JSON bytes
 	if err != nil {
-		return errors.New("invalid public key format")
+		return [32]byte{}, err
+	}
+	return sha256.Sum256(canon), nil
+}
+
+func ValidateSignature(payload interface{}, publicKey string, signature string) error {
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return err
 	}
 
-	pubKey, err := btcec.ParsePubKey(pubKeyBytes)
+	hashBytes, err := CanonicalHash(payloadBytes)
 	if err != nil {
-		return errors.New("failed to parse public key")
+		return err
 	}
 
-	// 4. Decode signature
-	sigBytes, err := hex.DecodeString(signature)
+	err = VerifyDogecoinCompactSigFromHexHash(hex.EncodeToString(hashBytes[:]), signature, publicKey)
 	if err != nil {
-		return errors.New("invalid signature encoding")
-	}
-
-	sig, err := ecdsa.ParseDERSignature(sigBytes)
-	if err != nil {
-		return errors.New("failed to parse DER signature")
-	}
-
-	// 5. Verify signature
-	if !sig.Verify(hash[:], pubKey) {
+		log.Println(err)
 		return errors.New("signature verification failed")
 	}
 
+	return nil
+}
+
+func dogeMessageHash(msg []byte) [32]byte {
+	// "\x19Dogecoin Signed Message:\n" + varint(len(msg)) + msg, then double-SHA256
+	prefix := []byte("\x19Dogecoin Signed Message:\n")
+	var buf bytes.Buffer
+	buf.Write(prefix)
+	// varint (little-endian payload after the tag)
+	n := uint64(len(msg))
+	switch {
+	case n < 0xfd:
+		buf.WriteByte(byte(n))
+	case n <= 0xffff:
+		buf.Write([]byte{0xfd, byte(n), byte(n >> 8)})
+	case n <= 0xffffffff:
+		buf.Write([]byte{0xfe, byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24)})
+	default:
+		buf.Write([]byte{
+			0xff,
+			byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24),
+			byte(n >> 32), byte(n >> 40), byte(n >> 48), byte(n >> 56),
+		})
+	}
+	buf.Write(msg)
+
+	h1 := sha256.Sum256(buf.Bytes())
+	return sha256.Sum256(h1[:])
+}
+
+func VerifyDogecoinCompactSigFromHexHash(hexHash, sigHex, pubKeyHex string) error {
+	sig, err := hex.DecodeString(sigHex)
+	if err != nil || len(sig) != 65 {
+		return fmt.Errorf("need 65-byte compact sig hex: %w", err)
+	}
+
+	digest := dogeMessageHash([]byte(hexHash)) // NOTE: ASCII of the 64-char hex
+
+	recPub, _, err := ecdsa.RecoverCompact(sig, digest[:])
+	if err != nil {
+		return err
+	}
+
+	want, err := hex.DecodeString(pubKeyHex) // 33 or 65 bytes (SEC1)
+	if err != nil {
+		return fmt.Errorf("bad pubkey hex: %w", err)
+	}
+	wantPub, err := btcec.ParsePubKey(want) // btcec.S256() if using v1
+	if err != nil {
+		return fmt.Errorf("parse pubkey: %w", err)
+	}
+
+	// Compare the EC point (handles compressed/uncompressed)
+	if recPub.X().Cmp(wantPub.X()) != 0 || recPub.Y().Cmp(wantPub.Y()) != 0 {
+		// Helpful debug: show compressed recovered key
+		gotCompressed := hex.EncodeToString(recPub.SerializeCompressed())
+		return fmt.Errorf("recovered pubkey mismatch; got %s", gotCompressed)
+	}
 	return nil
 }
 
