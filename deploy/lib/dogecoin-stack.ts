@@ -21,7 +21,6 @@ export interface DogecoinStackProps extends cdk.StackProps {
   desiredCount?: number; // default 1
   cpu?: number; // default 512
   memoryMiB?: number; // default 1024
-  ephemeralStorageGiB?: number; // default 50
 
   // Container image override (defaults to docker.io/danielwhelansb/dogecoin)
   containerImage?: ecs.ContainerImage;
@@ -58,7 +57,6 @@ export class DogecoinStack extends cdk.Stack {
     const desiredCount = props.desiredCount ?? 1;
     const cpu = props.cpu ?? 512;
     const memoryMiB = props.memoryMiB ?? 1024;
-    const ephemeralStorageGiB = props.ephemeralStorageGiB ?? 50;
 
     const rpcPort = props.rpcPort ?? 22555;
     const p2pPort = props.p2pPort ?? 22556;
@@ -76,6 +74,31 @@ export class DogecoinStack extends cdk.Stack {
     this.cluster = new ecs.Cluster(this, "DogecoinCluster", {
       vpc: props.vpc,
       containerInsights: true,
+    });
+
+    const subnets = props.vpc.selectSubnets({
+      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+    });
+
+    // Storage: EFS for persistent Dogecoin data
+    const dogeEfs = new efs.FileSystem(this, "DogecoinEfs", {
+      vpc: props.vpc,
+      vpcSubnets: subnets,
+      lifecyclePolicy: efs.LifecyclePolicy.AFTER_14_DAYS,
+      performanceMode: efs.PerformanceMode.GENERAL_PURPOSE,
+      throughputMode: efs.ThroughputMode.BURSTING,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+    // Allow NFS from Dogecoin tasks
+    dogeEfs.connections.allowDefaultPortFrom(
+      props.dogeSecurityGroup,
+      "Allow NFS from Dogecoin tasks",
+    );
+    // Access Point for the container
+    const dogeEfsAp = new efs.AccessPoint(this, "DogecoinEfsAp", {
+      fileSystem: dogeEfs,
+      path: "/dogecoin",
+      createAcl: { ownerUid: "0", ownerGid: "0", permissions: "0777" },
     });
 
     //
@@ -106,6 +129,10 @@ export class DogecoinStack extends cdk.Stack {
           "ssm:CreateDataChannel",
           "ssm:OpenControlChannel",
           "ssm:OpenDataChannel",
+          "elasticfilesystem:ClientMount",
+          "elasticfilesystem:ClientWrite",
+          "elasticfilesystem:DescribeMountTargets",
+          "elasticfilesystem:DescribeAccessPoints",
         ],
         resources: ["*"],
       }),
@@ -140,27 +167,6 @@ export class DogecoinStack extends cdk.Stack {
     );
 
     //
-    // Storage: EFS for persistent Dogecoin data
-    //
-    const dogeEfs = new efs.FileSystem(this, "DogecoinEfs", {
-      vpc: props.vpc,
-      lifecyclePolicy: efs.LifecyclePolicy.AFTER_14_DAYS,
-      performanceMode: efs.PerformanceMode.GENERAL_PURPOSE,
-      throughputMode: efs.ThroughputMode.BURSTING,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
-    });
-    // Allow NFS from Dogecoin tasks
-    dogeEfs.connections.allowDefaultPortFrom(
-      props.dogeSecurityGroup,
-      "Allow NFS from Dogecoin tasks",
-    );
-    // Access Point for the container
-    const dogeEfsAp = new efs.AccessPoint(this, "DogecoinEfsAp", {
-      fileSystem: dogeEfs,
-      path: "/dogecoin",
-      createAcl: { ownerUid: "0", ownerGid: "0", permissions: "0777" },
-    });
-    //
     // Task Definition
     //
     const taskDef = new ecs.FargateTaskDefinition(this, "DogecoinTaskDef", {
@@ -168,7 +174,6 @@ export class DogecoinStack extends cdk.Stack {
       memoryLimitMiB: memoryMiB,
       executionRole,
       taskRole,
-      ephemeralStorageGiB,
     });
 
     // Grant ECS task permission to mount the EFS access point
@@ -183,7 +188,8 @@ export class DogecoinStack extends cdk.Stack {
         resources: [dogeEfs.fileSystemArn, dogeEfsAp.accessPointArn],
       }),
     );
-    // Add EFS volume to the task definition
+
+    // EFS volume for persistent blockchain data
     taskDef.addVolume({
       name: "dogecoin-data",
       efsVolumeConfiguration: {
@@ -195,6 +201,7 @@ export class DogecoinStack extends cdk.Stack {
         },
       },
     });
+
     const logGroup = new logs.LogGroup(this, "DogecoinLogs", {
       retention: logs.RetentionDays.ONE_WEEK,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -211,11 +218,15 @@ export class DogecoinStack extends cdk.Stack {
 
     const container = taskDef.addContainer("Dogecoin", {
       image,
+      cpu,
+      memoryLimitMiB: memoryMiB,
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: "dogecoin", logGroup }),
       // You can extend with additional env if your image supports it:
       // e.g., CHAIN, RPC_USER/PASSWORD, etc.
       environment: {
         ...props.environment,
+        // Ensure dogecoind writes data to the EBS-backed host mount
+        DATADIR: "/data",
       },
       essential: true,
     });
@@ -242,9 +253,7 @@ export class DogecoinStack extends cdk.Stack {
       desiredCount,
       enableExecuteCommand: true,
       securityGroups: [props.dogeSecurityGroup],
-      vpcSubnets: props.subnetSelection ?? {
-        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-      },
+      vpcSubnets: subnets,
       assignPublicIp: false,
       minHealthyPercent: 100,
       maxHealthyPercent: 200,
