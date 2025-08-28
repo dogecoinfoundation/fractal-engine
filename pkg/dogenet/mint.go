@@ -13,6 +13,11 @@ import (
 )
 
 func (c *DogeNetClient) GossipMint(record store.Mint) error {
+	feedUrl := ""
+	if record.FeedURL != nil {
+		feedUrl = *record.FeedURL
+	}
+
 	mintMessage := protocol.MintMessage{
 		Id:              record.Id,
 		Title:           record.Title,
@@ -24,7 +29,7 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 		Hash:            record.Hash,
 		Requirements:    &structpb.Struct{Fields: convertToStructPBMap(record.Requirements)},
 		LockupOptions:   &structpb.Struct{Fields: convertToStructPBMap(record.LockupOptions)},
-		FeedUrl:         record.FeedURL,
+		FeedUrl:         feedUrl,
 		CreatedAt:       timestamppb.New(record.CreatedAt),
 	}
 

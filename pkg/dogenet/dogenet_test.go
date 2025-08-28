@@ -70,7 +70,7 @@ func TestDogenet(t *testing.T) {
 		Tags:            record.Tags,
 		TransactionHash: record.TransactionHash.String,
 		Hash:            record.Hash,
-		FeedUrl:         record.FeedURL,
+		FeedUrl:         *record.FeedURL,
 		CreatedAt:       timestamppb.New(record.CreatedAt),
 	}
 

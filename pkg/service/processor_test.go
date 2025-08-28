@@ -10,6 +10,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"gotest.tools/assert"
 )
@@ -284,11 +285,12 @@ func AssertUnconfirmedMintCreation(t *testing.T, hash string, tokenisationStore 
 }
 
 func CreateUnconfirmedMint(t *testing.T, trxnHash string, tokenisationStore *store.TokenisationStore) string {
+
 	mintWithoutId := store.MintWithoutID{
 		Title:         "Test Mint",
 		Description:   "Test Description",
 		Tags:          []string{"test", "test2"},
-		FeedURL:       "https://test.com",
+		FeedURL:       util.StrPtr("https://test.com"),
 		FractionCount: 100,
 		BlockHeight:   20,
 		TransactionHash: sql.NullString{

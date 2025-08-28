@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/version"
 )
 
 type HealthRoutes struct {
@@ -51,6 +52,7 @@ func (hr *HealthRoutes) getHealth(w http.ResponseWriter, _ *http.Request) {
 		UpdatedAt:          updatedAt,
 		Chain:              chain,
 		WalletsEnabled:     walletsEnabled,
+		Version:            version.Version,
 	}
 
 	respondJSON(w, http.StatusOK, response)

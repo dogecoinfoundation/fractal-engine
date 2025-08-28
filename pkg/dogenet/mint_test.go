@@ -14,6 +14,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -76,7 +77,7 @@ func TestGossipMint(t *testing.T) {
 			LockupOptions: map[string]interface{}{
 				"lockup1": "lockupval1",
 			},
-			FeedURL:   "https://example.com/feed",
+			FeedURL:   util.StrPtr("https://example.com/feed"),
 			CreatedAt: testTime,
 		},
 	}

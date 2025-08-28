@@ -71,7 +71,7 @@ type MintWithoutID struct {
 	CreatedAt       time.Time          `json:"created_at"`
 	Requirements    StringInterfaceMap `json:"requirements"`
 	LockupOptions   StringInterfaceMap `json:"lockup_options"`
-	FeedURL         string             `json:"feed_url"`
+	FeedURL         *string            `json:"feed_url"`
 	PublicKey       string             `json:"public_key"`
 	OwnerAddress    string             `json:"owner_address"`
 	Signature       string             `json:"signature"`

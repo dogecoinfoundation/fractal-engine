@@ -7,6 +7,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/rpc"
+	"dogecoin.org/fractal-engine/pkg/util"
 	"gotest.tools/assert"
 )
 
@@ -30,7 +31,7 @@ func TestMints(t *testing.T) {
 		},
 		Requirements:  map[string]interface{}{},
 		LockupOptions: map[string]interface{}{},
-		FeedURL:       "https://test.com",
+		FeedURL:       util.StrPtr("https://test.com"),
 	}
 
 	mintRequest := rpc.CreateMintRequest{
