@@ -164,7 +164,8 @@ func (req *CreateMintRequest) Validate() error {
 }
 
 type CreateMintResponse struct {
-	Hash string `json:"hash"`
+	Hash                   string `json:"hash"`
+	EncodedTransactionBody string `json:"encoded_transaction_body"`
 }
 
 type GetTokenBalanceResponse struct {

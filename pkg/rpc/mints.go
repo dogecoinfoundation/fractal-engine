@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"dogecoin.org/fractal-engine/pkg/validation"
 	"github.com/gorilla/mux"
@@ -238,8 +240,12 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	envelope := protocol.NewMintTransactionEnvelope(newMintWithoutId.Hash, protocol.ACTION_MINT)
+	encodedTransactionBody := envelope.Serialize()
+
 	response := CreateMintResponse{
-		Hash: newMintWithoutId.Hash,
+		Hash:                   newMintWithoutId.Hash,
+		EncodedTransactionBody: hex.EncodeToString(encodedTransactionBody),
 	}
 
 	respondJSON(w, http.StatusCreated, response)

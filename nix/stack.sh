@@ -191,19 +191,19 @@ case "$COMMAND" in
         fi
     fi
 
-    start_service "fractalengine" "@fractalengine@/bin/fractal-engine \
-      --rpc-server-host 0.0.0.0 \
-      --rpc-server-port $FRACTAL_ENGINE_PORT \
-      --doge-net-network unix \
-      --doge-net-address $BASE_DIR/dogenet.sock \
-      --doge-net-web-address 0.0.0.0:$DOGENET_WEB_PORT \
-      --doge-scheme http \
-      --doge-host localhost \
-      --doge-port $DOGE_RPC_PORT \
-      --doge-user $DOGECOIN_RPC_USER \
-      --doge-password $DOGECOIN_RPC_PASSWORD \
-      --database-url $FRACTAL_ENGINE_DB?sslmode=disable \
-      --embed-dogenet true"
+    # start_service "fractalengine" "@fractalengine@/bin/fractal-engine \
+    #   --rpc-server-host 0.0.0.0 \
+    #   --rpc-server-port $FRACTAL_ENGINE_PORT \
+    #   --doge-net-network unix \
+    #   --doge-net-address $BASE_DIR/dogenet.sock \
+    #   --doge-net-web-address 0.0.0.0:$DOGENET_WEB_PORT \
+    #   --doge-scheme http \
+    #   --doge-host localhost \
+    #   --doge-port $DOGE_RPC_PORT \
+    #   --doge-user $DOGECOIN_RPC_USER \
+    #   --doge-password $DOGECOIN_RPC_PASSWORD \
+    #   --database-url $FRACTAL_ENGINE_DB?sslmode=disable \
+    #   --embed-dogenet true"
 
     rm -rf $INDEXER_DB_URL
 
