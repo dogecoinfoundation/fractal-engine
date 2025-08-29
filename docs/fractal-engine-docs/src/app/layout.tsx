@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   creator: 'Dogecoin Foundation',
   keywords: ['Fractal Engine', 'Dogecoin', 'Docs', 'API', 'Architecture'],
   icons: {
-    icon: '/icon.svg',
+    icon: '/static/image/logo.svg',
   },
   openGraph: {
     title: 'Fractal Engine Docs',

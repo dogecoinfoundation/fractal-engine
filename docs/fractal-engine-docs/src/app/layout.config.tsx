@@ -2,6 +2,8 @@ import { GithubInfo } from "@/components/GithubInfo";
 import Image from "next/image";
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 
+import FractalEngineLogo from "../../public/static/image/fractal.svg"
+
 /**
  * Shared layout configurations
  *
@@ -13,10 +15,7 @@ export const baseOptions: BaseLayoutProps = {
   themeSwitch: { enabled: false },
   nav: {
     title: (
-      <>
-        <Image src="/icon.svg" alt="Logo" width={24} height={24} />
-        Fractal Engine
-      </>
+      <Image src={FractalEngineLogo} alt="Logo" width={192} />
     ),
   },
   // see https://fumadocs.dev/docs/ui/navigation/links
