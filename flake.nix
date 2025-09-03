@@ -64,6 +64,12 @@
               ;
           };
 
+          # CLI package
+          cli = pkgs.callPackage ./nix/cli.nix {
+            rev = if self ? rev then self.rev else "dirty";
+            date = if self ? lastModifiedDate then dateFormatter self.lastModifiedDate else "unknown-date";
+          };
+
           # Predefined configurations
           minimal = pkgs.buildEnv {
             name = "fractal-minimal";
@@ -127,6 +133,11 @@
           stack = flake-utils.lib.mkApp {
             drv = self.packages.${system}.fractal-stack;
             name = "fractal-stack";
+          };
+
+          cli = flake-utils.lib.mkApp {
+            drv = self.packages.${system}.cli;
+            name = "fecli";
           };
 
           test = {

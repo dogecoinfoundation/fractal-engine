@@ -1,0 +1,29 @@
+---
+title: Building from Source
+---
+
+We utilise [Nix](https://nixos.org/download/) for our development and build process. This lets us have a unified, deterministic environment across multiple platforms.
+
+<Callout>You only need the Nix build tooling, you do not need to be using NixOS</Callout>
+
+### Building the Engine
+
+Our `nix.flake` exports the `fractal-engine` package as the default derivative, so you can build with:
+
+```sh
+nix build .# -L --print-out-paths
+```
+
+This will log the absolute path to the folder containing the built output binary for `fractal-engine`.
+
+### Building the CLI tool
+
+<Callout>This tool should only be used for exploration, not for production usage.</Callout>
+
+Similar to the engine itself, run:
+
+```sh
+nix build .#cli -L --print-out-paths
+```
+
+Once the CLI tool has been built, see [CLI Tool](../tools-and-libs/cli.mdx) for usage.
