@@ -2,19 +2,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { BookOpenText } from "lucide-react";
 
+import FractalEngineLogo from "../../../public/static/image/fractal.svg"
+
 export default function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center flex-grow bg-gray-50">
       <div className="container mx-auto px-4 py-12">
         <Image
-          src="/icon.svg"
+          src={FractalEngineLogo}
           alt="Fractal Engine Logo"
-          width={256}
-          height={256}
-          className="w-48 mx-auto pb-4"
+          className="mx-auto pb-4 w-[60%]"
         />
 
-        <h1 className="text-4xl font-bold text-center mb-3">Fractal Engine</h1>
         <p className="text-2xl text-gray-500 text-center mb-12">RWAs for everyone.</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">

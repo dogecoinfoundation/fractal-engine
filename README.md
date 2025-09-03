@@ -1,6 +1,6 @@
 <br />
 <p align="center">
-  <h1 align="center">Fractal Engine</h3>
+  <img src="./docs/fractal-engine-docs/public/static/image/fractal.svg" />
 
   <p align="center">
     RWA Engine for the Dogecoin Blockchain
