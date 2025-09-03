@@ -1,0 +1,28 @@
+---
+title: Setting Up (Manually)
+---
+
+By default, there are a few moving parts that you need running:
+
+- [Fractal Engine](../installation/releases.mdx)
+- [A PostgreSQL database](https://www.postgresql.org/download/)
+- [Dogecoin Core](https://dogecoin.com)
+
+### Dogecoin Core
+
+Fractal Engine requires access to a Dogecoin Core node that has been fully synced with the network.
+
+It requires RPC be configured and available. If you want to also deploy the Fractal Admin UI for testing, ZMQ must also be configured.
+
+### Fractal Engine
+
+```sh
+export DATABASE_URL=postgresql://fractal:fractal@localhost:5432/fractal
+export DOGE_HOST=localhost        # Dogecoin Core hostname
+export DOGE_USER=rpcusername      # Dogecoin Core RPC username
+export DOGE_PASSWORD=rpcpassword  # Dogecoin Core RPC password
+
+/path/to/fractal-engine
+```
+
+There are many other configuration options available, see [Comprehensive Configuration](./comprehensive.mdx) for more details.

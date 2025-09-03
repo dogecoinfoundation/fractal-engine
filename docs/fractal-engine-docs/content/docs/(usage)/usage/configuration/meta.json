@@ -1,4 +1,9 @@
 {
   "title": "Configuration",
-  "pages": ["setting-up", "comprehensive"]
+  "pages": [
+    "setting-up-manually",
+    "setting-up-aws",
+    "setting-up-docker",
+    "comprehensive"
+  ]
 }
