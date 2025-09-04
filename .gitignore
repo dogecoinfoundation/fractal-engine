@@ -5,7 +5,7 @@ test.toml
 **\test*.db
 config.toml
 coverage.txt
-bin
+/bin
 coverage
 coverage.out
 coverage_*out
