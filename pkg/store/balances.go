@@ -165,9 +165,74 @@ func (s *TokenisationStore) GetPendingTokenBalanceTotalForMintAndOwner(mintHash 
 	return 0, nil
 }
 
-func (s *TokenisationStore) GetTokenBalances(address string, mintHash string) ([]TokenBalance, error) {
-	log.Println("Getting token balance: ADDRESS", address, "MINT HASH", mintHash)
+func (s *TokenisationStore) GetMyMintTokenBalances(address string, offset int, limit int) ([]TokenBalanceWithMint, error) {
+	rows, err := s.DB.Query(`
+		SELECT
+		    m.id,
+		    m.created_at,
+		    m.title,
+		    m.description,
+		    m.fraction_count,
+		    m.tags,
+		    m.metadata,
+		    m.hash,
+		    m.transaction_hash,
+		    m.requirements,
+		    m.lockup_options,
+		    m.feed_url,
+		    m.owner_address,
+		    m.public_key,
+		    m.contract_of_sale,
+		    tb.quantity AS balance_quantity,
+			tb.address as token_owner_address
+		FROM mints m
+		LEFT JOIN token_balances tb
+		    ON m.hash = tb.mint_hash
+		   AND tb.address = $1
+		LIMIT $2 OFFSET $3;
+	`, address, offset, limit)
 
+	if err != nil {
+		return []TokenBalanceWithMint{}, err
+	}
+
+	defer rows.Close()
+
+	tokenBalances := []TokenBalanceWithMint{}
+
+	for rows.Next() {
+		var mint TokenBalanceWithMint
+
+		err := rows.Scan(
+			&mint.Id,
+			&mint.CreatedAt,
+			&mint.Title,
+			&mint.Description,
+			&mint.FractionCount,
+			&mint.Tags,
+			&mint.Metadata,
+			&mint.Hash,
+			&mint.TransactionHash,
+			&mint.Requirements,
+			&mint.LockupOptions,
+			&mint.FeedURL,
+			&mint.OwnerAddress,
+			&mint.PublicKey,
+			&mint.ContractOfSale,
+			&mint.Quantity,
+			&mint.Address,
+		)
+		if err != nil {
+			return []TokenBalanceWithMint{}, err
+		}
+
+		tokenBalances = append(tokenBalances, mint)
+	}
+
+	return tokenBalances, nil
+}
+
+func (s *TokenisationStore) GetTokenBalances(address string, mintHash string) ([]TokenBalance, error) {
 	rows, err := s.DB.Query(`
 		SELECT quantity FROM token_balances WHERE address = $1 AND mint_hash = $2
 	`, address, mintHash)

@@ -312,7 +312,6 @@ func TestRecvMintViaStartWithConn(t *testing.T) {
 	assert.Assert(t, len(savedMint.Tags) == 2)
 	assert.Equal(t, "test", string(savedMint.Tags[0]))
 	assert.Equal(t, "mint", string(savedMint.Tags[1]))
-	assert.Assert(t, savedMint.TransactionHash.Valid)
 
 	// Verify metadata
 	assert.Equal(t, "value1", savedMint.Metadata["key1"])

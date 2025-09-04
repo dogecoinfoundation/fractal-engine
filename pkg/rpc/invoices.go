@@ -23,6 +23,7 @@ func HandleInvoiceRoutes(store *store.TokenisationStore, gossipClient dogenet.Go
 	ir := &InvoiceRoutes{store: store, gossipClient: gossipClient, cfg: cfg}
 
 	mux.HandleFunc("/invoices", ir.handleInvoices)
+	mux.HandleFunc("/my-invoices", ir.handleMyInvoices)
 }
 
 func (ir *InvoiceRoutes) handleInvoices(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +32,15 @@ func (ir *InvoiceRoutes) handleInvoices(w http.ResponseWriter, r *http.Request) 
 		ir.getInvoices(w, r)
 	case http.MethodPost:
 		ir.postInvoice(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (ir *InvoiceRoutes) handleMyInvoices(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		ir.getMyInvoices(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -91,6 +101,64 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 	end := start + limit
 
 	invoices, err := ir.store.GetInvoices(start, end, mintHash, offererAddress)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Clamp the slice range
+	if start >= len(invoices) {
+		respondJSON(w, http.StatusOK, GetInvoicesResponse{})
+		return
+	}
+
+	if end > len(invoices) {
+		end = len(invoices)
+	}
+
+	response := GetInvoicesResponse{
+		Invoices: invoices[start:end],
+		Total:    len(invoices),
+		Page:     page,
+		Limit:    limit,
+	}
+
+	respondJSON(w, http.StatusOK, response)
+}
+
+func (ir *InvoiceRoutes) getMyInvoices(w http.ResponseWriter, r *http.Request) {
+	limitStr := validation.SanitizeQueryParam(r.URL.Query().Get("limit"))
+	limit := 100
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= limit {
+			limit = l
+		}
+	}
+
+	pageStr := validation.SanitizeQueryParam(r.URL.Query().Get("page"))
+	page := 1
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 && p <= 1000 { // Reasonable page limit
+			page = p
+		}
+	}
+
+	address := validation.SanitizeQueryParam(r.URL.Query().Get("address"))
+
+	if address != "" {
+		if err := validation.ValidateAddress(address); err != nil {
+			http.Error(w, "Invalid address format", http.StatusBadRequest)
+			return
+		}
+	}
+
+	start := (page - 1) * limit
+	end := start + limit
+
+	invoices, err := ir.store.GetInvoicesForMe(start, end, address)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)

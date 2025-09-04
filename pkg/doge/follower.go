@@ -127,10 +127,11 @@ func (f *DogeFollower) Start() error {
 }
 
 func GetFractalMessageFromVout(vout []types.RawTxnVOut) (protocol.MessageEnvelope, error) {
+	var bytes []byte
 	for _, vout := range vout {
-		bytes := ParseOpReturnData(vout)
+		bytes = ParseOpReturnData(vout)
 		if bytes == nil {
-			return protocol.MessageEnvelope{}, errors.New("no op return data")
+			continue
 		}
 
 		message := protocol.MessageEnvelope{}
@@ -143,8 +144,6 @@ func GetFractalMessageFromVout(vout []types.RawTxnVOut) (protocol.MessageEnvelop
 		if message.IsFractalEngineMessage() {
 			return message, nil
 		}
-
-		return protocol.MessageEnvelope{}, errors.New("no fractal engine message")
 	}
 
 	return protocol.MessageEnvelope{}, errors.New("no fractal engine message")
@@ -163,8 +162,10 @@ func GetAddressFromVout(vout []types.RawTxnVOut) (string, error) {
 func ParseOpReturnData(vout types.RawTxnVOut) []byte {
 	asm := vout.ScriptPubKey.Asm
 	parts := strings.Split(asm, " ")
+
 	if len(parts) > 0 {
 		op := parts[0]
+
 		if op == "OP_RETURN" {
 			bytes, err := hex.DecodeString(parts[1])
 			if err != nil {
@@ -174,6 +175,7 @@ func ParseOpReturnData(vout types.RawTxnVOut) []byte {
 			return bytes
 		}
 	}
+
 	return nil
 }
 

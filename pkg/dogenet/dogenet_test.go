@@ -68,7 +68,7 @@ func TestDogenet(t *testing.T) {
 		Description:     record.Description,
 		FractionCount:   int32(record.FractionCount),
 		Tags:            record.Tags,
-		TransactionHash: record.TransactionHash.String,
+		TransactionHash: *record.TransactionHash,
 		Hash:            record.Hash,
 		FeedUrl:         *record.FeedURL,
 		CreatedAt:       timestamppb.New(record.CreatedAt),

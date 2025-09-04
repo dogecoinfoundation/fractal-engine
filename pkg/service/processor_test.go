@@ -1,7 +1,6 @@
 package service_test
 
 import (
-	"database/sql"
 	"testing"
 	"time"
 
@@ -287,16 +286,13 @@ func AssertUnconfirmedMintCreation(t *testing.T, hash string, tokenisationStore 
 func CreateUnconfirmedMint(t *testing.T, trxnHash string, tokenisationStore *store.TokenisationStore) string {
 
 	mintWithoutId := store.MintWithoutID{
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		Tags:          []string{"test", "test2"},
-		FeedURL:       util.StrPtr("https://test.com"),
-		FractionCount: 100,
-		BlockHeight:   20,
-		TransactionHash: sql.NullString{
-			String: trxnHash,
-			Valid:  true,
-		},
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		Tags:            []string{"test", "test2"},
+		FeedURL:         util.StrPtr("https://test.com"),
+		FractionCount:   100,
+		BlockHeight:     20,
+		TransactionHash: util.StrPtr(trxnHash),
 	}
 	hash, err := mintWithoutId.GenerateHash()
 	if err != nil {

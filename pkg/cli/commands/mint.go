@@ -102,9 +102,9 @@ func mintListAction(ctx context.Context, cmd *cli.Command) error {
 			mint.Description,
 			fmt.Sprintf("%d", mint.FractionCount),
 			fmt.Sprintf("%d", mint.BlockHeight),
-			mint.TransactionHash.String,
+			*mint.TransactionHash,
 			mint.CreatedAt.Format(time.RFC3339),
-			fmt.Sprintf("%t", mint.TransactionHash.Valid),
+			fmt.Sprintf("%v", mint.TransactionHash != nil),
 		})
 	}
 

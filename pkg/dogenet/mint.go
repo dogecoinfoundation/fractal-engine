@@ -1,12 +1,12 @@
 package dogenet
 
 import (
-	"database/sql"
 	"log"
 
 	"code.dogecoin.org/gossip/dnet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -24,7 +24,7 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 		Description:     record.Description,
 		FractionCount:   int32(record.FractionCount),
 		Tags:            record.Tags,
-		TransactionHash: record.TransactionHash.String,
+		TransactionHash: util.PtrToStr(record.TransactionHash),
 		Metadata:        &structpb.Struct{Fields: convertToStructPBMap(record.Metadata)},
 		Hash:            record.Hash,
 		Requirements:    &structpb.Struct{Fields: convertToStructPBMap(record.Requirements)},
@@ -78,7 +78,7 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 		Description:     mint.Description,
 		Tags:            mint.Tags,
 		Metadata:        mint.Metadata.AsMap(),
-		TransactionHash: sql.NullString{String: mint.TransactionHash, Valid: true},
+		TransactionHash: util.StrPtr(mint.TransactionHash),
 		CreatedAt:       mint.CreatedAt.AsTime(),
 		Requirements:    mint.Requirements.AsMap(),
 		LockupOptions:   mint.LockupOptions.AsMap(),
