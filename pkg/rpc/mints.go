@@ -98,7 +98,7 @@ func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pageStr := validation.SanitizeQueryParam(r.URL.Query().Get("page"))
-	page := 1
+	page := 0
 
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 && p <= 1000 { // Reasonable page limit
@@ -118,7 +118,7 @@ func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	start := (page - 1) * limit
+	start := page * limit
 	end := start + limit
 
 	var mints []store.Mint

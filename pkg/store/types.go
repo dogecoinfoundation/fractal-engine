@@ -328,7 +328,7 @@ func (i *Invoice) GenerateHash() (string, error) {
 }
 
 type TokenBalanceWithMint struct {
-	Mint      `json:"mint"`
+	Mint
 	Address   string    `json:"address"`
 	Quantity  int       `json:"quantity"`
 	CreatedAt time.Time `json:"created_at"`

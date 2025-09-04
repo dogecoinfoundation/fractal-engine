@@ -302,6 +302,10 @@ type CreateInvoiceRequest struct {
 	Payload CreateInvoiceRequestPayload `json:"payload"`
 }
 
+type CreatePayInvoiceBodyRequest struct {
+	InvoiceHash string `json:"invoice_hash"`
+}
+
 type CreateInvoiceRequestPayload struct {
 	PaymentAddress string `json:"payment_address"`
 	BuyerAddress   string `json:"buyer_address"`
@@ -351,7 +355,8 @@ type GetInvoicesResponse struct {
 }
 
 type CreateInvoiceResponse struct {
-	Hash string `json:"hash"`
+	Hash                   string `json:"hash"`
+	EncodedTransactionBody string `json:"encoded_transaction_body"`
 }
 
 type GetHealthResponse struct {

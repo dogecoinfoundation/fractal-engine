@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"dogecoin.org/fractal-engine/pkg/validation"
 )
@@ -24,6 +26,7 @@ func HandleInvoiceRoutes(store *store.TokenisationStore, gossipClient dogenet.Go
 
 	mux.HandleFunc("/invoices", ir.handleInvoices)
 	mux.HandleFunc("/my-invoices", ir.handleMyInvoices)
+	mux.HandleFunc("/invoices/encoded-transaction-body", ir.handleEncodedTransactionBody)
 }
 
 func (ir *InvoiceRoutes) handleInvoices(w http.ResponseWriter, r *http.Request) {
@@ -41,6 +44,15 @@ func (ir *InvoiceRoutes) handleMyInvoices(w http.ResponseWriter, r *http.Request
 	switch r.Method {
 	case http.MethodGet:
 		ir.getMyInvoices(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (ir *InvoiceRoutes) handleEncodedTransactionBody(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		ir.postEncodedTransactionBody(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -71,7 +83,7 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pageStr := validation.SanitizeQueryParam(r.URL.Query().Get("page"))
-	page := 1
+	page := 0
 
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 && p <= 1000 { // Reasonable page limit
@@ -97,7 +109,7 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	start := (page - 1) * limit
+	start := page * limit
 	end := start + limit
 
 	invoices, err := ir.store.GetInvoices(start, end, mintHash, offererAddress)
@@ -138,7 +150,7 @@ func (ir *InvoiceRoutes) getMyInvoices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pageStr := validation.SanitizeQueryParam(r.URL.Query().Get("page"))
-	page := 1
+	page := 0
 
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 && p <= 1000 { // Reasonable page limit
@@ -155,7 +167,7 @@ func (ir *InvoiceRoutes) getMyInvoices(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	start := (page - 1) * limit
+	start := page * limit
 	end := start + limit
 
 	invoices, err := ir.store.GetInvoicesForMe(start, end, address)
@@ -252,9 +264,28 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	envelope := protocol.NewInvoiceTransactionEnvelope(newInvoiceWithoutId.Hash, newInvoiceWithoutId.SellerAddress, newInvoiceWithoutId.MintHash, int32(newInvoiceWithoutId.Quantity), protocol.ACTION_INVOICE)
+	encodedTransactionBody := envelope.Serialize()
+
 	response := CreateInvoiceResponse{
-		Hash: newInvoiceWithoutId.Hash,
+		Hash:                   newInvoiceWithoutId.Hash,
+		EncodedTransactionBody: hex.EncodeToString(encodedTransactionBody),
 	}
 
 	respondJSON(w, http.StatusCreated, response)
+}
+
+func (ir *InvoiceRoutes) postEncodedTransactionBody(w http.ResponseWriter, r *http.Request) {
+	var request CreatePayInvoiceBodyRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	envelope := protocol.NewPaymentTransactionEnvelope(request.InvoiceHash, protocol.ACTION_PAYMENT)
+	encodedTransactionBody := envelope.Serialize()
+
+	respondJSON(w, http.StatusCreated, map[string]string{
+		"encoded_transaction_body": hex.EncodeToString(encodedTransactionBody),
+	})
 }

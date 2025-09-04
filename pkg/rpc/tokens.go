@@ -51,7 +51,7 @@ func (tr *TokenRoutes) getTokenBalancesWithMints(w http.ResponseWriter, r *http.
 	}
 
 	pageStr := validation.SanitizeQueryParam(r.URL.Query().Get("page"))
-	page := 1
+	page := 0
 
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 && p <= 1000 { // Reasonable page limit
@@ -59,7 +59,7 @@ func (tr *TokenRoutes) getTokenBalancesWithMints(w http.ResponseWriter, r *http.
 		}
 	}
 
-	start := (page - 1) * limit
+	start := page * limit
 	end := start + limit
 
 	tokenBalances, err := tr.store.GetMyMintTokenBalances(address, start, end)

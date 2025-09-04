@@ -168,29 +168,36 @@ func (s *TokenisationStore) GetPendingTokenBalanceTotalForMintAndOwner(mintHash 
 func (s *TokenisationStore) GetMyMintTokenBalances(address string, offset int, limit int) ([]TokenBalanceWithMint, error) {
 	rows, err := s.DB.Query(`
 		SELECT
-		    m.id,
-		    m.created_at,
-		    m.title,
-		    m.description,
-		    m.fraction_count,
-		    m.tags,
-		    m.metadata,
-		    m.hash,
-		    m.transaction_hash,
-		    m.requirements,
-		    m.lockup_options,
-		    m.feed_url,
-		    m.owner_address,
-		    m.public_key,
-		    m.contract_of_sale,
-		    tb.quantity AS balance_quantity,
-			tb.address as token_owner_address
-		FROM mints m
-		LEFT JOIN token_balances tb
-		    ON m.hash = tb.mint_hash
-		   AND tb.address = $1
-		LIMIT $2 OFFSET $3;
-	`, address, offset, limit)
+  m.id,
+  m.created_at,
+  m.title,
+  m.description,
+  m.fraction_count,
+  m.tags,
+  m.metadata,
+  m.hash,
+  m.transaction_hash,
+  m.requirements,
+  m.lockup_options,
+  m.feed_url,
+  m.owner_address,
+  m.public_key,
+  m.contract_of_sale,
+  COALESCE(tb.balance_quantity, 0) AS balance_quantity,
+  tb.address AS token_owner_address
+FROM mints m
+LEFT JOIN (
+  SELECT
+    mint_hash,
+    address,
+    SUM(quantity) AS balance_quantity
+  FROM token_balances
+  WHERE address = $1
+  GROUP BY mint_hash, address
+) tb
+  ON m.hash = tb.mint_hash
+LIMIT $2 OFFSET $3
+	`, address, limit, offset)
 
 	if err != nil {
 		return []TokenBalanceWithMint{}, err
