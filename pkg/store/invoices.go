@@ -18,6 +18,31 @@ func (s *TokenisationStore) ChooseInvoice() (Invoice, error) {
 	return invoice, nil
 }
 
+func (s *TokenisationStore) GetInvoicesForMe(offset int, limit int, myAddress string) ([]Invoice, error) {
+	rows, err := s.DB.Query("SELECT id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature, paid_at FROM invoices WHERE (buyer_address = $1 OR seller_address = $1) LIMIT $2 OFFSET $3", myAddress, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var invoices []Invoice
+
+	for rows.Next() {
+		var invoice Invoice
+		if err := rows.Scan(&invoice.Id, &invoice.Hash, &invoice.PaymentAddress, &invoice.BuyerAddress, &invoice.MintHash, &invoice.Quantity, &invoice.Price, &invoice.CreatedAt, &invoice.SellerAddress, &invoice.PublicKey, &invoice.Signature, &invoice.PaidAt); err != nil {
+			return nil, err
+		}
+
+		invoices = append(invoices, invoice)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return invoices, nil
+}
+
 func (s *TokenisationStore) GetInvoices(offset int, limit int, mintHash string, offererAddress string) ([]Invoice, error) {
 	rows, err := s.DB.Query("SELECT id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature, paid_at FROM invoices WHERE mint_hash = $1 AND (buyer_address = $2 OR seller_address = $2) LIMIT $3 OFFSET $4", mintHash, offererAddress, limit, offset)
 	if err != nil {

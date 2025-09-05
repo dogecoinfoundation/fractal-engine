@@ -9,6 +9,7 @@ import (
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"gotest.tools/assert"
 )
@@ -40,15 +41,12 @@ func TestMatchPaymentSuccess(t *testing.T) {
 
 	// Step 1: Create and match mint
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:          mintHash,
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		FractionCount: 100,
-		BlockHeight:   1,
-		TransactionHash: sql.NullString{
-			String: "mintTx",
-			Valid:  true,
-		},
+		Hash:            mintHash,
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		FractionCount:   100,
+		BlockHeight:     1,
+		TransactionHash: util.StrPtr("mintTx"),
 	})
 	assert.NilError(t, err)
 

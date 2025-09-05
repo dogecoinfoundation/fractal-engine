@@ -282,6 +282,8 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 }
 
 func GetTokenBalance(stackConfig *StackConfig, mintHash string) int {
+	log.Println("GetTokenBalance ", stackConfig.Address)
+
 	tokens, err := stackConfig.TokenisationClient.GetTokenBalance(stackConfig.Address, mintHash)
 	if err != nil {
 		panic(err)
@@ -291,6 +293,8 @@ func GetTokenBalance(stackConfig *StackConfig, mintHash string) int {
 	for _, token := range tokens {
 		balance += token.Quantity
 	}
+
+	log.Printf("GetTokenBalance %s : %d", stackConfig.Address, balance)
 
 	return balance
 }
@@ -348,16 +352,12 @@ func Invoice(stackConfig *StackConfig, buyerAddress string, mintHash string, qua
 		Price:          price,
 		SellerAddress:  stackConfig.Address,
 	}
-	mintPayloadBytes, err := json.Marshal(invoicePayload)
-	if err != nil {
-		panic(err)
-	}
 
 	invoiceRequest := rpc.CreateInvoiceRequest{
 		Payload: invoicePayload,
 	}
 
-	signature, err := doge.SignPayload(mintPayloadBytes, stackConfig.PrivKey)
+	signature, err := doge.SignPayload(invoicePayload, stackConfig.PrivKey, stackConfig.PubKey)
 	if err != nil {
 		panic(err)
 	}
@@ -392,10 +392,6 @@ func Mint(stackConfig *StackConfig) string {
 			},
 		},
 	}
-	mintPayloadBytes, err := json.Marshal(mintPayload)
-	if err != nil {
-		panic(err)
-	}
 
 	mintRequest := rpc.CreateMintRequest{
 		Payload:   mintPayload,
@@ -403,7 +399,7 @@ func Mint(stackConfig *StackConfig) string {
 		PublicKey: stackConfig.PubKey,
 	}
 
-	signature, err := doge.SignPayload(mintPayloadBytes, stackConfig.PrivKey)
+	signature, err := doge.SignPayload(mintPayload, stackConfig.PrivKey, stackConfig.PubKey)
 	if err != nil {
 		panic(err)
 	}

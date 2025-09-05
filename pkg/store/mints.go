@@ -74,7 +74,7 @@ func (s *TokenisationStore) GetMintsByPublicKey(offset int, limit int, publicKey
 }
 
 func (s *TokenisationStore) GetMintsByAddress(offset int, limit int, address string, includeUnconfirmed bool) ([]Mint, error) {
-	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key, contract_of_sale FROM mints WHERE owner_address = $1 and transaction_hash is not null LIMIT $2 OFFSET $3", address, limit, offset)
+	rows, err := s.DB.Query("SELECT id, created_at, title, description, fraction_count, tags, metadata, hash, transaction_hash, requirements, lockup_options, feed_url, owner_address, public_key, contract_of_sale FROM mints WHERE owner_address = $1 LIMIT $2 OFFSET $3", address, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +348,7 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 		Description:     unconfirmedMint.Description,
 		Tags:            unconfirmedMint.Tags,
 		Metadata:        unconfirmedMint.Metadata,
-		TransactionHash: sql.NullString{String: onchainTransaction.TxHash, Valid: true},
+		TransactionHash: &onchainTransaction.TxHash,
 		BlockHeight:     onchainTransaction.Height,
 		CreatedAt:       unconfirmedMint.CreatedAt,
 		Requirements:    unconfirmedMint.Requirements,

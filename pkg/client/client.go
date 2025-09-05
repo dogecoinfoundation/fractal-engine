@@ -25,12 +25,7 @@ func NewTokenisationClient(baseUrl string, privHex string, pubHex string) *Token
 }
 
 func (c *TokenisationClient) CreateInvoice(invoice *rpc.CreateInvoiceRequest) (rpc.CreateInvoiceResponse, error) {
-	payloadBytes, err := json.Marshal(invoice.Payload)
-	if err != nil {
-		return rpc.CreateInvoiceResponse{}, err
-	}
-
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	signature, err := doge.SignPayload(invoice.Payload, c.privHex, c.pubHex)
 	if err != nil {
 		return rpc.CreateInvoiceResponse{}, err
 	}
@@ -117,7 +112,7 @@ func (c *TokenisationClient) CreateBuyOffer(offer *rpc.CreateBuyOfferRequest) (r
 		return rpc.CreateOfferResponse{}, err
 	}
 
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	signature, err := doge.SignPayload(payloadBytes, c.privHex, c.pubHex)
 	if err != nil {
 		return rpc.CreateOfferResponse{}, err
 	}
@@ -161,7 +156,7 @@ func (c *TokenisationClient) DeleteBuyOffer(offer *rpc.DeleteBuyOfferRequest) (s
 		return "", err
 	}
 
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	signature, err := doge.SignPayload(payloadBytes, c.privHex, c.pubHex)
 	if err != nil {
 		return "", err
 	}
@@ -197,7 +192,7 @@ func (c *TokenisationClient) DeleteSellOffer(offer *rpc.DeleteSellOfferRequest) 
 		return "", err
 	}
 
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	signature, err := doge.SignPayload(payloadBytes, c.privHex, c.pubHex)
 	if err != nil {
 		return "", err
 	}
@@ -233,7 +228,7 @@ func (c *TokenisationClient) CreateSellOffer(offer *rpc.CreateSellOfferRequest) 
 		return rpc.CreateOfferResponse{}, err
 	}
 
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	signature, err := doge.SignPayload(payloadBytes, c.privHex, c.pubHex)
 	if err != nil {
 		return rpc.CreateOfferResponse{}, err
 	}

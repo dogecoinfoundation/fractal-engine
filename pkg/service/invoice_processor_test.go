@@ -1,7 +1,6 @@
 package service_test
 
 import (
-	"database/sql"
 	"testing"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"gotest.tools/assert"
 )
@@ -43,15 +43,12 @@ func TestInvoiceProcessorProcessSuccess(t *testing.T) {
 
 	// Create and match mint to establish token balance
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:          mintHash,
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		FractionCount: 100,
-		BlockHeight:   1,
-		TransactionHash: sql.NullString{
-			String: "mintTx",
-			Valid:  true,
-		},
+		Hash:            mintHash,
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		FractionCount:   100,
+		BlockHeight:     1,
+		TransactionHash: util.StrPtr("mintTx"),
 	})
 	assert.NilError(t, err)
 
@@ -189,15 +186,12 @@ func TestInvoiceProcessorProcessInsufficientTokenBalance(t *testing.T) {
 
 	// Create and match mint to establish small token balance (100 tokens)
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:          mintHash,
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		FractionCount: 100,
-		BlockHeight:   1,
-		TransactionHash: sql.NullString{
-			String: "mintTx",
-			Valid:  true,
-		},
+		Hash:            mintHash,
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		FractionCount:   100,
+		BlockHeight:     1,
+		TransactionHash: util.StrPtr("mintTx"),
 	})
 	assert.NilError(t, err)
 
@@ -264,15 +258,12 @@ func TestInvoiceProcessorProcessExistingPendingBalance(t *testing.T) {
 
 	// Create and match mint
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:          mintHash,
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		FractionCount: 100,
-		BlockHeight:   1,
-		TransactionHash: sql.NullString{
-			String: "mintTx",
-			Valid:  true,
-		},
+		Hash:            mintHash,
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		FractionCount:   100,
+		BlockHeight:     1,
+		TransactionHash: util.StrPtr("mintTx"),
 	})
 	assert.NilError(t, err)
 
@@ -341,15 +332,12 @@ func TestInvoiceProcessorProcessPartialTokenBalance(t *testing.T) {
 
 	// Create and match mint (100 tokens)
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:          mintHash,
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		FractionCount: 100,
-		BlockHeight:   1,
-		TransactionHash: sql.NullString{
-			String: "mintTx",
-			Valid:  true,
-		},
+		Hash:            mintHash,
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		FractionCount:   100,
+		BlockHeight:     1,
+		TransactionHash: util.StrPtr("mintTx"),
 	})
 	assert.NilError(t, err)
 
@@ -425,15 +413,12 @@ func TestInvoiceProcessorEnsurePendingTokenBalanceSuccess(t *testing.T) {
 
 	// Create and match mint
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:          mintHash,
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		FractionCount: 100,
-		BlockHeight:   1,
-		TransactionHash: sql.NullString{
-			String: "mintTx",
-			Valid:  true,
-		},
+		Hash:            mintHash,
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		FractionCount:   100,
+		BlockHeight:     1,
+		TransactionHash: util.StrPtr("mintTx"),
 	})
 	assert.NilError(t, err)
 

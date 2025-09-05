@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"dogecoin.org/fractal-engine/pkg/validation"
 	"github.com/gorilla/mux"
@@ -96,7 +98,7 @@ func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pageStr := validation.SanitizeQueryParam(r.URL.Query().Get("page"))
-	page := 1
+	page := 0
 
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 && p <= 1000 { // Reasonable page limit
@@ -116,7 +118,7 @@ func (mr *MintRoutes) getMints(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	start := (page - 1) * limit
+	start := page * limit
 	end := start + limit
 
 	var mints []store.Mint
@@ -238,8 +240,12 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	envelope := protocol.NewMintTransactionEnvelope(newMintWithoutId.Hash, protocol.ACTION_MINT)
+	encodedTransactionBody := envelope.Serialize()
+
 	response := CreateMintResponse{
-		Hash: newMintWithoutId.Hash,
+		Hash:                   newMintWithoutId.Hash,
+		EncodedTransactionBody: hex.EncodeToString(encodedTransactionBody),
 	}
 
 	respondJSON(w, http.StatusCreated, response)
