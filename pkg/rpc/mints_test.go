@@ -1,7 +1,6 @@
 package rpc_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"dogecoin.org/fractal-engine/pkg/config"
@@ -40,12 +39,7 @@ func TestMints(t *testing.T) {
 		PublicKey: pubHex,
 	}
 
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		t.Fatalf("Failed to marshal payload: %v", err)
-	}
-
-	mintRequest.Signature, err = doge.SignPayload(payloadBytes, privHex)
+	mintRequest.Signature, err = doge.SignPayload(payload, privHex, pubHex)
 	if err != nil {
 		t.Fatalf("Failed to sign payload: %v", err)
 	}
@@ -69,7 +63,7 @@ func TestMints(t *testing.T) {
 	assert.DeepEqual(t, mints[0].Metadata, mintRequest.Payload.Metadata)
 	assert.DeepEqual(t, mints[0].Requirements, mintRequest.Payload.Requirements)
 	assert.DeepEqual(t, mints[0].LockupOptions, mintRequest.Payload.LockupOptions)
-	assert.Equal(t, mints[0].FeedURL, mintRequest.Payload.FeedURL)
+	assert.Equal(t, *mints[0].FeedURL, *mintRequest.Payload.FeedURL)
 
 	assert.Equal(t, len(dogenetClient.mints), 1)
 	assert.Equal(t, dogenetClient.mints[0].Hash, mintResponse.Hash)
@@ -80,5 +74,5 @@ func TestMints(t *testing.T) {
 	assert.DeepEqual(t, dogenetClient.mints[0].Metadata, mintRequest.Payload.Metadata)
 	assert.DeepEqual(t, dogenetClient.mints[0].Requirements, mintRequest.Payload.Requirements)
 	assert.DeepEqual(t, dogenetClient.mints[0].LockupOptions, mintRequest.Payload.LockupOptions)
-	assert.Equal(t, dogenetClient.mints[0].FeedURL, mintRequest.Payload.FeedURL)
+	assert.Equal(t, *dogenetClient.mints[0].FeedURL, *mintRequest.Payload.FeedURL)
 }

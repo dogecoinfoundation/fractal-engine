@@ -43,7 +43,7 @@ func TestSaveMint(t *testing.T) {
 	assert.Equal(t, savedMint.Title, "Test Mint")
 	assert.Equal(t, savedMint.FractionCount, 1000)
 	assert.Equal(t, savedMint.Description, "Test Description")
-	assert.Equal(t, savedMint.FeedURL, "https://example.com/feed")
+	assert.Equal(t, *savedMint.FeedURL, "https://example.com/feed")
 	assert.Equal(t, savedMint.PublicKey, "publicKey123")
 	assert.Equal(t, savedMint.OwnerAddress, "ownerAddress123")
 }
@@ -387,7 +387,7 @@ func TestMatchUnconfirmedMint(t *testing.T) {
 	confirmedMint, err := db.GetMintByHash("unconfMatchHash")
 	assert.NilError(t, err)
 	assert.Equal(t, confirmedMint.Hash, "unconfMatchHash")
-	assert.Equal(t, confirmedMint.TransactionHash, "confirmTxHash")
+	assert.Equal(t, *confirmedMint.TransactionHash, "confirmTxHash")
 	// Note: BlockHeight is not returned by GetMintByHash query
 	assert.Equal(t, confirmedMint.OwnerAddress, "confirmedAddr")
 
