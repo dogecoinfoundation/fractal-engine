@@ -64,7 +64,6 @@ func TestDogenet(t *testing.T) {
 		},
 	}
 	mintMessage := protocol.MintMessage{
-		Id:              record.Id,
 		Title:           record.Title,
 		Description:     record.Description,
 		FractionCount:   int32(record.FractionCount),

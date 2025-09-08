@@ -252,7 +252,9 @@ func (c *DogeNetClient) Run() {
 	go c.gossipRandomInvoices()
 
 	for !c.Stopping {
+		fmt.Println("======================================== READ MESSAGE [BEFORE]")
 		msg, err := dnet.ReadMessage(reader)
+		fmt.Println("======================================== READ MESSAGE [AFTER]")
 		if err != nil {
 			log.Printf("[FE] cannot receive from peer: %v", err)
 			c.sock.Close()

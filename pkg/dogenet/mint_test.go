@@ -60,7 +60,6 @@ func TestGossipMint(t *testing.T) {
 	// Create test mint record
 	testTime := time.Now()
 	mint := store.Mint{
-		Id: "mint123",
 		MintWithoutID: store.MintWithoutID{
 			Hash:          "hash123",
 			Title:         "Test Mint",
@@ -106,7 +105,6 @@ func TestGossipMint(t *testing.T) {
 
 	// Verify the mint message payload
 	mintMsg := envelope.Payload
-	assert.Equal(t, "mint123", mintMsg.Id)
 	assert.Equal(t, "hash123", mintMsg.Hash)
 	assert.Equal(t, "Test Mint", mintMsg.Title)
 	assert.Equal(t, "Test Description", mintMsg.Description)
@@ -210,7 +208,6 @@ func TestGossipMintWithNilMetadata(t *testing.T) {
 	assert.NilError(t, err)
 
 	mintMsg := envelope.Payload
-	assert.Equal(t, "mint456", mintMsg.Id)
 	assert.Equal(t, "hash456", mintMsg.Hash)
 
 	// Verify nil metadata is handled gracefully
@@ -256,7 +253,6 @@ func TestRecvMintViaStartWithConn(t *testing.T) {
 	// Create test mint message to send TO the client
 	testTime := time.Now()
 	mintMessage := &protocol.MintMessage{
-		Id:            "mint123",
 		Hash:          "hash123",
 		Title:         "Test Mint",
 		Description:   "Test Description",
@@ -409,7 +405,6 @@ func TestRecvMintWrongActionType(t *testing.T) {
 
 	// Create mint message with wrong action type
 	mintMessage := &protocol.MintMessage{
-		Id:            "mint123",
 		Hash:          "hash123",
 		Title:         "Test Mint",
 		FractionCount: 100,

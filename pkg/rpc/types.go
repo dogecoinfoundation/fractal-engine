@@ -95,6 +95,10 @@ type CreateMintRequestPayload struct {
 	ContractOfSale store.StringInterfaceMap `json:"contract_of_sale"`
 }
 
+func (payload *CreateMintRequestPayload) ToSignaturePayload() {
+
+}
+
 func (req *CreateMintRequest) Validate() error {
 	if err := validation.ValidateAddress(req.Address); err != nil {
 		return fmt.Errorf("invalid address: %w", err)

@@ -80,7 +80,7 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		DogeNetHost:        "0.0.0.0",
 		IndexerURL:         "http://0.0.0.0:" + strconv.Itoa(basePortFirst+50),
 		DogeNetHandlerPort: basePort + 70,
-		DogeNetBindPort:    basePort + 77,
+		DogeNetBindPort:    basePort + 73,
 		Address:            address,
 		PrivKey:            privHex,
 		PubKey:             pubHex,
@@ -399,6 +399,13 @@ func Mint(stackConfig *StackConfig) string {
 		PublicKey: stackConfig.PubKey,
 	}
 
+	mintPayloadStr, err := json.Marshal(mintPayload)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(mintPayloadStr))
+
 	signature, err := doge.SignPayload(mintPayload, stackConfig.PrivKey, stackConfig.PubKey)
 	if err != nil {
 		panic(err)
@@ -466,11 +473,6 @@ func makeStackConfigsAndPeer(stackCount int) []*StackConfig {
 
 		time.Sleep(1 * time.Minute)
 
-		// ignore error incase of re-add
-		// err = stackA.DogeClient.AddPeer(stackB.DogeHost + ":" + strconv.Itoa(stackB.DogeP2PPort))
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
 	}
 
 	return stacks

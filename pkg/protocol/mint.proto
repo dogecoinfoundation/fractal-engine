@@ -16,22 +16,23 @@ message MintMessageEnvelope {
     int32 type = 1;
     int32 version = 2;
     MintMessage payload = 3;
+    string public_key = 4;
+    string signature = 5;
 }
 
 // Payload of a mint
 message MintMessage {
-    string id = 1;
-    string title = 2;
-    string description = 3;
-    int32 fraction_count = 4;
-    repeated string tags = 5;
-    string transaction_hash = 6;
-    google.protobuf.Struct metadata = 7;
-    string hash = 8;
-    google.protobuf.Struct requirements = 9;
-    google.protobuf.Struct lockup_options = 10; 
-    string feed_url = 11;
-    google.protobuf.Timestamp created_at = 12;
-    int32 block_height = 13;
+    string title = 1;
+    string description = 2;
+    int32 fraction_count = 3;
+    repeated string tags = 4;
+    string transaction_hash = 5;
+    google.protobuf.Struct metadata = 6;
+    string hash = 7;
+    google.protobuf.Struct requirements = 8;
+    google.protobuf.Struct lockup_options = 9;
+    string feed_url = 10;
+    google.protobuf.Timestamp created_at = 11;
+    int32 block_height = 12;
+    google.protobuf.Struct contract_of_sale = 13;
 }
-

@@ -1,7 +1,6 @@
 package dogenet
 
 import (
-	"encoding/json"
 	"log"
 
 	"code.dogecoin.org/gossip/dnet"
@@ -76,13 +75,7 @@ func (c *DogeNetClient) recvInvoice(msg dnet.Message) {
 		SellerAddress:  invoice.Payload.SellerAddress,
 	}
 
-	invoiceSignaturePayloadBytes, err := json.Marshal(invoiceSignaturePayload)
-	if err != nil {
-		log.Println("Error marshalling invoice:", err)
-		return
-	}
-
-	err = doge.ValidateSignature(invoiceSignaturePayloadBytes, envelope.PublicKey, envelope.Signature)
+	err = doge.ValidateSignature(invoiceSignaturePayload, envelope.PublicKey, envelope.Signature)
 	if err != nil {
 		log.Println("Error validating signature:", err)
 		return
