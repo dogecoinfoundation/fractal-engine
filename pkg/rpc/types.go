@@ -107,12 +107,6 @@ func (req *CreateMintRequest) Validate() error {
 		return err
 	}
 
-	// Validate payload using PrepareMintRequest validation
-	prepareReq := PrepareMintRequest{Payload: req.Payload}
-	if err := prepareReq.Validate(); err != nil {
-		return err
-	}
-
 	return nil
 }
 

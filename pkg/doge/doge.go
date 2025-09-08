@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -266,43 +267,45 @@ func ValidateSignature(payload interface{}, publicKey string, signature string) 
 	return nil
 }
 
+// add this helper
 func dogeMessageHash(msg []byte) [32]byte {
-	// "\x19Dogecoin Signed Message:\n" + varint(len(msg)) + msg, then double-SHA256
-	prefix := []byte("\x19Dogecoin Signed Message:\n")
-	var buf bytes.Buffer
-	buf.Write(prefix)
-	// varint (little-endian payload after the tag)
-	n := uint64(len(msg))
-	switch {
-	case n < 0xfd:
-		buf.WriteByte(byte(n))
-	case n <= 0xffff:
-		buf.Write([]byte{0xfd, byte(n), byte(n >> 8)})
-	case n <= 0xffffffff:
-		buf.Write([]byte{0xfe, byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24)})
-	default:
-		buf.Write([]byte{
-			0xff,
-			byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24),
-			byte(n >> 32), byte(n >> 40), byte(n >> 48), byte(n >> 56),
-		})
-	}
-	buf.Write(msg)
+	const prefix = "Dogecoin Signed Message:\n"
 
-	h1 := sha256.Sum256(buf.Bytes())
+	var b bytes.Buffer
+	writeVarInt := func(n uint64) {
+		switch {
+		case n < 0xfd:
+			b.WriteByte(byte(n))
+		case n <= 0xffff:
+			b.WriteByte(0xfd)
+			_ = binary.Write(&b, binary.LittleEndian, uint16(n))
+		case n <= 0xffffffff:
+			b.WriteByte(0xfe)
+			_ = binary.Write(&b, binary.LittleEndian, uint32(n))
+		default:
+			b.WriteByte(0xff)
+			_ = binary.Write(&b, binary.LittleEndian, n)
+		}
+	}
+
+	writeVarInt(uint64(len(prefix)))
+	b.WriteString(prefix)
+	writeVarInt(uint64(len(msg)))
+	b.Write(msg)
+
+	h1 := sha256.Sum256(b.Bytes())
 	return sha256.Sum256(h1[:])
 }
 
-// VerifyDogecoinCompactSigFromHexHash expects:
-//   - hexHash: hex-encoded 32-byte digest
-//   - sigB64:  base64 of a 65-byte Bitcoin-style compact signature
-//   - pubHex:  hex pubkey (02/03.. compressed or 04.. uncompressed)
+// VerifyDogecoinCompactSigFromHexHash verifies a compact (65-byte) Bitcoin/Dogecoin-style signature.
+// It supports three common cases, in this order:
+//
+//	(A) Frontend used signMessage(ASCII(hexHash))            -> verify dogeMessageHash over ASCII
+//	(B) Frontend actually signed the raw 32-byte digest      -> verify raw 32-byte hash (your original behavior)
+//	(C) Frontend used signMessageHex(hexHash) (treat hex as bytes before prefixing)
+//	    -> verify dogeMessageHash over the 32 raw bytes
 func VerifyDogecoinCompactSigFromHexHash(hexHash, sigB64, pubHex string) error {
-	// 1) Decode inputs
-	h, err := hex.DecodeString(strings.TrimSpace(hexHash))
-	if err != nil || len(h) != 32 {
-		return fmt.Errorf("bad hash: %v (len=%d)", err, len(h))
-	}
+	// Decode signature
 	sig, err := base64.StdEncoding.DecodeString(strings.TrimSpace(sigB64))
 	if err != nil {
 		return fmt.Errorf("bad signature base64: %v", err)
@@ -310,6 +313,8 @@ func VerifyDogecoinCompactSigFromHexHash(hexHash, sigB64, pubHex string) error {
 	if len(sig) != 65 {
 		return fmt.Errorf("bad compact sig len: %d (want 65)", len(sig))
 	}
+
+	// Decode expected pubkey (compressed 02/03.. or uncompressed 04..)
 	expBytes, err := hex.DecodeString(strings.TrimSpace(pubHex))
 	if err != nil {
 		return fmt.Errorf("bad pubHex: %v", err)
@@ -319,31 +324,43 @@ func VerifyDogecoinCompactSigFromHexHash(hexHash, sigB64, pubHex string) error {
 		return fmt.Errorf("parse pubHex: %v", err)
 	}
 
-	// 2) Inspect header (Bitcoin-style: 27..34)
+	// Header sanity (Bitcoin/Dogecoin: 27..34)
 	hdr := sig[0]
 	if hdr < 27 || hdr > 34 {
 		return fmt.Errorf("unexpected compact header: %d", hdr)
 	}
-
 	compressed := ((hdr - 27) & 4) != 0
-
-	// Optional sanity: header’s compressed bit should match pubHex form
-	isExpCompressed := expBytes[0] == 0x02 || expBytes[0] == 0x03
+	isExpCompressed := expBytes[0] == 0x02 || expBytes[0] == 0x03 // false for 0x04
 	if compressed != isExpCompressed {
 		return fmt.Errorf("compressed-bit mismatch: sig says %v, pubHex compressed=%v", compressed, isExpCompressed)
 	}
 
-	// 3) Recover and compare the EC point (format-agnostic)
-	recPub, _, err := ecdsa.RecoverCompact(sig, h)
-	if err != nil {
-		return fmt.Errorf("recover failed: %v", err)
+	// Helper to compare recovered pubkey with expected (format-agnostic)
+	eq := func(p *secp.PublicKey) bool {
+		return bytes.Equal(p.SerializeCompressed(), wantPub.SerializeCompressed())
 	}
 
-	if !bytes.Equal(recPub.SerializeCompressed(), wantPub.SerializeCompressed()) {
-		return fmt.Errorf("recovered pubkey mismatch; got %x want %x",
-			recPub.SerializeCompressed(), wantPub.SerializeCompressed())
+	// ---- (A) signMessage over ASCII(hexHash)
+	msgASCII := []byte(strings.TrimSpace(hexHash))
+	mh := dogeMessageHash(msgASCII)
+	if recPub, _, err := ecdsa.RecoverCompact(sig, mh[:]); err == nil && eq(recPub) {
+		return nil
 	}
-	return nil
+
+	// ---- (B) raw 32-byte digest path (your original behavior)
+	if raw, err := hex.DecodeString(strings.TrimSpace(hexHash)); err == nil && len(raw) == 32 {
+		if recPub, _, err := ecdsa.RecoverCompact(sig, raw); err == nil && eq(recPub) {
+			return nil
+		}
+
+		// ---- (C) signMessageHex-style: prefix+double-hash over the *bytes* that hexHash encodes
+		mhBytes := dogeMessageHash(raw)
+		if recPub, _, err := ecdsa.RecoverCompact(sig, mhBytes[:]); err == nil && eq(recPub) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("recovered pubkey mismatch after message-hash and raw-hash attempts")
 }
 
 func PublicKeyToDogeAddress(pubKeyHex string, prefix byte) (string, error) {
