@@ -9,7 +9,6 @@ import (
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"gotest.tools/assert"
 )
@@ -48,7 +47,7 @@ func TestInvoiceProcessorProcessSuccess(t *testing.T) {
 		Description:     "Test Description",
 		FractionCount:   100,
 		BlockHeight:     1,
-		TransactionHash: util.StrPtr("mintTx"),
+		TransactionHash: "mintTx",
 	})
 	assert.NilError(t, err)
 
@@ -191,7 +190,7 @@ func TestInvoiceProcessorProcessInsufficientTokenBalance(t *testing.T) {
 		Description:     "Test Description",
 		FractionCount:   100,
 		BlockHeight:     1,
-		TransactionHash: util.StrPtr("mintTx"),
+		TransactionHash: "mintTx",
 	})
 	assert.NilError(t, err)
 
@@ -263,7 +262,7 @@ func TestInvoiceProcessorProcessExistingPendingBalance(t *testing.T) {
 		Description:     "Test Description",
 		FractionCount:   100,
 		BlockHeight:     1,
-		TransactionHash: util.StrPtr("mintTx"),
+		TransactionHash: "mintTx",
 	})
 	assert.NilError(t, err)
 
@@ -337,7 +336,7 @@ func TestInvoiceProcessorProcessPartialTokenBalance(t *testing.T) {
 		Description:     "Test Description",
 		FractionCount:   100,
 		BlockHeight:     1,
-		TransactionHash: util.StrPtr("mintTx"),
+		TransactionHash: "mintTx",
 	})
 	assert.NilError(t, err)
 
@@ -418,7 +417,7 @@ func TestInvoiceProcessorEnsurePendingTokenBalanceSuccess(t *testing.T) {
 		Description:     "Test Description",
 		FractionCount:   100,
 		BlockHeight:     1,
-		TransactionHash: util.StrPtr("mintTx"),
+		TransactionHash: "mintTx",
 	})
 	assert.NilError(t, err)
 

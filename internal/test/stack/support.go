@@ -21,7 +21,6 @@ import (
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"dogecoin.org/fractal-engine/pkg/util"
 	"github.com/dogeorg/doge/koinu"
 )
 
@@ -389,7 +388,7 @@ func Mint(stackConfig *StackConfig) string {
 		Description:    "Fast Car",
 		ContractOfSale: "contract of sale",
 		Tags:           []string{"car"},
-		FeedURL:        util.StrPtr("https://example.com/feed"),
+		FeedURL:        "https://example.com/feed",
 		OwnerAddress:   stackConfig.Address,
 	}
 

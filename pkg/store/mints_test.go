@@ -6,7 +6,6 @@ import (
 	"dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"gotest.tools/assert"
 )
@@ -21,11 +20,11 @@ func TestSaveMint(t *testing.T) {
 		Description:     "Test Description",
 		Tags:            store.StringArray{"tag1", "tag2"},
 		Metadata:        store.StringInterfaceMap{"key": "value"},
-		TransactionHash: util.StrPtr("txHash123"),
+		TransactionHash: "txHash123",
 		BlockHeight:     12345,
 		Requirements:    store.StringInterfaceMap{"req": "value"},
 		LockupOptions:   store.StringInterfaceMap{"lockup": "option"},
-		FeedURL:         util.StrPtr("https://example.com/feed"),
+		FeedURL:         "https://example.com/feed",
 		PublicKey:       "publicKey123",
 		OwnerAddress:    "ownerAddress123",
 		Signature:       "signature123",
@@ -43,7 +42,7 @@ func TestSaveMint(t *testing.T) {
 	assert.Equal(t, savedMint.Title, "Test Mint")
 	assert.Equal(t, savedMint.FractionCount, 1000)
 	assert.Equal(t, savedMint.Description, "Test Description")
-	assert.Equal(t, *savedMint.FeedURL, "https://example.com/feed")
+	assert.Equal(t, savedMint.FeedURL, "https://example.com/feed")
 	assert.Equal(t, savedMint.PublicKey, "publicKey123")
 	assert.Equal(t, savedMint.OwnerAddress, "ownerAddress123")
 }
@@ -129,7 +128,7 @@ func TestGetMintsByPublicKey(t *testing.T) {
 		Requirements:    store.StringInterfaceMap{},
 		LockupOptions:   store.StringInterfaceMap{},
 		PublicKey:       "pubKey1",
-		TransactionHash: util.StrPtr("tx1"),
+		TransactionHash: "tx1",
 	}
 	_, err := db.SaveMint(mint1, "owner1")
 	assert.NilError(t, err)
@@ -144,7 +143,7 @@ func TestGetMintsByPublicKey(t *testing.T) {
 		Requirements:    store.StringInterfaceMap{},
 		LockupOptions:   store.StringInterfaceMap{},
 		PublicKey:       "pubKey1",
-		TransactionHash: util.StrPtr("tx2"),
+		TransactionHash: "tx2",
 	}
 	_, err = db.SaveMint(mint2, "owner2")
 	assert.NilError(t, err)
@@ -159,7 +158,7 @@ func TestGetMintsByPublicKey(t *testing.T) {
 		Requirements:    store.StringInterfaceMap{},
 		LockupOptions:   store.StringInterfaceMap{},
 		PublicKey:       "pubKey2",
-		TransactionHash: util.StrPtr("tx3"),
+		TransactionHash: "tx3",
 	}
 	_, err = db.SaveMint(mint3, "owner3")
 	assert.NilError(t, err)
@@ -195,10 +194,10 @@ func TestSaveUnconfirmedMint(t *testing.T) {
 		Metadata:        store.StringInterfaceMap{"status": "unconfirmed"},
 		Requirements:    store.StringInterfaceMap{},
 		LockupOptions:   store.StringInterfaceMap{},
-		FeedURL:         util.StrPtr("https://example.com/unconfirmed"),
+		FeedURL:         "https://example.com/unconfirmed",
 		PublicKey:       "unconfirmedPubKey",
 		OwnerAddress:    "unconfirmedOwner",
-		TransactionHash: nil,
+		TransactionHash: "",
 	}
 
 	id, err := db.SaveUnconfirmedMint(mint)
@@ -288,7 +287,7 @@ func TestMatchMint(t *testing.T) {
 		Requirements:    store.StringInterfaceMap{},
 		LockupOptions:   store.StringInterfaceMap{},
 		PublicKey:       "pubKey",
-		TransactionHash: util.StrPtr("matchTxHash"),
+		TransactionHash: "matchTxHash",
 		BlockHeight:     1000,
 	}
 	_, err := db.SaveMint(mint, "owner")
@@ -345,7 +344,7 @@ func TestMatchUnconfirmedMint(t *testing.T) {
 		Metadata:      store.StringInterfaceMap{"key": "value"},
 		Requirements:  store.StringInterfaceMap{"req": "test"},
 		LockupOptions: store.StringInterfaceMap{"lockup": "test"},
-		FeedURL:       util.StrPtr("https://example.com"),
+		FeedURL:       "https://example.com",
 		PublicKey:     "pubKeyMatch",
 	}
 	_, err := db.SaveUnconfirmedMint(unconfirmedMint)
@@ -387,7 +386,7 @@ func TestMatchUnconfirmedMint(t *testing.T) {
 	confirmedMint, err := db.GetMintByHash("unconfMatchHash")
 	assert.NilError(t, err)
 	assert.Equal(t, confirmedMint.Hash, "unconfMatchHash")
-	assert.Equal(t, *confirmedMint.TransactionHash, "confirmTxHash")
+	assert.Equal(t, confirmedMint.TransactionHash, "confirmTxHash")
 	// Note: BlockHeight is not returned by GetMintByHash query
 	assert.Equal(t, confirmedMint.OwnerAddress, "confirmedAddr")
 
@@ -467,7 +466,7 @@ func TestMintWithComplexMetadata(t *testing.T) {
 			"duration": float64(86400),
 			"penalty":  float64(10),
 		},
-		FeedURL:   util.StrPtr("https://example.com/complex"),
+		FeedURL:   "https://example.com/complex",
 		PublicKey: "complexPubKey",
 	}
 
@@ -499,7 +498,7 @@ func TestGetMintsByPublicKeyWithUnconfirmed(t *testing.T) {
 		Requirements:    store.StringInterfaceMap{},
 		LockupOptions:   store.StringInterfaceMap{},
 		PublicKey:       "testPubKey",
-		TransactionHash: util.StrPtr("txHash"),
+		TransactionHash: "txHash",
 	}
 	_, err := db.SaveMint(confirmedMint, "owner")
 	assert.NilError(t, err)

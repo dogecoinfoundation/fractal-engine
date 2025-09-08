@@ -15,7 +15,6 @@ import (
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gotest.tools/assert"
@@ -68,9 +67,9 @@ func TestDogenet(t *testing.T) {
 		Description:     record.Description,
 		FractionCount:   int32(record.FractionCount),
 		Tags:            record.Tags,
-		TransactionHash: util.PtrToStr(record.TransactionHash),
+		TransactionHash: record.TransactionHash,
 		Hash:            record.Hash,
-		FeedUrl:         util.PtrToStr(record.FeedURL),
+		FeedUrl:         record.FeedURL,
 		CreatedAt:       timestamppb.New(record.CreatedAt),
 	}
 

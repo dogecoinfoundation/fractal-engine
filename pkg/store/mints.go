@@ -348,7 +348,7 @@ func (s *TokenisationStore) MatchUnconfirmedMint(onchainTransaction OnChainTrans
 		Description:     unconfirmedMint.Description,
 		Tags:            unconfirmedMint.Tags,
 		Metadata:        unconfirmedMint.Metadata,
-		TransactionHash: &onchainTransaction.TxHash,
+		TransactionHash: onchainTransaction.TxHash,
 		BlockHeight:     onchainTransaction.Height,
 		CreatedAt:       unconfirmedMint.CreatedAt,
 		Requirements:    unconfirmedMint.Requirements,

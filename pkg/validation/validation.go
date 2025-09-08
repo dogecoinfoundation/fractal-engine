@@ -154,17 +154,17 @@ func ValidateDescription(description string) error {
 }
 
 // ValidateFeedURL validates feed URL
-func ValidateFeedURL(feedURL *string) error {
-	if feedURL == nil {
+func ValidateFeedURL(feedURL string) error {
+	if feedURL == "" {
 		return nil
 	}
 
-	if err := ValidateStringLength("feed_url", *feedURL, MaxFeedURLLength); err != nil {
+	if err := ValidateStringLength("feed_url", feedURL, MaxFeedURLLength); err != nil {
 		return err
 	}
 
 	// Basic URL format check
-	if !strings.HasPrefix(*feedURL, "http://") && !strings.HasPrefix(*feedURL, "https://") {
+	if !strings.HasPrefix(feedURL, "http://") && !strings.HasPrefix(feedURL, "https://") {
 		return fmt.Errorf("feed_url must be a valid HTTP/HTTPS URL")
 	}
 

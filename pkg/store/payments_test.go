@@ -9,7 +9,6 @@ import (
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"gotest.tools/assert"
 )
@@ -46,7 +45,7 @@ func TestMatchPaymentSuccess(t *testing.T) {
 		Description:     "Test Description",
 		FractionCount:   100,
 		BlockHeight:     1,
-		TransactionHash: util.StrPtr("mintTx"),
+		TransactionHash: "mintTx",
 	})
 	assert.NilError(t, err)
 

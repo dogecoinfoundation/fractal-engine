@@ -9,7 +9,6 @@ import (
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -46,7 +45,7 @@ func TestProcessMintTransactionMatched(t *testing.T) {
 		Description:     "Test Description",
 		FractionCount:   100,
 		BlockHeight:     1,
-		TransactionHash: util.StrPtr("txHash001"),
+		TransactionHash: "txHash001",
 	})
 	if err != nil {
 		t.Fatalf("Failed to save unconfirmed mint: %v", err)
@@ -141,7 +140,7 @@ func TestProcessPaymentTransaction(t *testing.T) {
 		Description:     "Test Description",
 		FractionCount:   100,
 		BlockHeight:     1,
-		TransactionHash: util.StrPtr("txMint"),
+		TransactionHash: "txMint",
 	})
 	if err != nil {
 		t.Fatalf("Failed to save unconfirmed mint: %v", err)
@@ -238,7 +237,7 @@ func TestProcessInvoiceTransaction(t *testing.T) {
 		Description:     "Test Description",
 		FractionCount:   100,
 		BlockHeight:     1,
-		TransactionHash: util.StrPtr("txMint"),
+		TransactionHash: "txMint",
 	})
 	if err != nil {
 		t.Fatalf("Failed to save unconfirmed mint: %v", err)

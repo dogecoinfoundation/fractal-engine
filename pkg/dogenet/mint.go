@@ -7,29 +7,24 @@ import (
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
-	"dogecoin.org/fractal-engine/pkg/util"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (c *DogeNetClient) GossipMint(record store.Mint) error {
-	feedUrl := ""
-	if record.FeedURL != nil {
-		feedUrl = *record.FeedURL
-	}
 
 	mintMessage := protocol.MintMessage{
 		Title:           record.Title,
 		Description:     record.Description,
 		FractionCount:   int32(record.FractionCount),
 		Tags:            record.Tags,
-		TransactionHash: util.PtrToStr(record.TransactionHash),
+		TransactionHash: record.TransactionHash,
 		Metadata:        &structpb.Struct{Fields: convertToStructPBMap(record.Metadata)},
 		Hash:            record.Hash,
 		Requirements:    &structpb.Struct{Fields: convertToStructPBMap(record.Requirements)},
 		LockupOptions:   &structpb.Struct{Fields: convertToStructPBMap(record.LockupOptions)},
-		FeedUrl:         feedUrl,
+		FeedUrl:         record.FeedURL,
 		CreatedAt:       timestamppb.New(record.CreatedAt),
 		ContractOfSale:  record.ContractOfSale,
 		OwnerAddress:    record.OwnerAddress,
@@ -82,13 +77,13 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 		Description:     mintMessage.Description,
 		Tags:            mintMessage.Tags,
 		Metadata:        mintMessage.Metadata.AsMap(),
-		TransactionHash: util.StrPtr(mintMessage.TransactionHash),
+		TransactionHash: mintMessage.TransactionHash,
 		CreatedAt:       mintMessage.CreatedAt.AsTime(),
 		Requirements:    mintMessage.Requirements.AsMap(),
 		LockupOptions:   mintMessage.LockupOptions.AsMap(),
 		PublicKey:       envelope.PublicKey,
 		Signature:       envelope.Signature,
-		FeedURL:         util.StrPtr(mintMessage.FeedUrl),
+		FeedURL:         mintMessage.FeedUrl,
 		ContractOfSale:  mintMessage.ContractOfSale,
 		OwnerAddress:    mintMessage.OwnerAddress,
 	}
@@ -101,7 +96,7 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 		Metadata:       &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Metadata)},
 		Requirements:   &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Requirements)},
 		LockupOptions:  &structpb.Struct{Fields: convertToStructPBMap(mintRecord.LockupOptions)},
-		FeedUrl:        util.PtrToStr(mintRecord.FeedURL),
+		FeedUrl:        mintRecord.FeedURL,
 		ContractOfSale: mintRecord.ContractOfSale,
 		OwnerAddress:   mintRecord.OwnerAddress,
 	}

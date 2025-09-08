@@ -89,7 +89,7 @@ type CreateMintRequestPayload struct {
 	Metadata       store.StringInterfaceMap `json:"metadata,omitempty"`
 	Requirements   store.StringInterfaceMap `json:"requirements,omitempty"`
 	LockupOptions  store.StringInterfaceMap `json:"lockup_options,omitempty"`
-	FeedURL        *string                  `json:"feed_url,omitempty"`
+	FeedURL        string                   `json:"feed_url,omitempty"`
 	ContractOfSale string                   `json:"contract_of_sale,omitempty"`
 	OwnerAddress   string                   `json:"owner_address"`
 }

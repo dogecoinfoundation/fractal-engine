@@ -6,7 +6,6 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/rpc"
-	"dogecoin.org/fractal-engine/pkg/util"
 	"gotest.tools/assert"
 )
 
@@ -30,7 +29,7 @@ func TestMints(t *testing.T) {
 		},
 		Requirements:  map[string]interface{}{},
 		LockupOptions: map[string]interface{}{},
-		FeedURL:       util.StrPtr("https://test.com"),
+		FeedURL:       "https://test.com",
 		OwnerAddress:  address,
 	}
 
@@ -66,7 +65,7 @@ func TestMints(t *testing.T) {
 	assert.DeepEqual(t, mints[0].Metadata, mintRequest.Payload.Metadata)
 	assert.DeepEqual(t, mints[0].Requirements, mintRequest.Payload.Requirements)
 	assert.DeepEqual(t, mints[0].LockupOptions, mintRequest.Payload.LockupOptions)
-	assert.Equal(t, *mints[0].FeedURL, *mintRequest.Payload.FeedURL)
+	assert.Equal(t, mints[0].FeedURL, mintRequest.Payload.FeedURL)
 
 	assert.Equal(t, len(dogenetClient.mints), 1)
 	assert.Equal(t, dogenetClient.mints[0].Hash, mintResponse.Hash)
@@ -77,5 +76,5 @@ func TestMints(t *testing.T) {
 	assert.DeepEqual(t, dogenetClient.mints[0].Metadata, mintRequest.Payload.Metadata)
 	assert.DeepEqual(t, dogenetClient.mints[0].Requirements, mintRequest.Payload.Requirements)
 	assert.DeepEqual(t, dogenetClient.mints[0].LockupOptions, mintRequest.Payload.LockupOptions)
-	assert.Equal(t, *dogenetClient.mints[0].FeedURL, *mintRequest.Payload.FeedURL)
+	assert.Equal(t, dogenetClient.mints[0].FeedURL, mintRequest.Payload.FeedURL)
 }
