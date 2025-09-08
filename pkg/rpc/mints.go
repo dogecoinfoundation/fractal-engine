@@ -213,7 +213,7 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		FeedURL:        request.Payload.FeedURL,
 		PublicKey:      request.PublicKey,
 		Signature:      request.Signature,
-		OwnerAddress:   request.Address,
+		OwnerAddress:   request.Payload.OwnerAddress,
 		ContractOfSale: request.Payload.ContractOfSale,
 	}
 

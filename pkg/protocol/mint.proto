@@ -34,5 +34,6 @@ message MintMessage {
     string feed_url = 10;
     google.protobuf.Timestamp created_at = 11;
     int32 block_height = 12;
-    google.protobuf.Struct contract_of_sale = 13;
+    string contract_of_sale = 13;
+    string owner_address = 14;
 }

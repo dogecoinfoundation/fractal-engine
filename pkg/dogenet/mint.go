@@ -1,8 +1,6 @@
 package dogenet
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 
 	"code.dogecoin.org/gossip/dnet"
@@ -33,7 +31,8 @@ func (c *DogeNetClient) GossipMint(record store.Mint) error {
 		LockupOptions:   &structpb.Struct{Fields: convertToStructPBMap(record.LockupOptions)},
 		FeedUrl:         feedUrl,
 		CreatedAt:       timestamppb.New(record.CreatedAt),
-		ContractOfSale:  &structpb.Struct{Fields: convertToStructPBMap(record.ContractOfSale)},
+		ContractOfSale:  record.ContractOfSale,
+		OwnerAddress:    record.OwnerAddress,
 	}
 
 	envelope := protocol.MintMessageEnvelope{
@@ -90,46 +89,36 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 		PublicKey:       envelope.PublicKey,
 		Signature:       envelope.Signature,
 		FeedURL:         util.StrPtr(mintMessage.FeedUrl),
-		ContractOfSale:  mintMessage.ContractOfSale.AsMap(),
+		ContractOfSale:  mintMessage.ContractOfSale,
+		OwnerAddress:    mintMessage.OwnerAddress,
 	}
 
-	if mintRecord.Tags == nil {
-		mintRecord.Tags = []string{}
+	mintSignaturePayload := protocol.MintMessage{
+		Title:          mintRecord.Title,
+		Description:    mintRecord.Description,
+		FractionCount:  int32(mintRecord.FractionCount),
+		Tags:           mintRecord.Tags,
+		Metadata:       &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Metadata)},
+		Requirements:   &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Requirements)},
+		LockupOptions:  &structpb.Struct{Fields: convertToStructPBMap(mintRecord.LockupOptions)},
+		FeedUrl:        util.PtrToStr(mintRecord.FeedURL),
+		ContractOfSale: mintRecord.ContractOfSale,
+		OwnerAddress:   mintRecord.OwnerAddress,
 	}
 
-	if mintRecord.Requirements == nil {
-		mintRecord.Requirements = map[string]interface{}{}
+	if len(mintRecord.Metadata) == 0 {
+		mintSignaturePayload.Metadata = nil
 	}
 
-	if mintRecord.Metadata == nil {
-		mintRecord.Metadata = map[string]interface{}{}
+	if len(mintRecord.Requirements) == 0 {
+		mintSignaturePayload.Requirements = nil
 	}
 
-	if mintRecord.ContractOfSale == nil {
-		mintRecord.ContractOfSale = map[string]interface{}{}
+	if len(mintRecord.LockupOptions) == 0 {
+		mintSignaturePayload.LockupOptions = nil
 	}
 
-	mintSignaturePayload := &protocol.MintMessage{
-		Title:           mintRecord.Title,
-		Description:     mintRecord.Description,
-		FractionCount:   int32(mintRecord.FractionCount),
-		Tags:            mintRecord.Tags,
-		TransactionHash: util.PtrToStr(mintRecord.TransactionHash),
-		Metadata:        &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Metadata)},
-		Requirements:    &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Requirements)},
-		LockupOptions:   &structpb.Struct{Fields: convertToStructPBMap(mintRecord.LockupOptions)},
-		FeedUrl:         util.PtrToStr(mintRecord.FeedURL),
-		ContractOfSale:  &structpb.Struct{Fields: convertToStructPBMap(mintRecord.ContractOfSale)},
-	}
-
-	mintPayloadStr, err := json.Marshal(mintSignaturePayload)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("MINT DOGENET: ", string(mintPayloadStr))
-
-	err = doge.ValidateSignature(mintSignaturePayload, envelope.PublicKey, envelope.Signature)
+	err = doge.ValidateSignature(&mintSignaturePayload, envelope.PublicKey, envelope.Signature)
 	if err != nil {
 		log.Println("Error validating signature:", err)
 		return

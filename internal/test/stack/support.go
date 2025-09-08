@@ -21,6 +21,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
+	"dogecoin.org/fractal-engine/pkg/util"
 	"github.com/dogeorg/doge/koinu"
 )
 
@@ -383,28 +384,21 @@ func Invoice(stackConfig *StackConfig, buyerAddress string, mintHash string, qua
 
 func Mint(stackConfig *StackConfig) string {
 	mintPayload := rpc.CreateMintRequestPayload{
-		Title:         "Super Lambo",
-		FractionCount: 100,
-		Description:   "Fast Car",
-		ContractOfSale: store.StringInterfaceMap{
-			"specifications": map[string]interface{}{
-				"model": "Ferrari",
-			},
-		},
+		Title:          "Super Lambo",
+		FractionCount:  100,
+		Description:    "Fast Car",
+		ContractOfSale: "contract of sale",
+		Tags:           []string{"car"},
+		FeedURL:        util.StrPtr("https://example.com/feed"),
+		OwnerAddress:   stackConfig.Address,
 	}
 
 	mintRequest := rpc.CreateMintRequest{
-		Payload:   mintPayload,
-		Address:   stackConfig.Address,
-		PublicKey: stackConfig.PubKey,
+		Payload: mintPayload,
+		SignedRequest: rpc.SignedRequest{
+			PublicKey: stackConfig.PubKey,
+		},
 	}
-
-	mintPayloadStr, err := json.Marshal(mintPayload)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(string(mintPayloadStr))
 
 	signature, err := doge.SignPayload(mintPayload, stackConfig.PrivKey, stackConfig.PubKey)
 	if err != nil {

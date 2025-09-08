@@ -77,30 +77,25 @@ func (req *PrepareMintRequest) Validate() error {
 }
 
 type CreateMintRequest struct {
-	Address   string                   `json:"address"`
-	PublicKey string                   `json:"public_key"`
-	Payload   CreateMintRequestPayload `json:"payload"`
-	Signature string                   `json:"signature"`
+	SignedRequest
+	Payload CreateMintRequestPayload `json:"payload"`
 }
 
 type CreateMintRequestPayload struct {
 	Title          string                   `json:"title"`
 	FractionCount  int                      `json:"fraction_count"`
 	Description    string                   `json:"description"`
-	Tags           store.StringArray        `json:"tags"`
-	Metadata       store.StringInterfaceMap `json:"metadata"`
-	Requirements   store.StringInterfaceMap `json:"requirements"`
-	LockupOptions  store.StringInterfaceMap `json:"lockup_options"`
-	FeedURL        *string                  `json:"feed_url"`
-	ContractOfSale store.StringInterfaceMap `json:"contract_of_sale"`
-}
-
-func (payload *CreateMintRequestPayload) ToSignaturePayload() {
-
+	Tags           store.StringArray        `json:"tags,omitempty"`
+	Metadata       store.StringInterfaceMap `json:"metadata,omitempty"`
+	Requirements   store.StringInterfaceMap `json:"requirements,omitempty"`
+	LockupOptions  store.StringInterfaceMap `json:"lockup_options,omitempty"`
+	FeedURL        *string                  `json:"feed_url,omitempty"`
+	ContractOfSale string                   `json:"contract_of_sale,omitempty"`
+	OwnerAddress   string                   `json:"owner_address"`
 }
 
 func (req *CreateMintRequest) Validate() error {
-	if err := validation.ValidateAddress(req.Address); err != nil {
+	if err := validation.ValidateAddress(req.Payload.OwnerAddress); err != nil {
 		return fmt.Errorf("invalid address: %w", err)
 	}
 

@@ -29,7 +29,7 @@ func TestSaveMint(t *testing.T) {
 		PublicKey:       "publicKey123",
 		OwnerAddress:    "ownerAddress123",
 		Signature:       "signature123",
-		ContractOfSale:  store.StringInterfaceMap{"specification": map[string]interface{}{"key": "value"}},
+		ContractOfSale:  "contract of sale",
 	}
 
 	id, err := db.SaveMint(mint, "ownerAddress123")

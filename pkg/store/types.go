@@ -75,7 +75,7 @@ type MintWithoutID struct {
 	PublicKey       string             `json:"public_key"`
 	OwnerAddress    string             `json:"owner_address"`
 	Signature       string             `json:"signature"`
-	ContractOfSale  StringInterfaceMap `json:"contract_of_sale"`
+	ContractOfSale  string             `json:"contract_of_sale"`
 }
 
 type MintHash struct {
@@ -88,7 +88,7 @@ type MintHash struct {
 	LockupOptions  StringInterfaceMap `json:"lockup_options"`
 	OwnerAddress   string             `json:"owner_address"`
 	PublicKey      string             `json:"public_key"`
-	ContractOfSale StringInterfaceMap `json:"contract_of_sale"`
+	ContractOfSale string             `json:"contract_of_sale"`
 }
 
 type OnChainTransaction struct {
@@ -132,8 +132,7 @@ func (m *MintWithoutID) GenerateHash() (string, error) {
 
 type Mint struct {
 	MintWithoutID
-	Id           string `json:"id"`
-	OwnerAddress string `json:"owner_address"`
+	Id string `json:"id"`
 }
 
 type OnChainMint struct {

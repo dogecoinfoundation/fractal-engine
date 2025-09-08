@@ -160,7 +160,8 @@ type MintMessage struct {
 	FeedUrl         string                 `protobuf:"bytes,10,opt,name=feed_url,json=feedUrl,proto3" json:"feed_url,omitempty"`
 	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	BlockHeight     int32                  `protobuf:"varint,12,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
-	ContractOfSale  *structpb.Struct       `protobuf:"bytes,13,opt,name=contract_of_sale,json=contractOfSale,proto3" json:"contract_of_sale,omitempty"`
+	ContractOfSale  string                 `protobuf:"bytes,13,opt,name=contract_of_sale,json=contractOfSale,proto3" json:"contract_of_sale,omitempty"`
+	OwnerAddress    string                 `protobuf:"bytes,14,opt,name=owner_address,json=ownerAddress,proto3" json:"owner_address,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -279,11 +280,18 @@ func (x *MintMessage) GetBlockHeight() int32 {
 	return 0
 }
 
-func (x *MintMessage) GetContractOfSale() *structpb.Struct {
+func (x *MintMessage) GetContractOfSale() string {
 	if x != nil {
 		return x.ContractOfSale
 	}
-	return nil
+	return ""
+}
+
+func (x *MintMessage) GetOwnerAddress() string {
+	if x != nil {
+		return x.OwnerAddress
+	}
+	return ""
 }
 
 var File_pkg_protocol_mint_proto protoreflect.FileDescriptor
@@ -299,7 +307,7 @@ const file_pkg_protocol_mint_proto_rawDesc = "" +
 	"\apayload\x18\x03 \x01(\v2\x1a.fractalengine.MintMessageR\apayload\x12\x1d\n" +
 	"\n" +
 	"public_key\x18\x04 \x01(\tR\tpublicKey\x12\x1c\n" +
-	"\tsignature\x18\x05 \x01(\tR\tsignature\"\xad\x04\n" +
+	"\tsignature\x18\x05 \x01(\tR\tsignature\"\xb9\x04\n" +
 	"\vMintMessage\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12%\n" +
@@ -314,8 +322,9 @@ const file_pkg_protocol_mint_proto_rawDesc = "" +
 	" \x01(\tR\afeedUrl\x129\n" +
 	"\n" +
 	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12!\n" +
-	"\fblock_height\x18\f \x01(\x05R\vblockHeight\x12A\n" +
-	"\x10contract_of_sale\x18\r \x01(\v2\x17.google.protobuf.StructR\x0econtractOfSaleB\x0eZ\fpkg/protocolb\x06proto3"
+	"\fblock_height\x18\f \x01(\x05R\vblockHeight\x12(\n" +
+	"\x10contract_of_sale\x18\r \x01(\tR\x0econtractOfSale\x12#\n" +
+	"\rowner_address\x18\x0e \x01(\tR\fownerAddressB\x0eZ\fpkg/protocolb\x06proto3"
 
 var (
 	file_pkg_protocol_mint_proto_rawDescOnce sync.Once
@@ -343,12 +352,11 @@ var file_pkg_protocol_mint_proto_depIdxs = []int32{
 	3, // 2: fractalengine.MintMessage.requirements:type_name -> google.protobuf.Struct
 	3, // 3: fractalengine.MintMessage.lockup_options:type_name -> google.protobuf.Struct
 	4, // 4: fractalengine.MintMessage.created_at:type_name -> google.protobuf.Timestamp
-	3, // 5: fractalengine.MintMessage.contract_of_sale:type_name -> google.protobuf.Struct
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_pkg_protocol_mint_proto_init() }

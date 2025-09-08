@@ -31,12 +31,15 @@ func TestMints(t *testing.T) {
 		Requirements:  map[string]interface{}{},
 		LockupOptions: map[string]interface{}{},
 		FeedURL:       util.StrPtr("https://test.com"),
+		OwnerAddress:  address,
 	}
 
 	mintRequest := rpc.CreateMintRequest{
-		Payload:   payload,
-		Address:   address,
-		PublicKey: pubHex,
+		Payload: payload,
+		SignedRequest: rpc.SignedRequest{
+
+			PublicKey: pubHex,
+		},
 	}
 
 	mintRequest.Signature, err = doge.SignPayload(payload, privHex, pubHex)

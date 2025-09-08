@@ -200,6 +200,7 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 		Title:         title,
 		FractionCount: fractionCountInt,
 		Description:   description,
+		OwnerAddress:  address,
 	}
 
 	payloadBytes, err := json.Marshal(payload)
@@ -218,10 +219,11 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 	log.Println("signature", signature)
 
 	mintResponse, err := tokenisationClient.Mint(&rpc.CreateMintRequest{
-		Address:   address,
-		PublicKey: pubHex,
-		Payload:   payload,
-		Signature: signature,
+		SignedRequest: rpc.SignedRequest{
+			Signature: signature,
+			PublicKey: pubHex,
+		},
+		Payload: payload,
 	})
 
 	if err != nil {
