@@ -68,15 +68,19 @@ func (f *DogeFollower) Start() error {
 			fmt.Println("Exiting follower")
 			return nil
 		case msg := <-f.msgChan:
+			log.Println("MESSAGE")
+
 			switch msg := msg.(type) {
 			case messages.BlockMessage:
 				transactionNumber := 0
 				for _, tx := range msg.Block.Tx {
+					log.Println("GetFractalMessageFromVout")
 					fractalMessage, err := GetFractalMessageFromVout(tx.VOut)
 					if err != nil {
 						continue
 					}
 
+					log.Println("GetAddressFromVout")
 					address, err := GetAddressFromVout(tx.VOut)
 					if err != nil {
 						continue
@@ -94,6 +98,8 @@ func (f *DogeFollower) Start() error {
 							}
 						}
 					}
+
+					log.Println("SaveOnChainTransaction")
 
 					_, err = f.store.SaveOnChainTransaction(tx.Hash, msg.Block.Height, blockHash, transactionNumber, fractalMessage.Action, fractalMessage.Version, fractalMessage.Data, address, addressValues)
 					if err != nil {
@@ -141,6 +147,8 @@ func GetFractalMessageFromVout(vout []types.RawTxnVOut) (protocol.MessageEnvelop
 			continue
 		}
 
+		log.Println("message.IsFractalEngineMessage(): ", message.IsFractalEngineMessage())
+
 		if message.IsFractalEngineMessage() {
 			return message, nil
 		}
@@ -162,6 +170,8 @@ func GetAddressFromVout(vout []types.RawTxnVOut) (string, error) {
 func ParseOpReturnData(vout types.RawTxnVOut) []byte {
 	asm := vout.ScriptPubKey.Asm
 	parts := strings.Split(asm, " ")
+
+	log.Println("asm: ", asm)
 
 	if len(parts) > 0 {
 		op := parts[0]

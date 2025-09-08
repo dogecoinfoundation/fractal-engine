@@ -203,12 +203,7 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 		OwnerAddress:  address,
 	}
 
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	signature, err := doge.SignPayload(payloadBytes, privHex, pubHex)
+	signature, err := doge.SignPayload(payload, privHex, pubHex)
 	if err != nil {
 		log.Fatal(err)
 	}
