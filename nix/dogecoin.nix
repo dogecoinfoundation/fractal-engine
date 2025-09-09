@@ -60,6 +60,7 @@ let
         exec ${dogecoin}/bin/dogecoind \
           -printtoconsole \
           -regtest \
+          -debug=1 \
           -reindex-chainstate \
           -daemon=0 \
           -splash=0 \

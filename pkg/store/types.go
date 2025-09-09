@@ -66,7 +66,7 @@ type MintWithoutID struct {
 	Description     string             `json:"description"`
 	Tags            StringArray        `json:"tags"`
 	Metadata        StringInterfaceMap `json:"metadata"`
-	TransactionHash sql.NullString     `json:"transaction_hash"`
+	TransactionHash string             `json:"transaction_hash"`
 	BlockHeight     int64              `json:"block_height"`
 	CreatedAt       time.Time          `json:"created_at"`
 	Requirements    StringInterfaceMap `json:"requirements"`
@@ -75,7 +75,7 @@ type MintWithoutID struct {
 	PublicKey       string             `json:"public_key"`
 	OwnerAddress    string             `json:"owner_address"`
 	Signature       string             `json:"signature"`
-	ContractOfSale  StringInterfaceMap `json:"contract_of_sale"`
+	ContractOfSale  string             `json:"contract_of_sale"`
 }
 
 type MintHash struct {
@@ -88,7 +88,7 @@ type MintHash struct {
 	LockupOptions  StringInterfaceMap `json:"lockup_options"`
 	OwnerAddress   string             `json:"owner_address"`
 	PublicKey      string             `json:"public_key"`
-	ContractOfSale StringInterfaceMap `json:"contract_of_sale"`
+	ContractOfSale string             `json:"contract_of_sale"`
 }
 
 type OnChainTransaction struct {
@@ -132,8 +132,7 @@ func (m *MintWithoutID) GenerateHash() (string, error) {
 
 type Mint struct {
 	MintWithoutID
-	Id           string `json:"id"`
-	OwnerAddress string `json:"owner_address"`
+	Id string `json:"id"`
 }
 
 type OnChainMint struct {
@@ -325,6 +324,14 @@ func (i *Invoice) GenerateHash() (string, error) {
 	hash := sha256.Sum256(jsonBytes)
 
 	return hex.EncodeToString(hash[:]), nil
+}
+
+type TokenBalanceWithMint struct {
+	Mint
+	Address   string    `json:"address"`
+	Quantity  int       `json:"quantity"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type TokenBalance struct {

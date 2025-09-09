@@ -1,7 +1,6 @@
 package rpc_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"dogecoin.org/fractal-engine/pkg/config"
@@ -31,20 +30,18 @@ func TestMints(t *testing.T) {
 		Requirements:  map[string]interface{}{},
 		LockupOptions: map[string]interface{}{},
 		FeedURL:       "https://test.com",
+		OwnerAddress:  address,
 	}
 
 	mintRequest := rpc.CreateMintRequest{
-		Payload:   payload,
-		Address:   address,
-		PublicKey: pubHex,
+		Payload: payload,
+		SignedRequest: rpc.SignedRequest{
+
+			PublicKey: pubHex,
+		},
 	}
 
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		t.Fatalf("Failed to marshal payload: %v", err)
-	}
-
-	mintRequest.Signature, err = doge.SignPayload(payloadBytes, privHex)
+	mintRequest.Signature, err = doge.SignPayload(payload, privHex, pubHex)
 	if err != nil {
 		t.Fatalf("Failed to sign payload: %v", err)
 	}

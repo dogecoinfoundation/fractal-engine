@@ -1,10 +1,10 @@
 package dogenet
 
 import (
-	"database/sql"
 	"log"
 
 	"code.dogecoin.org/gossip/dnet"
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"google.golang.org/protobuf/proto"
@@ -13,25 +13,29 @@ import (
 )
 
 func (c *DogeNetClient) GossipMint(record store.Mint) error {
+
 	mintMessage := protocol.MintMessage{
-		Id:              record.Id,
 		Title:           record.Title,
 		Description:     record.Description,
 		FractionCount:   int32(record.FractionCount),
 		Tags:            record.Tags,
-		TransactionHash: record.TransactionHash.String,
+		TransactionHash: record.TransactionHash,
 		Metadata:        &structpb.Struct{Fields: convertToStructPBMap(record.Metadata)},
 		Hash:            record.Hash,
 		Requirements:    &structpb.Struct{Fields: convertToStructPBMap(record.Requirements)},
 		LockupOptions:   &structpb.Struct{Fields: convertToStructPBMap(record.LockupOptions)},
 		FeedUrl:         record.FeedURL,
 		CreatedAt:       timestamppb.New(record.CreatedAt),
+		ContractOfSale:  record.ContractOfSale,
+		OwnerAddress:    record.OwnerAddress,
 	}
 
 	envelope := protocol.MintMessageEnvelope{
-		Type:    protocol.ACTION_MINT,
-		Version: protocol.DEFAULT_VERSION,
-		Payload: &mintMessage,
+		Type:      protocol.ACTION_MINT,
+		Version:   protocol.DEFAULT_VERSION,
+		Payload:   &mintMessage,
+		PublicKey: record.PublicKey,
+		Signature: record.Signature,
 	}
 
 	data, err := proto.Marshal(&envelope)
@@ -64,20 +68,69 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 		return
 	}
 
-	mint := envelope.Payload
+	mintMessage := envelope.Payload
 
-	id, err := c.store.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:            mint.Hash,
-		Title:           mint.Title,
-		FractionCount:   int(mint.FractionCount),
-		Description:     mint.Description,
-		Tags:            mint.Tags,
-		Metadata:        mint.Metadata.AsMap(),
-		TransactionHash: sql.NullString{String: mint.TransactionHash, Valid: true},
-		CreatedAt:       mint.CreatedAt.AsTime(),
-		Requirements:    mint.Requirements.AsMap(),
-		LockupOptions:   mint.LockupOptions.AsMap(),
-	})
+	mintRecord := &store.MintWithoutID{
+		Hash:            mintMessage.Hash,
+		Title:           mintMessage.Title,
+		FractionCount:   int(mintMessage.FractionCount),
+		Description:     mintMessage.Description,
+		Tags:            mintMessage.Tags,
+		Metadata:        mintMessage.Metadata.AsMap(),
+		TransactionHash: mintMessage.TransactionHash,
+		CreatedAt:       mintMessage.CreatedAt.AsTime(),
+		Requirements:    mintMessage.Requirements.AsMap(),
+		LockupOptions:   mintMessage.LockupOptions.AsMap(),
+		PublicKey:       envelope.PublicKey,
+		Signature:       envelope.Signature,
+		FeedURL:         mintMessage.FeedUrl,
+		ContractOfSale:  mintMessage.ContractOfSale,
+		OwnerAddress:    mintMessage.OwnerAddress,
+	}
+
+	mintSignaturePayload := protocol.MintMessage{
+		Title:          mintRecord.Title,
+		Description:    mintRecord.Description,
+		FractionCount:  int32(mintRecord.FractionCount),
+		Tags:           mintRecord.Tags,
+		Metadata:       &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Metadata)},
+		Requirements:   &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Requirements)},
+		LockupOptions:  &structpb.Struct{Fields: convertToStructPBMap(mintRecord.LockupOptions)},
+		FeedUrl:        mintRecord.FeedURL,
+		ContractOfSale: mintRecord.ContractOfSale,
+		OwnerAddress:   mintRecord.OwnerAddress,
+	}
+
+	if len(mintRecord.Metadata) == 0 {
+		mintSignaturePayload.Metadata = nil
+	}
+
+	if len(mintRecord.Requirements) == 0 {
+		mintSignaturePayload.Requirements = nil
+	}
+
+	if len(mintRecord.LockupOptions) == 0 {
+		mintSignaturePayload.LockupOptions = nil
+	}
+
+	err = doge.ValidateSignature(&mintSignaturePayload, envelope.PublicKey, envelope.Signature)
+	if err != nil {
+		log.Println("Error validating signature:", err)
+		return
+	}
+
+	address, err := doge.PublicKeyToDogeAddress(envelope.PublicKey, doge.PrefixRegtest)
+	if err != nil {
+		log.Println("Error converting public key to doge address:", err)
+		return
+	}
+
+	if address != mintRecord.OwnerAddress {
+		log.Println("Mint owner address does not match public key")
+		return
+	}
+
+	id, err := c.store.SaveUnconfirmedMint(mintRecord)
 
 	if err != nil {
 		log.Println("Error saving unconfirmed mint:", err)

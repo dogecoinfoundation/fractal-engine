@@ -90,7 +90,7 @@ func payInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal(err)
 	}
 
-	invoices, err := tokenisationClient.GetInvoices(1, 10, mintHash, address)
+	invoices, err := tokenisationClient.GetInvoices(0, 10, mintHash, address)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -144,17 +144,33 @@ func payInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 		},
 	}
 
-	buyOfferValue := float64(selectedInvoice.Quantity * selectedInvoice.Price)
-	if float64(utxos.UTXOs[0].Value) < buyOfferValue {
+	dogeUtxoValue, err := strconv.Atoi(utxos.UTXOs[0].Value.String())
+	if err != nil {
+		log.Fatal("Failed to parse utxo value", err)
+	}
+
+	buyOfferValue := selectedInvoice.Quantity * selectedInvoice.Price
+
+	if err != nil {
+		log.Fatal("Failed to parse fee value", err)
+	}
+
+	if dogeUtxoValue < buyOfferValue {
 		log.Fatal("Insufficient balance for invoice", selectedInvoice.Hash)
 	}
 
-	change := float64(utxos.UTXOs[0].Value) - buyOfferValue
+	fee := 1
+	change := dogeUtxoValue - buyOfferValue - fee
+
+	sellerAddress := selectedInvoice.SellerAddress
 
 	outputs := map[string]interface{}{
-		"data":  hex.EncodeToString(encodedTransactionBody),
-		address: change - 1,
+		"data":        hex.EncodeToString(encodedTransactionBody),
+		address:       change,
+		sellerAddress: int(buyOfferValue),
 	}
+
+	log.Println(outputs)
 
 	dogeClient := doge.NewRpcClient(&fecfg.Config{
 		DogeScheme:   config.DogeScheme,

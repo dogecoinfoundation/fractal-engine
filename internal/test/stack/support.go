@@ -80,7 +80,7 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		DogeNetHost:        "0.0.0.0",
 		IndexerURL:         "http://0.0.0.0:" + strconv.Itoa(basePortFirst+50),
 		DogeNetHandlerPort: basePort + 70,
-		DogeNetBindPort:    basePort + 77,
+		DogeNetBindPort:    basePort + 73,
 		Address:            address,
 		PrivKey:            privHex,
 		PubKey:             pubHex,
@@ -282,6 +282,8 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 }
 
 func GetTokenBalance(stackConfig *StackConfig, mintHash string) int {
+	log.Println("GetTokenBalance ", stackConfig.Address)
+
 	tokens, err := stackConfig.TokenisationClient.GetTokenBalance(stackConfig.Address, mintHash)
 	if err != nil {
 		panic(err)
@@ -291,6 +293,8 @@ func GetTokenBalance(stackConfig *StackConfig, mintHash string) int {
 	for _, token := range tokens {
 		balance += token.Quantity
 	}
+
+	log.Printf("GetTokenBalance %s : %d", stackConfig.Address, balance)
 
 	return balance
 }
@@ -348,16 +352,12 @@ func Invoice(stackConfig *StackConfig, buyerAddress string, mintHash string, qua
 		Price:          price,
 		SellerAddress:  stackConfig.Address,
 	}
-	mintPayloadBytes, err := json.Marshal(invoicePayload)
-	if err != nil {
-		panic(err)
-	}
 
 	invoiceRequest := rpc.CreateInvoiceRequest{
 		Payload: invoicePayload,
 	}
 
-	signature, err := doge.SignPayload(mintPayloadBytes, stackConfig.PrivKey)
+	signature, err := doge.SignPayload(invoicePayload, stackConfig.PrivKey, stackConfig.PubKey)
 	if err != nil {
 		panic(err)
 	}
@@ -383,27 +383,23 @@ func Invoice(stackConfig *StackConfig, buyerAddress string, mintHash string, qua
 
 func Mint(stackConfig *StackConfig) string {
 	mintPayload := rpc.CreateMintRequestPayload{
-		Title:         "Super Lambo",
-		FractionCount: 100,
-		Description:   "Fast Car",
-		ContractOfSale: store.StringInterfaceMap{
-			"specifications": map[string]interface{}{
-				"model": "Ferrari",
-			},
-		},
-	}
-	mintPayloadBytes, err := json.Marshal(mintPayload)
-	if err != nil {
-		panic(err)
+		Title:          "Super Lambo",
+		FractionCount:  100,
+		Description:    "Fast Car",
+		ContractOfSale: "contract of sale",
+		Tags:           []string{"car"},
+		FeedURL:        "https://example.com/feed",
+		OwnerAddress:   stackConfig.Address,
 	}
 
 	mintRequest := rpc.CreateMintRequest{
-		Payload:   mintPayload,
-		Address:   stackConfig.Address,
-		PublicKey: stackConfig.PubKey,
+		Payload: mintPayload,
+		SignedRequest: rpc.SignedRequest{
+			PublicKey: stackConfig.PubKey,
+		},
 	}
 
-	signature, err := doge.SignPayload(mintPayloadBytes, stackConfig.PrivKey)
+	signature, err := doge.SignPayload(mintPayload, stackConfig.PrivKey, stackConfig.PubKey)
 	if err != nil {
 		panic(err)
 	}
@@ -470,11 +466,6 @@ func makeStackConfigsAndPeer(stackCount int) []*StackConfig {
 
 		time.Sleep(1 * time.Minute)
 
-		// ignore error incase of re-add
-		// err = stackA.DogeClient.AddPeer(stackB.DogeHost + ":" + strconv.Itoa(stackB.DogeP2PPort))
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
 	}
 
 	return stacks

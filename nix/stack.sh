@@ -27,7 +27,7 @@ DOGENET_WEB_PORT=$((BASE_PORT + 40))
 INDEXER_PORT=$((BASE_PORT + 50))
 POSTGRES_PORT=$((BASE_PORT + 60))
 DOGENET_HANDLER_PORT=$((BASE_PORT + 70))
-DOGENET_BIND_PORT=$((BASE_PORT + 77))
+DOGENET_BIND_PORT=$((BASE_PORT + 73))
 DOGE_P2P_PORT=$((BASE_PORT + 80))
 
 # Data directories for instance isolation
@@ -64,6 +64,7 @@ export DOGE_NET_HANDLER="0.0.0.0:$DOGENET_HANDLER_PORT"
 export DOGENET_WEB_PORT=$DOGENET_WEB_PORT
 export DOGENET_BIND_HOST=0.0.0.0
 export DOGENET_BIND_PORT=$DOGENET_BIND_PORT
+export DOGENET_DB_FILE="$BASE_DIR/dogenet.db"
 
 export INDEXER_DOGECOIN_RPC="http://dogecoinrpc:changeme1@0.0.0.0:$DOGE_RPC_PORT"
 export INDEXER_PORT=$INDEXER_PORT
@@ -191,12 +192,26 @@ case "$COMMAND" in
         fi
     fi
 
+    echo " --rpc-server-host 0.0.0.0 \
+    --rpc-server-port $FRACTAL_ENGINE_PORT \
+    --doge-net-network unix \
+    --doge-net-address $BASE_DIR/dogenet.sock \
+    --doge-net-web-address 0.0.0.0:$DOGENET_WEB_PORT \
+    --doge-scheme http \
+    --doge-host localhost \
+    --doge-port $DOGE_RPC_PORT \
+    --doge-user $DOGECOIN_RPC_USER \
+    --doge-password $DOGECOIN_RPC_PASSWORD \
+    --database-url $FRACTAL_ENGINE_DB?sslmode=disable \
+    --embed-dogenet true"
+
     start_service "fractalengine" "@fractalengine@/bin/fractal-engine \
       --rpc-server-host 0.0.0.0 \
       --rpc-server-port $FRACTAL_ENGINE_PORT \
       --doge-net-network unix \
       --doge-net-address $BASE_DIR/dogenet.sock \
       --doge-net-web-address 0.0.0.0:$DOGENET_WEB_PORT \
+      --doge-net-db-file $DOGENET_DB_FILE \
       --doge-scheme http \
       --doge-host localhost \
       --doge-port $DOGE_RPC_PORT \

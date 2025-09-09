@@ -102,9 +102,9 @@ func mintListAction(ctx context.Context, cmd *cli.Command) error {
 			mint.Description,
 			fmt.Sprintf("%d", mint.FractionCount),
 			fmt.Sprintf("%d", mint.BlockHeight),
-			mint.TransactionHash.String,
+			mint.TransactionHash,
 			mint.CreatedAt.Format(time.RFC3339),
-			fmt.Sprintf("%t", mint.TransactionHash.Valid),
+			fmt.Sprintf("%v", mint.TransactionHash != ""),
 		})
 	}
 
@@ -200,14 +200,10 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 		Title:         title,
 		FractionCount: fractionCountInt,
 		Description:   description,
+		OwnerAddress:  address,
 	}
 
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	signature, err := doge.SignPayload(payloadBytes, privHex)
+	signature, err := doge.SignPayload(payload, privHex, pubHex)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -218,10 +214,11 @@ func mintCreateAction(ctx context.Context, cmd *cli.Command) error {
 	log.Println("signature", signature)
 
 	mintResponse, err := tokenisationClient.Mint(&rpc.CreateMintRequest{
-		Address:   address,
-		PublicKey: pubHex,
-		Payload:   payload,
-		Signature: signature,
+		SignedRequest: rpc.SignedRequest{
+			Signature: signature,
+			PublicKey: pubHex,
+		},
+		Payload: payload,
 	})
 
 	if err != nil {

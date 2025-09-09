@@ -1,7 +1,6 @@
 package store_test
 
 import (
-	"database/sql"
 	"testing"
 
 	"dogecoin.org/fractal-engine/internal/test/support"
@@ -15,24 +14,21 @@ func TestSaveMint(t *testing.T) {
 	db := support.SetupTestDB()
 
 	mint := &store.MintWithoutID{
-		Hash:          "testHash123",
-		Title:         "Test Mint",
-		FractionCount: 1000,
-		Description:   "Test Description",
-		Tags:          store.StringArray{"tag1", "tag2"},
-		Metadata:      store.StringInterfaceMap{"key": "value"},
-		TransactionHash: sql.NullString{
-			String: "txHash123",
-			Valid:  true,
-		},
-		BlockHeight:    12345,
-		Requirements:   store.StringInterfaceMap{"req": "value"},
-		LockupOptions:  store.StringInterfaceMap{"lockup": "option"},
-		FeedURL:        "https://example.com/feed",
-		PublicKey:      "publicKey123",
-		OwnerAddress:   "ownerAddress123",
-		Signature:      "signature123",
-		ContractOfSale: store.StringInterfaceMap{"specification": map[string]interface{}{"key": "value"}},
+		Hash:            "testHash123",
+		Title:           "Test Mint",
+		FractionCount:   1000,
+		Description:     "Test Description",
+		Tags:            store.StringArray{"tag1", "tag2"},
+		Metadata:        store.StringInterfaceMap{"key": "value"},
+		TransactionHash: "txHash123",
+		BlockHeight:     12345,
+		Requirements:    store.StringInterfaceMap{"req": "value"},
+		LockupOptions:   store.StringInterfaceMap{"lockup": "option"},
+		FeedURL:         "https://example.com/feed",
+		PublicKey:       "publicKey123",
+		OwnerAddress:    "ownerAddress123",
+		Signature:       "signature123",
+		ContractOfSale:  "contract of sale",
 	}
 
 	id, err := db.SaveMint(mint, "ownerAddress123")
@@ -123,55 +119,46 @@ func TestGetMintsByPublicKey(t *testing.T) {
 
 	// Save mints with different public keys
 	mint1 := &store.MintWithoutID{
-		Hash:          "hash1",
-		Title:         "Mint 1",
-		FractionCount: 100,
-		Description:   "Test mint 1",
-		Tags:          store.StringArray{},
-		Metadata:      store.StringInterfaceMap{},
-		Requirements:  store.StringInterfaceMap{},
-		LockupOptions: store.StringInterfaceMap{},
-		PublicKey:     "pubKey1",
-		TransactionHash: sql.NullString{
-			String: "tx1",
-			Valid:  true,
-		},
+		Hash:            "hash1",
+		Title:           "Mint 1",
+		FractionCount:   100,
+		Description:     "Test mint 1",
+		Tags:            store.StringArray{},
+		Metadata:        store.StringInterfaceMap{},
+		Requirements:    store.StringInterfaceMap{},
+		LockupOptions:   store.StringInterfaceMap{},
+		PublicKey:       "pubKey1",
+		TransactionHash: "tx1",
 	}
 	_, err := db.SaveMint(mint1, "owner1")
 	assert.NilError(t, err)
 
 	mint2 := &store.MintWithoutID{
-		Hash:          "hash2",
-		Title:         "Mint 2",
-		FractionCount: 200,
-		Description:   "Test mint 2",
-		Tags:          store.StringArray{},
-		Metadata:      store.StringInterfaceMap{},
-		Requirements:  store.StringInterfaceMap{},
-		LockupOptions: store.StringInterfaceMap{},
-		PublicKey:     "pubKey1",
-		TransactionHash: sql.NullString{
-			String: "tx2",
-			Valid:  true,
-		},
+		Hash:            "hash2",
+		Title:           "Mint 2",
+		FractionCount:   200,
+		Description:     "Test mint 2",
+		Tags:            store.StringArray{},
+		Metadata:        store.StringInterfaceMap{},
+		Requirements:    store.StringInterfaceMap{},
+		LockupOptions:   store.StringInterfaceMap{},
+		PublicKey:       "pubKey1",
+		TransactionHash: "tx2",
 	}
 	_, err = db.SaveMint(mint2, "owner2")
 	assert.NilError(t, err)
 
 	mint3 := &store.MintWithoutID{
-		Hash:          "hash3",
-		Title:         "Mint 3",
-		FractionCount: 300,
-		Description:   "Test mint 3",
-		Tags:          store.StringArray{},
-		Metadata:      store.StringInterfaceMap{},
-		Requirements:  store.StringInterfaceMap{},
-		LockupOptions: store.StringInterfaceMap{},
-		PublicKey:     "pubKey2",
-		TransactionHash: sql.NullString{
-			String: "tx3",
-			Valid:  true,
-		},
+		Hash:            "hash3",
+		Title:           "Mint 3",
+		FractionCount:   300,
+		Description:     "Test mint 3",
+		Tags:            store.StringArray{},
+		Metadata:        store.StringInterfaceMap{},
+		Requirements:    store.StringInterfaceMap{},
+		LockupOptions:   store.StringInterfaceMap{},
+		PublicKey:       "pubKey2",
+		TransactionHash: "tx3",
 	}
 	_, err = db.SaveMint(mint3, "owner3")
 	assert.NilError(t, err)
@@ -199,21 +186,18 @@ func TestSaveUnconfirmedMint(t *testing.T) {
 	db := support.SetupTestDB()
 
 	mint := &store.MintWithoutID{
-		Hash:          "unconfirmedHash123",
-		Title:         "Unconfirmed Mint",
-		FractionCount: 1500,
-		Description:   "Unconfirmed test mint",
-		Tags:          store.StringArray{"unconfirmed"},
-		Metadata:      store.StringInterfaceMap{"status": "unconfirmed"},
-		Requirements:  store.StringInterfaceMap{},
-		LockupOptions: store.StringInterfaceMap{},
-		FeedURL:       "https://example.com/unconfirmed",
-		PublicKey:     "unconfirmedPubKey",
-		OwnerAddress:  "unconfirmedOwner",
-		TransactionHash: sql.NullString{
-			String: "",
-			Valid:  false,
-		},
+		Hash:            "unconfirmedHash123",
+		Title:           "Unconfirmed Mint",
+		FractionCount:   1500,
+		Description:     "Unconfirmed test mint",
+		Tags:            store.StringArray{"unconfirmed"},
+		Metadata:        store.StringInterfaceMap{"status": "unconfirmed"},
+		Requirements:    store.StringInterfaceMap{},
+		LockupOptions:   store.StringInterfaceMap{},
+		FeedURL:         "https://example.com/unconfirmed",
+		PublicKey:       "unconfirmedPubKey",
+		OwnerAddress:    "unconfirmedOwner",
+		TransactionHash: "",
 	}
 
 	id, err := db.SaveUnconfirmedMint(mint)
@@ -294,20 +278,17 @@ func TestMatchMint(t *testing.T) {
 
 	// Save a mint where hash matches the transaction hash (as required by MatchMint logic)
 	mint := &store.MintWithoutID{
-		Hash:          "matchTxHash", // This must match the transaction hash
-		Title:         "Match Mint",
-		FractionCount: 100,
-		Description:   "Mint to match",
-		Tags:          store.StringArray{},
-		Metadata:      store.StringInterfaceMap{},
-		Requirements:  store.StringInterfaceMap{},
-		LockupOptions: store.StringInterfaceMap{},
-		PublicKey:     "pubKey",
-		TransactionHash: sql.NullString{
-			String: "matchTxHash",
-			Valid:  true,
-		},
-		BlockHeight: 1000,
+		Hash:            "matchTxHash", // This must match the transaction hash
+		Title:           "Match Mint",
+		FractionCount:   100,
+		Description:     "Mint to match",
+		Tags:            store.StringArray{},
+		Metadata:        store.StringInterfaceMap{},
+		Requirements:    store.StringInterfaceMap{},
+		LockupOptions:   store.StringInterfaceMap{},
+		PublicKey:       "pubKey",
+		TransactionHash: "matchTxHash",
+		BlockHeight:     1000,
 	}
 	_, err := db.SaveMint(mint, "owner")
 	assert.NilError(t, err)
@@ -405,7 +386,7 @@ func TestMatchUnconfirmedMint(t *testing.T) {
 	confirmedMint, err := db.GetMintByHash("unconfMatchHash")
 	assert.NilError(t, err)
 	assert.Equal(t, confirmedMint.Hash, "unconfMatchHash")
-	assert.Equal(t, confirmedMint.TransactionHash.String, "confirmTxHash")
+	assert.Equal(t, confirmedMint.TransactionHash, "confirmTxHash")
 	// Note: BlockHeight is not returned by GetMintByHash query
 	assert.Equal(t, confirmedMint.OwnerAddress, "confirmedAddr")
 
@@ -508,19 +489,16 @@ func TestGetMintsByPublicKeyWithUnconfirmed(t *testing.T) {
 
 	// Save a confirmed mint
 	confirmedMint := &store.MintWithoutID{
-		Hash:          "confHash",
-		Title:         "Confirmed Mint",
-		FractionCount: 100,
-		Description:   "Confirmed mint",
-		Tags:          store.StringArray{},
-		Metadata:      store.StringInterfaceMap{},
-		Requirements:  store.StringInterfaceMap{},
-		LockupOptions: store.StringInterfaceMap{},
-		PublicKey:     "testPubKey",
-		TransactionHash: sql.NullString{
-			String: "txHash",
-			Valid:  true,
-		},
+		Hash:            "confHash",
+		Title:           "Confirmed Mint",
+		FractionCount:   100,
+		Description:     "Confirmed mint",
+		Tags:            store.StringArray{},
+		Metadata:        store.StringInterfaceMap{},
+		Requirements:    store.StringInterfaceMap{},
+		LockupOptions:   store.StringInterfaceMap{},
+		PublicKey:       "testPubKey",
+		TransactionHash: "txHash",
 	}
 	_, err := db.SaveMint(confirmedMint, "owner")
 	assert.NilError(t, err)

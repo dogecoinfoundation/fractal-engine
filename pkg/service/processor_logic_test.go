@@ -1,7 +1,6 @@
 package service_test
 
 import (
-	"database/sql"
 	"fmt"
 	"testing"
 
@@ -41,15 +40,12 @@ func TestProcessMintTransactionMatched(t *testing.T) {
 
 	// First create an unconfirmed mint
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:          mintHash,
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		FractionCount: 100,
-		BlockHeight:   1,
-		TransactionHash: sql.NullString{
-			String: "txHash001",
-			Valid:  true,
-		},
+		Hash:            mintHash,
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		FractionCount:   100,
+		BlockHeight:     1,
+		TransactionHash: "txHash001",
 	})
 	if err != nil {
 		t.Fatalf("Failed to save unconfirmed mint: %v", err)
@@ -139,15 +135,12 @@ func TestProcessPaymentTransaction(t *testing.T) {
 
 	// Create unconfirmed mint
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:          mintHash,
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		FractionCount: 100,
-		BlockHeight:   1,
-		TransactionHash: sql.NullString{
-			String: "txMint",
-			Valid:  true,
-		},
+		Hash:            mintHash,
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		FractionCount:   100,
+		BlockHeight:     1,
+		TransactionHash: "txMint",
 	})
 	if err != nil {
 		t.Fatalf("Failed to save unconfirmed mint: %v", err)
@@ -239,15 +232,12 @@ func TestProcessInvoiceTransaction(t *testing.T) {
 
 	// Create unconfirmed mint
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:          mintHash,
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		FractionCount: 100,
-		BlockHeight:   1,
-		TransactionHash: sql.NullString{
-			String: "txMint",
-			Valid:  true,
-		},
+		Hash:            mintHash,
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		FractionCount:   100,
+		BlockHeight:     1,
+		TransactionHash: "txMint",
 	})
 	if err != nil {
 		t.Fatalf("Failed to save unconfirmed mint: %v", err)

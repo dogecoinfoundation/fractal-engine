@@ -156,7 +156,7 @@ func ValidateDescription(description string) error {
 // ValidateFeedURL validates feed URL
 func ValidateFeedURL(feedURL string) error {
 	if feedURL == "" {
-		return nil // Optional field
+		return nil
 	}
 
 	if err := ValidateStringLength("feed_url", feedURL, MaxFeedURLLength); err != nil {
