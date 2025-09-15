@@ -93,19 +93,6 @@ definitions:
           type: integer
         type: object
     type: object
-  rpc.GetTokenBalanceWithMintsResponse:
-    properties:
-      limit:
-        type: integer
-      mints:
-        items:
-          $ref: '#/definitions/store.TokenBalanceWithMint'
-        type: array
-      page:
-        type: integer
-      total:
-        type: integer
-    type: object
   rpc.SendRequest:
     properties:
       encoded_transaction_hex:
@@ -209,51 +196,6 @@ definitions:
         type: string
       quantity:
         type: integer
-      updated_at:
-        type: string
-    type: object
-  store.TokenBalanceWithMint:
-    properties:
-      address:
-        type: string
-      block_height:
-        type: integer
-      contract_of_sale:
-        type: string
-      created_at:
-        type: string
-      description:
-        type: string
-      feed_url:
-        type: string
-      fraction_count:
-        type: integer
-      hash:
-        type: string
-      id:
-        type: string
-      lockup_options:
-        $ref: '#/definitions/store.StringInterfaceMap'
-      metadata:
-        $ref: '#/definitions/store.StringInterfaceMap'
-      owner_address:
-        type: string
-      public_key:
-        type: string
-      quantity:
-        type: integer
-      requirements:
-        $ref: '#/definitions/store.StringInterfaceMap'
-      signature:
-        type: string
-      tags:
-        items:
-          type: string
-        type: array
-      title:
-        type: string
-      transaction_hash:
-        type: string
       updated_at:
         type: string
     type: object
@@ -404,40 +346,6 @@ paths:
       summary: Get invoices
       tags:
       - invoices
-  /mint-token-balances:
-    get:
-      consumes:
-      - application/json
-      description: Returns token balances with associated mint information for an
-        address
-      parameters:
-      - description: Address to get token balances for
-        in: query
-        name: address
-        required: true
-        type: string
-      - description: Limit number of results (max 100)
-        in: query
-        name: limit
-        type: integer
-      - description: Page number (max 1000)
-        in: query
-        name: page
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/rpc.GetTokenBalanceWithMintsResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get token balances with mint details
-      tags:
-      - Token Balances
   /mints:
     get:
       consumes:
@@ -582,7 +490,7 @@ paths:
       consumes:
       - application/json
       description: Returns token balances for an address, optionally filtered by mint
-        hash
+        hash and with optional mint details
       parameters:
       - description: Address to get token balances for
         in: query
@@ -592,15 +500,24 @@ paths:
         in: query
         name: mint_hash
         type: string
+      - description: Include mint details in response
+        in: query
+        name: include_mint_details
+        type: boolean
+      - description: Limit number of results (max 100, only used with include_mint_details)
+        in: query
+        name: limit
+        type: integer
+      - description: Page number (max 1000, only used with include_mint_details)
+        in: query
+        name: page
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
-          schema:
-            items:
-              $ref: '#/definitions/store.TokenBalance'
-            type: array
+          schema: {}
         "500":
           description: Internal Server Error
           schema:

@@ -228,56 +228,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/mint-token-balances": {
-            "get": {
-                "description": "Returns token balances with associated mint information for an address",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Token Balances"
-                ],
-                "summary": "Get token balances with mint details",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Address to get token balances for",
-                        "name": "address",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Limit number of results (max 100)",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page number (max 1000)",
-                        "name": "page",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/rpc.GetTokenBalanceWithMintsResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/mints": {
             "get": {
                 "description": "Returns a list of mints",
@@ -491,7 +441,7 @@ const docTemplate = `{
         },
         "/token-balances": {
             "get": {
-                "description": "Returns token balances for an address, optionally filtered by mint hash",
+                "description": "Returns token balances for an address, optionally filtered by mint hash and with optional mint details",
                 "consumes": [
                     "application/json"
                 ],
@@ -514,17 +464,30 @@ const docTemplate = `{
                         "description": "Filter by mint hash",
                         "name": "mint_hash",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Include mint details in response",
+                        "name": "include_mint_details",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit number of results (max 100, only used with include_mint_details)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (max 1000, only used with include_mint_details)",
+                        "name": "page",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/store.TokenBalance"
-                            }
-                        }
+                        "schema": {}
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -679,26 +642,6 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "integer"
                     }
-                }
-            }
-        },
-        "rpc.GetTokenBalanceWithMintsResponse": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "mints": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/store.TokenBalanceWithMint"
-                    }
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
                 }
             }
         },
@@ -857,74 +800,6 @@ const docTemplate = `{
                 },
                 "quantity": {
                     "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "store.TokenBalanceWithMint": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "block_height": {
-                    "type": "integer"
-                },
-                "contract_of_sale": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "feed_url": {
-                    "type": "string"
-                },
-                "fraction_count": {
-                    "type": "integer"
-                },
-                "hash": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "lockup_options": {
-                    "$ref": "#/definitions/store.StringInterfaceMap"
-                },
-                "metadata": {
-                    "$ref": "#/definitions/store.StringInterfaceMap"
-                },
-                "owner_address": {
-                    "type": "string"
-                },
-                "public_key": {
-                    "type": "string"
-                },
-                "quantity": {
-                    "type": "integer"
-                },
-                "requirements": {
-                    "$ref": "#/definitions/store.StringInterfaceMap"
-                },
-                "signature": {
-                    "type": "string"
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                },
-                "transaction_hash": {
-                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
