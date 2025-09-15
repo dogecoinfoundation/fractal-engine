@@ -46,6 +46,7 @@ func NewRpcServer(cfg *config.Config, store *store.TokenisationStore, gossipClie
 	HandleHealthRoutes(store, mux)
 	HandleTokenRoutes(store, mux)
 	HandleDogeRoutes(store, dogeClient, mux)
+	HandlePaymentRoutes(store, gossipClient, mux, cfg)
 
 	server := &http.Server{
 		Addr:    cfg.RpcServerHost + ":" + cfg.RpcServerPort,

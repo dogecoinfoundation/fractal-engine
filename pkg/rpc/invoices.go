@@ -25,8 +25,7 @@ func HandleInvoiceRoutes(store *store.TokenisationStore, gossipClient dogenet.Go
 	ir := &InvoiceRoutes{store: store, gossipClient: gossipClient, cfg: cfg}
 
 	mux.HandleFunc("/invoices", ir.handleInvoices)
-	mux.HandleFunc("/my-invoices", ir.handleMyInvoices)
-	mux.HandleFunc("/invoices/encoded-transaction-body", ir.handleEncodedTransactionBody)
+
 }
 
 func (ir *InvoiceRoutes) handleInvoices(w http.ResponseWriter, r *http.Request) {
@@ -40,38 +39,18 @@ func (ir *InvoiceRoutes) handleInvoices(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (ir *InvoiceRoutes) handleMyInvoices(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		ir.getMyInvoices(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func (ir *InvoiceRoutes) handleEncodedTransactionBody(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		ir.postEncodedTransactionBody(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-// @Summary		Get all invoices
-// @Description	Returns a list of invoices
+// @Summary		Get invoices
+// @Description	Returns a list of invoices with optional filtering by mint_hash and offerer_address
 // @Tags			invoices
 // @Accept			json
 // @Produce		json
-// @Param			limit	query		int	false	"Limit"
-// @Param			page	query		int	false	"Page"
-// @Param			mint_hash	query		string	false	"Mint hash"
-// @Param			offerer_address	query		string	false	"Offerer address"
-// @Success		200		{object}	GetInvoicesResponse
-// @Failure		400		{object}	string
-// @Failure		500		{object}	string
+// @Param			limit			query		int		false	"Limit number of results (max 100)"
+// @Param			page			query		int		false	"Page number (max 1000)"
+// @Param			mint_hash		query		string	false	"Filter by mint hash"
+// @Param			offerer_address	query		string	false	"Filter by offerer address"
+// @Success		200				{object}	GetInvoicesResponse
+// @Failure		400				{object}	string
 // @Router			/invoices [get]
-
 func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 	limitStr := validation.SanitizeQueryParam(r.URL.Query().Get("limit"))
 	limit := 100
@@ -94,14 +73,6 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 	mintHash := validation.SanitizeQueryParam(r.URL.Query().Get("mint_hash"))
 	offererAddress := validation.SanitizeQueryParam(r.URL.Query().Get("offerer_address"))
 
-	// Validate parameters if provided
-	if mintHash != "" {
-		if err := validation.ValidateHash(mintHash); err != nil {
-			http.Error(w, "Invalid mint_hash format", http.StatusBadRequest)
-			return
-		}
-	}
-
 	if offererAddress != "" {
 		if err := validation.ValidateAddress(offererAddress); err != nil {
 			http.Error(w, "Invalid offerer_address format", http.StatusBadRequest)
@@ -111,66 +82,15 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 
 	start := page * limit
 	end := start + limit
+	var invoices []store.Invoice
+	var err error
 
-	invoices, err := ir.store.GetInvoices(start, end, mintHash, offererAddress)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+	if mintHash == "" {
+		invoices, err = ir.store.GetInvoicesForMe(start, end, offererAddress)
+	} else {
+		invoices, err = ir.store.GetInvoices(start, end, mintHash, offererAddress)
 	}
 
-	// Clamp the slice range
-	if start >= len(invoices) {
-		respondJSON(w, http.StatusOK, GetInvoicesResponse{})
-		return
-	}
-
-	if end > len(invoices) {
-		end = len(invoices)
-	}
-
-	response := GetInvoicesResponse{
-		Invoices: invoices[start:end],
-		Total:    len(invoices),
-		Page:     page,
-		Limit:    limit,
-	}
-
-	respondJSON(w, http.StatusOK, response)
-}
-
-func (ir *InvoiceRoutes) getMyInvoices(w http.ResponseWriter, r *http.Request) {
-	limitStr := validation.SanitizeQueryParam(r.URL.Query().Get("limit"))
-	limit := 100
-
-	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= limit {
-			limit = l
-		}
-	}
-
-	pageStr := validation.SanitizeQueryParam(r.URL.Query().Get("page"))
-	page := 0
-
-	if pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 && p <= 1000 { // Reasonable page limit
-			page = p
-		}
-	}
-
-	address := validation.SanitizeQueryParam(r.URL.Query().Get("address"))
-
-	if address != "" {
-		if err := validation.ValidateAddress(address); err != nil {
-			http.Error(w, "Invalid address format", http.StatusBadRequest)
-			return
-		}
-	}
-
-	start := page * limit
-	end := start + limit
-
-	invoices, err := ir.store.GetInvoicesForMe(start, end, address)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -273,19 +193,4 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusCreated, response)
-}
-
-func (ir *InvoiceRoutes) postEncodedTransactionBody(w http.ResponseWriter, r *http.Request) {
-	var request CreatePayInvoiceBodyRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	envelope := protocol.NewPaymentTransactionEnvelope(request.InvoiceHash, protocol.ACTION_PAYMENT)
-	encodedTransactionBody := envelope.Serialize()
-
-	respondJSON(w, http.StatusCreated, map[string]string{
-		"encoded_transaction_body": hex.EncodeToString(encodedTransactionBody),
-	})
 }
