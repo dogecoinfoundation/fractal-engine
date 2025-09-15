@@ -16,8 +16,8 @@ type TokenRoutes struct {
 func HandleTokenRoutes(store *store.TokenisationStore, mux *http.ServeMux) {
 	tr := &TokenRoutes{store: store}
 
-	mux.HandleFunc("/token-balances", tr.handleTokenBalances)
-	mux.HandleFunc("/pending-token-balances", tr.handlePendingTokenBalances)
+	mux.HandleFunc("/token-balances/", tr.handleTokenBalances)
+	mux.HandleFunc("/pending-token-balances/", tr.handlePendingTokenBalances)
 }
 
 func (tr *TokenRoutes) handlePendingTokenBalances(w http.ResponseWriter, r *http.Request) {
@@ -43,16 +43,23 @@ func (tr *TokenRoutes) handleTokenBalances(w http.ResponseWriter, r *http.Reques
 // @Tags			Token Balances
 // @Accept			json
 // @Produce		json
-// @Param			address				query		string	false	"Address to get token balances for"
-// @Param			mint_hash			query		string	false	"Filter by mint hash"
+// @Param			address				path		string	true	"Address to get token balances for"
+// @Param			mint_hash			query		string	false	"Filter by mint hash (not avaiable with include_mint_details)"
 // @Param			include_mint_details	query		boolean	false	"Include mint details in response"
 // @Param			limit				query		int		false	"Limit number of results (max 100, only used with include_mint_details)"
 // @Param			page				query		int		false	"Page number (max 1000, only used with include_mint_details)"
 // @Success		200					{object}	interface{}
+// @Failure		400					{object}	string
 // @Failure		500					{object}	string
-// @Router			/token-balances [get]
+// @Router			/token-balances/{address} [get]
 func (tr *TokenRoutes) getTokenBalances(w http.ResponseWriter, r *http.Request) {
-	address := r.URL.Query().Get("address")
+	// Extract address from URL path
+	address := r.URL.Path[len("/token-balances/"):]
+	if address == "" {
+		http.Error(w, "Address is required", http.StatusBadRequest)
+		return
+	}
+
 	mintHash := r.URL.Query().Get("mint_hash")
 	includeMintDetails := r.URL.Query().Get("include_mint_details") == "true"
 
@@ -119,13 +126,20 @@ func (tr *TokenRoutes) getTokenBalances(w http.ResponseWriter, r *http.Request) 
 // @Tags			Token Balances
 // @Accept			json
 // @Produce		json
-// @Param			address		query		string	false	"Address to get pending token balances for"
+// @Param			address		path		string	true	"Address to get pending token balances for"
 // @Param			mint_hash	query		string	false	"Filter by mint hash"
 // @Success		200			{object}	[]store.TokenBalance
+// @Failure		400			{object}	string
 // @Failure		500			{object}	string
-// @Router			/pending-token-balances [get]
+// @Router			/pending-token-balances/{address} [get]
 func (tr *TokenRoutes) getPendingTokenBalances(w http.ResponseWriter, r *http.Request) {
-	address := r.URL.Query().Get("address")
+	// Extract address from URL path
+	address := r.URL.Path[len("/pending-token-balances/"):]
+	if address == "" {
+		http.Error(w, "Address is required", http.StatusBadRequest)
+		return
+	}
+
 	mintHash := r.URL.Query().Get("mint_hash")
 
 	tokenBalances, err := tr.store.GetPendingTokenBalances(address, mintHash)

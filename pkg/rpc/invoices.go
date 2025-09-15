@@ -24,7 +24,7 @@ type InvoiceRoutes struct {
 func HandleInvoiceRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux, cfg *config.Config) {
 	ir := &InvoiceRoutes{store: store, gossipClient: gossipClient, cfg: cfg}
 
-	mux.HandleFunc("/invoices", ir.handleInvoices)
+	mux.HandleFunc("/invoices/", ir.handleInvoices)
 
 }
 
@@ -40,18 +40,30 @@ func (ir *InvoiceRoutes) handleInvoices(w http.ResponseWriter, r *http.Request) 
 }
 
 // @Summary		Get invoices
-// @Description	Returns a list of invoices with optional filtering by mint_hash and offerer_address
+// @Description	Returns a list of invoices with optional filtering by mint_hash and address
 // @Tags			invoices
 // @Accept			json
 // @Produce		json
+// @Param			address			path		string	true	"Filter by address of buyer or seller"
 // @Param			limit			query		int		false	"Limit number of results (max 100)"
 // @Param			page			query		int		false	"Page number (max 1000)"
 // @Param			mint_hash		query		string	false	"Filter by mint hash"
-// @Param			offerer_address	query		string	true	"Filter by address of buyer or seller"
 // @Success		200				{object}	GetInvoicesResponse
 // @Failure		400				{object}	string
-// @Router			/invoices [get]
+// @Router			/invoices/{address} [get]
 func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
+	// Extract address from URL path
+	address := r.URL.Path[len("/invoices/"):]
+	if address == "" {
+		http.Error(w, "Address is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := validation.ValidateAddress(address); err != nil {
+		http.Error(w, "Invalid address format", http.StatusBadRequest)
+		return
+	}
+
 	limitStr := validation.SanitizeQueryParam(r.URL.Query().Get("limit"))
 	limit := 100
 
@@ -71,14 +83,6 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mintHash := validation.SanitizeQueryParam(r.URL.Query().Get("mint_hash"))
-	offererAddress := validation.SanitizeQueryParam(r.URL.Query().Get("offerer_address"))
-
-	if offererAddress != "" {
-		if err := validation.ValidateAddress(offererAddress); err != nil {
-			http.Error(w, "Invalid offerer_address format", http.StatusBadRequest)
-			return
-		}
-	}
 
 	start := page * limit
 	end := start + limit
@@ -86,9 +90,9 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if mintHash == "" {
-		invoices, err = ir.store.GetInvoicesForMe(start, end, offererAddress)
+		invoices, err = ir.store.GetInvoicesForMe(start, end, address)
 	} else {
-		invoices, err = ir.store.GetInvoices(start, end, mintHash, offererAddress)
+		invoices, err = ir.store.GetInvoices(start, end, mintHash, address)
 	}
 
 	if err != nil {
