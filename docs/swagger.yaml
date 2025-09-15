@@ -1,4 +1,14 @@
 definitions:
+  pkg_rpc.SendRequest:
+    properties:
+      encoded_transaction_hex:
+        type: string
+    type: object
+  pkg_rpc.SendResponse:
+    properties:
+      transaction_id:
+        type: string
+    type: object
   dogecoin_org_fractal-engine_pkg_store.Mint:
     properties:
       block_height:
@@ -152,6 +162,88 @@ info:
   title: Fractal Engine API
   version: "1.0"
 paths:
+  /doge/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Generates 10 blocks for transaction confirmation
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Blocks generated successfully
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Confirm transactions by generating blocks
+      tags:
+      - doge
+  /doge/send:
+    post:
+      consumes:
+      - application/json
+      description: Sends a raw transaction to the Dogecoin network
+      parameters:
+      - description: Send transaction request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_rpc.SendRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Transaction sent successfully
+          schema:
+            $ref: '#/definitions/pkg_rpc.SendResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Send a raw transaction
+      tags:
+      - doge
+  /doge/top-up:
+    post:
+      consumes:
+      - application/json
+      description: Sends 1000 DOGE to the specified address for testing/development
+      parameters:
+      - description: Dogecoin address to send funds to
+        in: query
+        name: address
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Top-up successful
+          schema:
+            type: string
+        "400":
+          description: Bad Request - Address is required
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Top up an address with test DOGE
+      tags:
+      - doge
   /buy-offers:
     post:
       consumes:
