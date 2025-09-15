@@ -13,7 +13,6 @@ import (
 )
 
 func (c *DogeNetClient) GossipMint(record store.Mint) error {
-
 	mintMessage := protocol.MintMessage{
 		Title:           record.Title,
 		Description:     record.Description,
@@ -119,7 +118,13 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 		return
 	}
 
-	address, err := doge.PublicKeyToDogeAddress(envelope.PublicKey, doge.PrefixRegtest)
+	prefix, err := doge.GetPrefix(c.cfg.DogeNetChain)
+	if err != nil {
+		log.Println("Error getting prefix:", err)
+		return
+	}
+
+	address, err := doge.PublicKeyToDogeAddress(envelope.PublicKey, prefix)
 	if err != nil {
 		log.Println("Error converting public key to doge address:", err)
 		return

@@ -24,7 +24,7 @@ type InvoiceRoutes struct {
 func HandleInvoiceRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux, cfg *config.Config) {
 	ir := &InvoiceRoutes{store: store, gossipClient: gossipClient, cfg: cfg}
 
-	mux.HandleFunc("/invoices/", ir.handleInvoices)
+	mux.HandleFunc("/invoices", ir.handleInvoices)
 
 }
 

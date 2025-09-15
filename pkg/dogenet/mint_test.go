@@ -11,6 +11,7 @@ import (
 	"dogecoin.org/fractal-engine/internal/test/support"
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
@@ -249,16 +250,17 @@ func TestRecvMintViaStartWithConn(t *testing.T) {
 	// Wait for ready
 	support.WaitForDogeNetClient(client)
 
+	privKey, dogePubKey, dogeAddress, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
+	assert.NilError(t, err)
+
 	// Create test mint message to send TO the client
-	testTime := time.Now()
 	mintMessage := &protocol.MintMessage{
-		Hash:          "hash123",
 		Title:         "Test Mint",
 		Description:   "Test Description",
 		FractionCount: 100,
 		Tags:          []string{"test", "mint"},
 		FeedUrl:       "https://example.com/feed",
-		CreatedAt:     timestamppb.New(testTime),
+		OwnerAddress:  dogeAddress,
 		Metadata: &structpb.Struct{
 			Fields: map[string]*structpb.Value{
 				"key1": {Kind: &structpb.Value_StringValue{StringValue: "value1"}},
@@ -277,10 +279,15 @@ func TestRecvMintViaStartWithConn(t *testing.T) {
 		},
 	}
 
+	signature, err := doge.SignPayload(mintMessage, privKey, dogePubKey)
+	assert.NilError(t, err)
+
 	envelope := &protocol.MintMessageEnvelope{
-		Type:    protocol.ACTION_MINT,
-		Version: protocol.DEFAULT_VERSION,
-		Payload: mintMessage,
+		Type:      protocol.ACTION_MINT,
+		Version:   protocol.DEFAULT_VERSION,
+		Payload:   mintMessage,
+		PublicKey: dogePubKey,
+		Signature: signature,
 	}
 
 	data, err := proto.Marshal(envelope)
@@ -300,7 +307,6 @@ func TestRecvMintViaStartWithConn(t *testing.T) {
 	assert.Equal(t, 1, len(mints))
 
 	savedMint := mints[0]
-	assert.Equal(t, "hash123", savedMint.Hash)
 	assert.Equal(t, "Test Mint", savedMint.Title)
 	assert.Equal(t, "Test Description", savedMint.Description)
 	assert.Equal(t, 100, savedMint.FractionCount)
