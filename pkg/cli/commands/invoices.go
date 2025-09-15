@@ -50,6 +50,18 @@ var InvoiceCommand = &cli.Command{
 				},
 			},
 		},
+		{
+			Name:   "pay",
+			Usage:  "Pay an invoice",
+			Action: payInvoiceAction,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:  "config-path",
+					Usage: "Path to the config file",
+					Value: "config.toml",
+				},
+			},
+		},
 	},
 }
 
@@ -72,21 +84,7 @@ func listInvoicesAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal(err)
 	}
 
-	var mintHash string
-
-	group := huh.NewGroup(
-		huh.NewInput().
-			Title("What is the token hash?").
-			Value(&mintHash),
-	)
-
-	form := huh.NewForm(group)
-	err = form.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	invoices, err := tokenisationClient.GetInvoices(1, 10, mintHash, address)
+	invoices, err := tokenisationClient.GetMyInvoices(0, 10, address)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,7 +132,7 @@ func createInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal(err)
 	}
 
-	buyOffers, err := tokenisationClient.GetBuyOffersBySellerAddress(1, 10, mintHash, address)
+	buyOffers, err := tokenisationClient.GetBuyOffersBySellerAddress(0, 10, mintHash, address)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -233,7 +231,7 @@ func createInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal(err)
 	}
 
-	signature, err := doge.SignPayload(payloadBytes, privHex)
+	signature, err := doge.SignPayload(payloadBytes, privHex, pubHex)
 	if err != nil {
 		log.Fatal(err)
 	}

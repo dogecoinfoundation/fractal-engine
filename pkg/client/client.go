@@ -25,12 +25,7 @@ func NewTokenisationClient(baseUrl string, privHex string, pubHex string) *Token
 }
 
 func (c *TokenisationClient) CreateInvoice(invoice *rpc.CreateInvoiceRequest) (rpc.CreateInvoiceResponse, error) {
-	payloadBytes, err := json.Marshal(invoice.Payload)
-	if err != nil {
-		return rpc.CreateInvoiceResponse{}, err
-	}
-
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	signature, err := doge.SignPayload(invoice.Payload, c.privHex, c.pubHex)
 	if err != nil {
 		return rpc.CreateInvoiceResponse{}, err
 	}
@@ -89,6 +84,30 @@ func (c *TokenisationClient) GetInvoices(page int, limit int, mintHash string, o
 	return result, nil
 }
 
+func (c *TokenisationClient) GetMyInvoices(page int, limit int, address string) (rpc.GetInvoicesResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/my-invoices?page=%d&limit=%d&address=%s", page, limit, address))
+	if err != nil {
+		return rpc.GetInvoicesResponse{}, err
+	}
+
+	fmt.Println("URL: ", c.baseUrl+fmt.Sprintf("/my-invoices?page=%d&limit=%d&address=%s", page, limit, address))
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rpc.GetInvoicesResponse{}, fmt.Errorf("failed to get invoices: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.GetInvoicesResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.GetInvoicesResponse{}, err
+	}
+
+	return result, nil
+}
+
 func (c *TokenisationClient) GetHealth() (rpc.GetHealthResponse, error) {
 	resp, err := c.httpClient.Get(c.baseUrl + "/health")
 	if err != nil {
@@ -117,7 +136,7 @@ func (c *TokenisationClient) CreateBuyOffer(offer *rpc.CreateBuyOfferRequest) (r
 		return rpc.CreateOfferResponse{}, err
 	}
 
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	signature, err := doge.SignPayload(payloadBytes, c.privHex, c.pubHex)
 	if err != nil {
 		return rpc.CreateOfferResponse{}, err
 	}
@@ -161,7 +180,7 @@ func (c *TokenisationClient) DeleteBuyOffer(offer *rpc.DeleteBuyOfferRequest) (s
 		return "", err
 	}
 
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	signature, err := doge.SignPayload(payloadBytes, c.privHex, c.pubHex)
 	if err != nil {
 		return "", err
 	}
@@ -197,7 +216,7 @@ func (c *TokenisationClient) DeleteSellOffer(offer *rpc.DeleteSellOfferRequest) 
 		return "", err
 	}
 
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	signature, err := doge.SignPayload(payloadBytes, c.privHex, c.pubHex)
 	if err != nil {
 		return "", err
 	}
@@ -233,7 +252,7 @@ func (c *TokenisationClient) CreateSellOffer(offer *rpc.CreateSellOfferRequest) 
 		return rpc.CreateOfferResponse{}, err
 	}
 
-	signature, err := doge.SignPayload(payloadBytes, c.privHex)
+	signature, err := doge.SignPayload(payloadBytes, c.privHex, c.pubHex)
 	if err != nil {
 		return rpc.CreateOfferResponse{}, err
 	}

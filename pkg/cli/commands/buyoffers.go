@@ -229,7 +229,7 @@ func createBuyOfferAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal(err)
 	}
 
-	signature, err := doge.SignPayload(payloadBytes, privHex)
+	signature, err := doge.SignPayload(payloadBytes, privHex, pubHex)
 	if err != nil {
 		log.Fatal(err)
 	}

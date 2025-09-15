@@ -137,7 +137,7 @@ func (or *OfferRoutes) getSellOffers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pageStr := r.URL.Query().Get("page")
-	page := 1
+	page := 0
 
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
@@ -148,7 +148,7 @@ func (or *OfferRoutes) getSellOffers(w http.ResponseWriter, r *http.Request) {
 	// max 100 records per page
 	limit = int(math.Min(float64(limit), 100))
 
-	start := (page - 1) * limit
+	start := page * limit
 	end := start + limit
 
 	mintHash := r.URL.Query().Get("mint_hash")
@@ -286,7 +286,7 @@ func (or *OfferRoutes) getBuyOffers(w http.ResponseWriter, r *http.Request) {
 	limit = int(math.Min(float64(limit), 100))
 
 	pageStr := r.URL.Query().Get("page")
-	page := 1
+	page := 0
 
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
@@ -297,7 +297,7 @@ func (or *OfferRoutes) getBuyOffers(w http.ResponseWriter, r *http.Request) {
 	mintHash := r.URL.Query().Get("mint_hash")
 	sellerAddress := r.URL.Query().Get("seller_address")
 
-	start := (page - 1) * limit
+	start := page * limit
 	end := start + limit
 
 	offers, err := or.store.GetBuyOffersByMintAndSellerAddress(start, end, mintHash, sellerAddress)

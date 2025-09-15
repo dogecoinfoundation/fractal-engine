@@ -27,6 +27,7 @@ func main() {
 	var dogeNetNetwork string
 	var dogeNetAddress string
 	var dogeNetWebAddress string
+	var dogeNetDbFile string
 	var dogeScheme string
 	var dogeHost string
 	var dogePort string
@@ -54,6 +55,8 @@ func main() {
 	flag.StringVar(&dogeNetNetwork, "doge-net-network", getEnv("DOGE_NET_NETWORK", "tcp"), "DogeNet Network")
 	flag.StringVar(&dogeNetAddress, "doge-net-address", getEnv("DOGE_NET_ADDRESS", "0.0.0.0:8086"), "DogeNet Address")
 	flag.StringVar(&dogeNetWebAddress, "doge-net-web-address", getEnv("DOGE_NET_WEB_ADDRESS", "0.0.0.0:8085"), "DogeNet Web Address")
+	flag.StringVar(&dogeNetDbFile, "doge-net-db-file", getEnv("DOGE_NET_DB_FILE", "dogenet.db"), "DogeNet DB File")
+
 	flag.BoolVar(&embedDogenet, "embed-dogenet", getEnvBool("EMBED_DOGENET", true), "Embed the DogeNet service")
 	flag.StringVar(&dogeScheme, "doge-scheme", getEnv("DOGE_SCHEME", "http"), "Doge Scheme")
 	flag.StringVar(&dogeHost, "doge-host", getEnv("DOGE_HOST", "0.0.0.0"), "Doge Host")
@@ -128,7 +131,6 @@ func main() {
 
 	if embedDogenet {
 		const WebAPIDefaultPort = 8085
-		const DBFile = "dogenet.db"
 		const DefaultStorage = "./storage"
 
 		dogeNetServerKp, err := dnet.GenerateKeyPair()
@@ -155,7 +157,7 @@ func main() {
 
 		err = dn.DogeNet(gov, dn.DogeNetConfig{
 			Dir:          DefaultStorage,
-			DBFile:       DBFile,
+			DBFile:       dogeNetDbFile,
 			Binds:        []dnet.Address{addy},
 			BindWeb:      []dnet.Address{webAddy},
 			HandlerBind:  HandlerDefaultBind,

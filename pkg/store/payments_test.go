@@ -40,15 +40,12 @@ func TestMatchPaymentSuccess(t *testing.T) {
 
 	// Step 1: Create and match mint
 	_, err := tokenStore.SaveUnconfirmedMint(&store.MintWithoutID{
-		Hash:          mintHash,
-		Title:         "Test Mint",
-		Description:   "Test Description",
-		FractionCount: 100,
-		BlockHeight:   1,
-		TransactionHash: sql.NullString{
-			String: "mintTx",
-			Valid:  true,
-		},
+		Hash:            mintHash,
+		Title:           "Test Mint",
+		Description:     "Test Description",
+		FractionCount:   100,
+		BlockHeight:     1,
+		TransactionHash: "mintTx",
 	})
 	assert.NilError(t, err)
 
