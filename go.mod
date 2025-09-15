@@ -22,7 +22,7 @@ require (
 	github.com/gorilla/mux v1.7.4
 	github.com/gowebpki/jcs v1.0.1
 	github.com/lib/pq v1.10.9
-	github.com/mattn/go-sqlite3 v1.14.28
+	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/shopspring/decimal v1.4.0
 	github.com/swaggo/swag v1.16.4
 	github.com/testcontainers/testcontainers-go v0.38.0
@@ -134,7 +134,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.5.0
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
