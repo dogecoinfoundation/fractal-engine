@@ -7,9 +7,9 @@
         "version": "1.0"
     },
     "paths": {
-        "/buy-offers": {
+        "/doge/confirm": {
             "post": {
-                "description": "Creates a new buy offer",
+                "description": "Generates 10 blocks for transaction confirmation",
                 "consumes": [
                     "application/json"
                 ],
@@ -17,17 +17,55 @@
                     "application/json"
                 ],
                 "tags": [
-                    "buy-offers"
+                    "doge"
                 ],
-                "summary": "Create a buy offer",
+                "summary": "Confirm transactions by generating blocks (Regtest only)",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/doge/send": {
+            "post": {
+                "description": "Sends a raw transaction to the Dogecoin network",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "doge"
+                ],
+                "summary": "Send a raw transaction",
                 "parameters": [
                     {
-                        "description": "Buy offer request",
+                        "description": "Send transaction request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/pkg_rpc.CreateBuyOfferRequest"
+                            "$ref": "#/definitions/rpc.SendRequest"
                         }
                     }
                 ],
@@ -35,7 +73,51 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/pkg_rpc.CreateOfferResponse"
+                            "$ref": "#/definitions/rpc.SendResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/doge/top-up": {
+            "post": {
+                "description": "Sends 1000 DOGE to the specified address for testing/development",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "doge"
+                ],
+                "summary": "Top up an address with test DOGE (Regtest only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Dogecoin address to send funds to",
+                        "name": "address",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "400": {
@@ -70,11 +152,117 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg_rpc.GetHealthResponse"
+                            "$ref": "#/definitions/rpc.GetHealthResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/invoices": {
+            "get": {
+                "description": "Returns a list of invoices with optional filtering by mint_hash and offerer_address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "invoices"
+                ],
+                "summary": "Get invoices",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Limit number of results (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (max 1000)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by mint hash",
+                        "name": "mint_hash",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by address of buyer or seller",
+                        "name": "offerer_address",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/rpc.GetInvoicesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/mint-token-balances": {
+            "get": {
+                "description": "Returns token balances with associated mint information for an address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Token Balances"
+                ],
+                "summary": "Get token balances with mint details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Address to get token balances for",
+                        "name": "address",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit number of results (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (max 1000)",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/rpc.GetTokenBalanceWithMintsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -113,7 +301,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg_rpc.GetMintsResponse"
+                            "$ref": "#/definitions/rpc.GetMintsResponse"
                         }
                     },
                     "400": {
@@ -149,7 +337,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/pkg_rpc.CreateMintRequest"
+                            "$ref": "#/definitions/rpc.CreateMintRequest"
                         }
                     }
                 ],
@@ -157,13 +345,102 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/pkg_rpc.CreateMintResponse"
+                            "$ref": "#/definitions/rpc.CreateMintResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/new": {
+            "post": {
+                "description": "Generates an encoded transaction body for paying an invoice",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "summary": "Prepares an encoded transaction body for a new payment",
+                "parameters": [
+                    {
+                        "description": "Payment request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/rpc.CreateNewPaymentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/pending-token-balances": {
+            "get": {
+                "description": "Returns pending token balances for an address, optionally filtered by mint hash",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Token Balances"
+                ],
+                "summary": "Get pending token balances",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Address to get pending token balances for",
+                        "name": "address",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by mint hash",
+                        "name": "mint_hash",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/store.TokenBalance"
+                            }
                         }
                     },
                     "500": {
@@ -192,7 +469,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg_rpc.GetStatsResponse"
+                            "$ref": "#/definitions/rpc.GetStatsResponse"
                         }
                     },
                     "400": {
@@ -203,14 +480,306 @@
                     }
                 }
             }
+        },
+        "/token-balances": {
+            "get": {
+                "description": "Returns token balances for an address, optionally filtered by mint hash",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Token Balances"
+                ],
+                "summary": "Get token balances",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Address to get token balances for",
+                        "name": "address",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by mint hash",
+                        "name": "mint_hash",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/store.TokenBalance"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "dogecoin_org_fractal-engine_pkg_store.Mint": {
+        "rpc.CreateMintRequest": {
+            "type": "object",
+            "properties": {
+                "payload": {
+                    "$ref": "#/definitions/rpc.CreateMintRequestPayload"
+                },
+                "public_key": {
+                    "type": "string"
+                },
+                "signature": {
+                    "type": "string"
+                }
+            }
+        },
+        "rpc.CreateMintRequestPayload": {
+            "type": "object",
+            "properties": {
+                "contract_of_sale": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "feed_url": {
+                    "type": "string"
+                },
+                "fraction_count": {
+                    "type": "integer"
+                },
+                "lockup_options": {
+                    "$ref": "#/definitions/store.StringInterfaceMap"
+                },
+                "metadata": {
+                    "$ref": "#/definitions/store.StringInterfaceMap"
+                },
+                "owner_address": {
+                    "type": "string"
+                },
+                "requirements": {
+                    "$ref": "#/definitions/store.StringInterfaceMap"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "rpc.CreateMintResponse": {
+            "type": "object",
+            "properties": {
+                "encoded_transaction_body": {
+                    "type": "string"
+                },
+                "hash": {
+                    "type": "string"
+                }
+            }
+        },
+        "rpc.CreateNewPaymentRequest": {
+            "type": "object",
+            "properties": {
+                "invoice_hash": {
+                    "type": "string"
+                }
+            }
+        },
+        "rpc.GetHealthResponse": {
+            "type": "object",
+            "properties": {
+                "chain": {
+                    "type": "string"
+                },
+                "current_block_height": {
+                    "type": "integer"
+                },
+                "latest_block_height": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "wallets_enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "rpc.GetInvoicesResponse": {
+            "type": "object",
+            "properties": {
+                "invoices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/store.Invoice"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "rpc.GetMintsResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "mints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/store.Mint"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "rpc.GetStatsResponse": {
+            "type": "object",
+            "properties": {
+                "stats": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "rpc.GetTokenBalanceWithMintsResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "mints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/store.TokenBalanceWithMint"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "rpc.SendRequest": {
+            "type": "object",
+            "properties": {
+                "encoded_transaction_hex": {
+                    "type": "string"
+                }
+            }
+        },
+        "rpc.SendResponse": {
+            "type": "object",
+            "properties": {
+                "transaction_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "sql.NullTime": {
+            "type": "object",
+            "properties": {
+                "time": {
+                    "type": "string"
+                },
+                "valid": {
+                    "description": "Valid is true if Time is not NULL",
+                    "type": "boolean"
+                }
+            }
+        },
+        "store.Invoice": {
             "type": "object",
             "properties": {
                 "block_height": {
                     "type": "integer"
+                },
+                "buyer_address": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "hash": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mint_hash": {
+                    "type": "string"
+                },
+                "paid_at": {
+                    "$ref": "#/definitions/sql.NullTime"
+                },
+                "payment_address": {
+                    "type": "string"
+                },
+                "pending_token_balance_id": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "public_key": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "seller_address": {
+                    "type": "string"
+                },
+                "signature": {
+                    "type": "string"
+                },
+                "transaction_hash": {
+                    "type": "string"
+                }
+            }
+        },
+        "store.Mint": {
+            "type": "object",
+            "properties": {
+                "block_height": {
+                    "type": "integer"
+                },
+                "contract_of_sale": {
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
@@ -231,10 +800,10 @@
                     "type": "string"
                 },
                 "lockup_options": {
-                    "$ref": "#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap"
+                    "$ref": "#/definitions/store.StringInterfaceMap"
                 },
                 "metadata": {
-                    "$ref": "#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap"
+                    "$ref": "#/definitions/store.StringInterfaceMap"
                 },
                 "owner_address": {
                     "type": "string"
@@ -243,7 +812,7 @@
                     "type": "string"
                 },
                 "requirements": {
-                    "$ref": "#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap"
+                    "$ref": "#/definitions/store.StringInterfaceMap"
                 },
                 "signature": {
                     "type": "string"
@@ -258,68 +827,49 @@
                     "type": "string"
                 },
                 "transaction_hash": {
-                    "$ref": "#/definitions/sql.NullString"
+                    "type": "string"
                 }
             }
         },
-        "dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap": {
+        "store.StringInterfaceMap": {
             "type": "object",
             "additionalProperties": true
         },
-        "pkg_rpc.CreateBuyOfferRequest": {
-            "type": "object",
-            "properties": {
-                "payload": {
-                    "$ref": "#/definitions/pkg_rpc.CreateBuyOfferRequestPayload"
-                },
-                "public_key": {
-                    "type": "string"
-                },
-                "signature": {
-                    "type": "string"
-                }
-            }
-        },
-        "pkg_rpc.CreateBuyOfferRequestPayload": {
-            "type": "object",
-            "properties": {
-                "mint_hash": {
-                    "type": "string"
-                },
-                "offerer_address": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "integer"
-                },
-                "quantity": {
-                    "type": "integer"
-                },
-                "seller_address": {
-                    "type": "string"
-                }
-            }
-        },
-        "pkg_rpc.CreateMintRequest": {
+        "store.TokenBalance": {
             "type": "object",
             "properties": {
                 "address": {
                     "type": "string"
                 },
-                "payload": {
-                    "$ref": "#/definitions/pkg_rpc.CreateMintRequestPayload"
-                },
-                "public_key": {
+                "created_at": {
                     "type": "string"
                 },
-                "signature": {
+                "mint_hash": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "pkg_rpc.CreateMintRequestPayload": {
+        "store.TokenBalanceWithMint": {
             "type": "object",
             "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "block_height": {
+                    "type": "integer"
+                },
+                "contract_of_sale": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -329,14 +879,32 @@
                 "fraction_count": {
                     "type": "integer"
                 },
+                "hash": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
                 "lockup_options": {
-                    "$ref": "#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap"
+                    "$ref": "#/definitions/store.StringInterfaceMap"
                 },
                 "metadata": {
-                    "$ref": "#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap"
+                    "$ref": "#/definitions/store.StringInterfaceMap"
+                },
+                "owner_address": {
+                    "type": "string"
+                },
+                "public_key": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
                 },
                 "requirements": {
-                    "$ref": "#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap"
+                    "$ref": "#/definitions/store.StringInterfaceMap"
+                },
+                "signature": {
+                    "type": "string"
                 },
                 "tags": {
                     "type": "array",
@@ -346,88 +914,12 @@
                 },
                 "title": {
                     "type": "string"
-                }
-            }
-        },
-        "pkg_rpc.CreateMintResponse": {
-            "type": "object",
-            "properties": {
-                "hash": {
-                    "type": "string"
-                }
-            }
-        },
-        "pkg_rpc.CreateOfferResponse": {
-            "type": "object",
-            "properties": {
-                "hash": {
-                    "type": "string"
                 },
-                "id": {
+                "transaction_hash": {
                     "type": "string"
-                }
-            }
-        },
-        "pkg_rpc.GetHealthResponse": {
-            "type": "object",
-            "properties": {
-                "chain": {
-                    "type": "string"
-                },
-                "current_block_height": {
-                    "type": "integer"
-                },
-                "latest_block_height": {
-                    "type": "integer"
                 },
                 "updated_at": {
                     "type": "string"
-                },
-                "wallets_enabled": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "pkg_rpc.GetMintsResponse": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "mints": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dogecoin_org_fractal-engine_pkg_store.Mint"
-                    }
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "pkg_rpc.GetStatsResponse": {
-            "type": "object",
-            "properties": {
-                "stats": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "sql.NullString": {
-            "type": "object",
-            "properties": {
-                "string": {
-                    "type": "string"
-                },
-                "valid": {
-                    "description": "Valid is true if String is not NULL",
-                    "type": "boolean"
                 }
             }
         }

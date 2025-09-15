@@ -258,20 +258,6 @@ func (or *OfferRoutes) postSellOffer(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, response)
 }
 
-// @Summary		Get all buy offers
-// @Description	Returns a list of buy offers
-// @Tags			buy-offers
-// @Accept			json
-// @Produce		json
-// @Param			limit	query		int	false	"Limit"
-// @Param			page	query		int	false	"Page"
-// @Param			mint_hash	query		string	false	"Mint hash"
-// @Param			type	query		int	false	"Type"
-// @Success		200		{object}	GetOffersResponse
-// @Failure		400		{object}	string
-// @Failure		500		{object}	string
-// @Router			/buy-offers [get]
-
 func (or *OfferRoutes) getBuyOffers(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.URL.Query().Get("limit")
 	limit := 100
@@ -341,16 +327,6 @@ func (or *OfferRoutes) getBuyOffers(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, response)
 }
 
-// @Summary		Create a buy offer
-// @Description	Creates a new buy offer
-// @Tags			buy-offers
-// @Accept			json
-// @Produce		json
-// @Param			request	body		CreateBuyOfferRequest	true	"Buy offer request"
-// @Success		201		{object}	CreateOfferResponse
-// @Failure		400		{object}	string
-// @Failure		500		{object}	string
-// @Router			/buy-offers [post]
 func (or *OfferRoutes) postBuyOffer(w http.ResponseWriter, r *http.Request) {
 	var request CreateBuyOfferRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {

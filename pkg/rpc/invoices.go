@@ -47,7 +47,7 @@ func (ir *InvoiceRoutes) handleInvoices(w http.ResponseWriter, r *http.Request) 
 // @Param			limit			query		int		false	"Limit number of results (max 100)"
 // @Param			page			query		int		false	"Page number (max 1000)"
 // @Param			mint_hash		query		string	false	"Filter by mint hash"
-// @Param			offerer_address	query		string	false	"Filter by offerer address"
+// @Param			offerer_address	query		string	true	"Filter by address of buyer or seller"
 // @Success		200				{object}	GetInvoicesResponse
 // @Failure		400				{object}	string
 // @Router			/invoices [get]

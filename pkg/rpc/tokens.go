@@ -41,7 +41,7 @@ func (tr *TokenRoutes) handleTokenBalances(w http.ResponseWriter, r *http.Reques
 
 // @Summary		Get token balances with mint details
 // @Description	Returns token balances with associated mint information for an address
-// @Tags			tokens
+// @Tags			Token Balances
 // @Accept			json
 // @Produce		json
 // @Param			address	query		string	true	"Address to get token balances for"
@@ -101,7 +101,7 @@ func (tr *TokenRoutes) getTokenBalancesWithMints(w http.ResponseWriter, r *http.
 
 // @Summary		Get token balances
 // @Description	Returns token balances for an address, optionally filtered by mint hash
-// @Tags			tokens
+// @Tags			Token Balances
 // @Accept			json
 // @Produce		json
 // @Param			address		query		string	false	"Address to get token balances for"
@@ -124,7 +124,7 @@ func (tr *TokenRoutes) getTokenBalances(w http.ResponseWriter, r *http.Request) 
 
 // @Summary		Get pending token balances
 // @Description	Returns pending token balances for an address, optionally filtered by mint hash
-// @Tags			tokens
+// @Tags			Token Balances
 // @Accept			json
 // @Produce		json
 // @Param			address		query		string	false	"Address to get pending token balances for"

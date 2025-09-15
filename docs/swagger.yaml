@@ -1,18 +1,168 @@
 definitions:
-  pkg_rpc.SendRequest:
+  rpc.CreateMintRequest:
+    properties:
+      payload:
+        $ref: '#/definitions/rpc.CreateMintRequestPayload'
+      public_key:
+        type: string
+      signature:
+        type: string
+    type: object
+  rpc.CreateMintRequestPayload:
+    properties:
+      contract_of_sale:
+        type: string
+      description:
+        type: string
+      feed_url:
+        type: string
+      fraction_count:
+        type: integer
+      lockup_options:
+        $ref: '#/definitions/store.StringInterfaceMap'
+      metadata:
+        $ref: '#/definitions/store.StringInterfaceMap'
+      owner_address:
+        type: string
+      requirements:
+        $ref: '#/definitions/store.StringInterfaceMap'
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+    type: object
+  rpc.CreateMintResponse:
+    properties:
+      encoded_transaction_body:
+        type: string
+      hash:
+        type: string
+    type: object
+  rpc.CreateNewPaymentRequest:
+    properties:
+      invoice_hash:
+        type: string
+    type: object
+  rpc.GetHealthResponse:
+    properties:
+      chain:
+        type: string
+      current_block_height:
+        type: integer
+      latest_block_height:
+        type: integer
+      updated_at:
+        type: string
+      version:
+        type: string
+      wallets_enabled:
+        type: boolean
+    type: object
+  rpc.GetInvoicesResponse:
+    properties:
+      invoices:
+        items:
+          $ref: '#/definitions/store.Invoice'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  rpc.GetMintsResponse:
+    properties:
+      limit:
+        type: integer
+      mints:
+        items:
+          $ref: '#/definitions/store.Mint'
+        type: array
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  rpc.GetStatsResponse:
+    properties:
+      stats:
+        additionalProperties:
+          type: integer
+        type: object
+    type: object
+  rpc.GetTokenBalanceWithMintsResponse:
+    properties:
+      limit:
+        type: integer
+      mints:
+        items:
+          $ref: '#/definitions/store.TokenBalanceWithMint'
+        type: array
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  rpc.SendRequest:
     properties:
       encoded_transaction_hex:
         type: string
     type: object
-  pkg_rpc.SendResponse:
+  rpc.SendResponse:
     properties:
       transaction_id:
         type: string
     type: object
-  dogecoin_org_fractal-engine_pkg_store.Mint:
+  sql.NullTime:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+  store.Invoice:
     properties:
       block_height:
         type: integer
+      buyer_address:
+        type: string
+      created_at:
+        type: string
+      hash:
+        type: string
+      id:
+        type: string
+      mint_hash:
+        type: string
+      paid_at:
+        $ref: '#/definitions/sql.NullTime'
+      payment_address:
+        type: string
+      pending_token_balance_id:
+        type: string
+      price:
+        type: integer
+      public_key:
+        type: string
+      quantity:
+        type: integer
+      seller_address:
+        type: string
+      signature:
+        type: string
+      transaction_hash:
+        type: string
+    type: object
+  store.Mint:
+    properties:
+      block_height:
+        type: integer
+      contract_of_sale:
+        type: string
       created_at:
         type: string
       description:
@@ -26,15 +176,15 @@ definitions:
       id:
         type: string
       lockup_options:
-        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+        $ref: '#/definitions/store.StringInterfaceMap'
       metadata:
-        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+        $ref: '#/definitions/store.StringInterfaceMap'
       owner_address:
         type: string
       public_key:
         type: string
       requirements:
-        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+        $ref: '#/definitions/store.StringInterfaceMap'
       signature:
         type: string
       tags:
@@ -44,117 +194,68 @@ definitions:
       title:
         type: string
       transaction_hash:
-        $ref: '#/definitions/sql.NullString'
+        type: string
     type: object
-  dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap:
+  store.StringInterfaceMap:
     additionalProperties: true
     type: object
-  pkg_rpc.CreateBuyOfferRequest:
-    properties:
-      payload:
-        $ref: '#/definitions/pkg_rpc.CreateBuyOfferRequestPayload'
-      public_key:
-        type: string
-      signature:
-        type: string
-    type: object
-  pkg_rpc.CreateBuyOfferRequestPayload:
-    properties:
-      mint_hash:
-        type: string
-      offerer_address:
-        type: string
-      price:
-        type: integer
-      quantity:
-        type: integer
-      seller_address:
-        type: string
-    type: object
-  pkg_rpc.CreateMintRequest:
+  store.TokenBalance:
     properties:
       address:
         type: string
-      payload:
-        $ref: '#/definitions/pkg_rpc.CreateMintRequestPayload'
-      public_key:
+      created_at:
         type: string
-      signature:
+      mint_hash:
+        type: string
+      quantity:
+        type: integer
+      updated_at:
         type: string
     type: object
-  pkg_rpc.CreateMintRequestPayload:
+  store.TokenBalanceWithMint:
     properties:
+      address:
+        type: string
+      block_height:
+        type: integer
+      contract_of_sale:
+        type: string
+      created_at:
+        type: string
       description:
         type: string
       feed_url:
         type: string
       fraction_count:
         type: integer
+      hash:
+        type: string
+      id:
+        type: string
       lockup_options:
-        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+        $ref: '#/definitions/store.StringInterfaceMap'
       metadata:
-        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+        $ref: '#/definitions/store.StringInterfaceMap'
+      owner_address:
+        type: string
+      public_key:
+        type: string
+      quantity:
+        type: integer
       requirements:
-        $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.StringInterfaceMap'
+        $ref: '#/definitions/store.StringInterfaceMap'
+      signature:
+        type: string
       tags:
         items:
           type: string
         type: array
       title:
         type: string
-    type: object
-  pkg_rpc.CreateMintResponse:
-    properties:
-      hash:
+      transaction_hash:
         type: string
-    type: object
-  pkg_rpc.CreateOfferResponse:
-    properties:
-      hash:
-        type: string
-      id:
-        type: string
-    type: object
-  pkg_rpc.GetHealthResponse:
-    properties:
-      chain:
-        type: string
-      current_block_height:
-        type: integer
-      latest_block_height:
-        type: integer
       updated_at:
         type: string
-      wallets_enabled:
-        type: boolean
-    type: object
-  pkg_rpc.GetMintsResponse:
-    properties:
-      limit:
-        type: integer
-      mints:
-        items:
-          $ref: '#/definitions/dogecoin_org_fractal-engine_pkg_store.Mint'
-        type: array
-      page:
-        type: integer
-      total:
-        type: integer
-    type: object
-  pkg_rpc.GetStatsResponse:
-    properties:
-      stats:
-        additionalProperties:
-          type: integer
-        type: object
-    type: object
-  sql.NullString:
-    properties:
-      string:
-        type: string
-      valid:
-        description: Valid is true if String is not NULL
-        type: boolean
     type: object
 info:
   contact: {}
@@ -171,8 +272,10 @@ paths:
       - application/json
       responses:
         "201":
-          description: Blocks generated successfully
+          description: Created
           schema:
+            additionalProperties:
+              type: string
             type: object
         "400":
           description: Bad Request
@@ -182,7 +285,7 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Confirm transactions by generating blocks
+      summary: Confirm transactions by generating blocks (Regtest only)
       tags:
       - doge
   /doge/send:
@@ -196,14 +299,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/pkg_rpc.SendRequest'
+          $ref: '#/definitions/rpc.SendRequest'
       produces:
       - application/json
       responses:
         "201":
-          description: Transaction sent successfully
+          description: Created
           schema:
-            $ref: '#/definitions/pkg_rpc.SendResponse'
+            $ref: '#/definitions/rpc.SendResponse'
         "400":
           description: Bad Request
           schema:
@@ -230,39 +333,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Top-up successful
+          description: OK
           schema:
             type: string
-        "400":
-          description: Bad Request - Address is required
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Top up an address with test DOGE
-      tags:
-      - doge
-  /buy-offers:
-    post:
-      consumes:
-      - application/json
-      description: Creates a new buy offer
-      parameters:
-      - description: Buy offer request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/pkg_rpc.CreateBuyOfferRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg_rpc.CreateOfferResponse'
         "400":
           description: Bad Request
           schema:
@@ -271,9 +344,9 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Create a buy offer
+      summary: Top up an address with test DOGE (Regtest only)
       tags:
-      - buy-offers
+      - doge
   /health:
     get:
       consumes:
@@ -285,7 +358,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg_rpc.GetHealthResponse'
+            $ref: '#/definitions/rpc.GetHealthResponse'
         "400":
           description: Bad Request
           schema:
@@ -293,6 +366,78 @@ paths:
       summary: Get health
       tags:
       - health
+  /invoices:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of invoices with optional filtering by mint_hash
+        and offerer_address
+      parameters:
+      - description: Limit number of results (max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Page number (max 1000)
+        in: query
+        name: page
+        type: integer
+      - description: Filter by mint hash
+        in: query
+        name: mint_hash
+        type: string
+      - description: Filter by address of buyer or seller
+        in: query
+        name: offerer_address
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rpc.GetInvoicesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get invoices
+      tags:
+      - invoices
+  /mint-token-balances:
+    get:
+      consumes:
+      - application/json
+      description: Returns token balances with associated mint information for an
+        address
+      parameters:
+      - description: Address to get token balances for
+        in: query
+        name: address
+        required: true
+        type: string
+      - description: Limit number of results (max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Page number (max 1000)
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rpc.GetTokenBalanceWithMintsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get token balances with mint details
+      tags:
+      - Token Balances
   /mints:
     get:
       consumes:
@@ -313,7 +458,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg_rpc.GetMintsResponse'
+            $ref: '#/definitions/rpc.GetMintsResponse'
         "400":
           description: Bad Request
           schema:
@@ -335,14 +480,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/pkg_rpc.CreateMintRequest'
+          $ref: '#/definitions/rpc.CreateMintRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/pkg_rpc.CreateMintResponse'
+            $ref: '#/definitions/rpc.CreateMintResponse'
         "400":
           description: Bad Request
           schema:
@@ -354,6 +499,65 @@ paths:
       summary: Create a mint
       tags:
       - mints
+  /payments/new:
+    post:
+      consumes:
+      - application/json
+      description: Generates an encoded transaction body for paying an invoice
+      parameters:
+      - description: Payment request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/rpc.CreateNewPaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Prepares an encoded transaction body for a new payment
+      tags:
+      - payments
+  /pending-token-balances:
+    get:
+      consumes:
+      - application/json
+      description: Returns pending token balances for an address, optionally filtered
+        by mint hash
+      parameters:
+      - description: Address to get pending token balances for
+        in: query
+        name: address
+        type: string
+      - description: Filter by mint hash
+        in: query
+        name: mint_hash
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/store.TokenBalance'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get pending token balances
+      tags:
+      - Token Balances
   /stats:
     get:
       consumes:
@@ -365,7 +569,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg_rpc.GetStatsResponse'
+            $ref: '#/definitions/rpc.GetStatsResponse'
         "400":
           description: Bad Request
           schema:
@@ -373,4 +577,35 @@ paths:
       summary: Get stats
       tags:
       - stats
+  /token-balances:
+    get:
+      consumes:
+      - application/json
+      description: Returns token balances for an address, optionally filtered by mint
+        hash
+      parameters:
+      - description: Address to get token balances for
+        in: query
+        name: address
+        type: string
+      - description: Filter by mint hash
+        in: query
+        name: mint_hash
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/store.TokenBalance'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get token balances
+      tags:
+      - Token Balances
 swagger: "2.0"
