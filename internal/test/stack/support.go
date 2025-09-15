@@ -34,6 +34,7 @@ type StackConfig struct {
 	FractalHost        string
 	DogeNetPort        int
 	DogeNetHost        string
+	DogeNetChain       string
 	DogeNetBindPort    int
 	DogeNetPubKey      string
 	DogeNetWebPort     int
@@ -73,6 +74,7 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		DogePort:           basePortFirst + 14556,
 		DogeHost:           "0.0.0.0",
 		DogeP2PPort:        basePortFirst + 10,
+		DogeNetChain:       chain,
 		FractalPort:        basePort + 20,
 		FractalHost:        "0.0.0.0",
 		DogeNetPort:        basePort + 30,
