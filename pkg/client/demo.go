@@ -9,7 +9,7 @@ import (
 )
 
 func (c *TokenisationClient) TopUpBalance(ctx context.Context, address string) error {
-	resp, err := c.httpClient.Post(c.baseUrl+"/setup-demo-balance?address="+address, "application/json", nil)
+	resp, err := c.httpClient.Post(c.baseUrl+"/doge/top-up?address="+address, "application/json", nil)
 	if err != nil {
 		return err
 	}
