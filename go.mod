@@ -31,7 +31,7 @@ require (
 	github.com/zalando/go-keyring v0.2.6
 	golang.org/x/crypto v0.39.0
 	golang.org/x/time v0.12.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.9
 	gotest.tools/v3 v3.5.2
 )
 
@@ -134,7 +134,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.5.0
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
