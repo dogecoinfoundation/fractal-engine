@@ -39,6 +39,17 @@ func (tr *TokenRoutes) handleTokenBalances(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// @Summary		Get token balances with mint details
+// @Description	Returns token balances with associated mint information for an address
+// @Tags			tokens
+// @Accept			json
+// @Produce		json
+// @Param			address	query		string	true	"Address to get token balances for"
+// @Param			limit	query		int		false	"Limit number of results (max 100)"
+// @Param			page	query		int		false	"Page number (max 1000)"
+// @Success		200		{object}	GetTokenBalanceWithMintsResponse
+// @Failure		500		{object}	string
+// @Router			/mint-token-balances [get]
 func (tr *TokenRoutes) getTokenBalancesWithMints(w http.ResponseWriter, r *http.Request) {
 	address := r.URL.Query().Get("address")
 	limitStr := validation.SanitizeQueryParam(r.URL.Query().Get("limit"))
@@ -88,6 +99,16 @@ func (tr *TokenRoutes) getTokenBalancesWithMints(w http.ResponseWriter, r *http.
 	respondJSON(w, http.StatusOK, response)
 }
 
+// @Summary		Get token balances
+// @Description	Returns token balances for an address, optionally filtered by mint hash
+// @Tags			tokens
+// @Accept			json
+// @Produce		json
+// @Param			address		query		string	false	"Address to get token balances for"
+// @Param			mint_hash	query		string	false	"Filter by mint hash"
+// @Success		200			{object}	[]store.TokenBalance
+// @Failure		500			{object}	string
+// @Router			/token-balances [get]
 func (tr *TokenRoutes) getTokenBalances(w http.ResponseWriter, r *http.Request) {
 	address := r.URL.Query().Get("address")
 	mintHash := r.URL.Query().Get("mint_hash")
@@ -101,6 +122,16 @@ func (tr *TokenRoutes) getTokenBalances(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(tokenBalances)
 }
 
+// @Summary		Get pending token balances
+// @Description	Returns pending token balances for an address, optionally filtered by mint hash
+// @Tags			tokens
+// @Accept			json
+// @Produce		json
+// @Param			address		query		string	false	"Address to get pending token balances for"
+// @Param			mint_hash	query		string	false	"Filter by mint hash"
+// @Success		200			{object}	[]store.TokenBalance
+// @Failure		500			{object}	string
+// @Router			/pending-token-balances [get]
 func (tr *TokenRoutes) getPendingTokenBalances(w http.ResponseWriter, r *http.Request) {
 	address := r.URL.Query().Get("address")
 	mintHash := r.URL.Query().Get("mint_hash")
