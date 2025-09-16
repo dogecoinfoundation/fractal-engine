@@ -62,8 +62,8 @@ func (c *TokenisationClient) CreateInvoice(invoice *rpc.CreateInvoiceRequest) (r
 	return result, nil
 }
 
-func (c *TokenisationClient) GetInvoices(page int, limit int, mintHash string, offererAddress string) (rpc.GetInvoicesResponse, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/invoices?page=%d&limit=%d&mint_hash=%s&offerer_address=%s", page, limit, mintHash, offererAddress))
+func (c *TokenisationClient) GetInvoices(page int, limit int, mintHash string, address string) (rpc.GetInvoicesResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/invoices/%s?page=%d&limit=%d&mint_hash=%s", address, page, limit, mintHash))
 	if err != nil {
 		return rpc.GetInvoicesResponse{}, err
 	}
@@ -85,12 +85,10 @@ func (c *TokenisationClient) GetInvoices(page int, limit int, mintHash string, o
 }
 
 func (c *TokenisationClient) GetMyInvoices(page int, limit int, address string) (rpc.GetInvoicesResponse, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/my-invoices?page=%d&limit=%d&address=%s", page, limit, address))
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/invoices/%s?page=%d&limit=%d", address, page, limit))
 	if err != nil {
 		return rpc.GetInvoicesResponse{}, err
 	}
-
-	fmt.Println("URL: ", c.baseUrl+fmt.Sprintf("/my-invoices?page=%d&limit=%d&address=%s", page, limit, address))
 
 	defer resp.Body.Close()
 

@@ -25,6 +25,7 @@ func HandleInvoiceRoutes(store *store.TokenisationStore, gossipClient dogenet.Go
 	ir := &InvoiceRoutes{store: store, gossipClient: gossipClient, cfg: cfg}
 
 	mux.HandleFunc("/invoices", ir.handleInvoices)
+	mux.HandleFunc("/invoices/{address}", ir.handleInvoices)
 
 }
 

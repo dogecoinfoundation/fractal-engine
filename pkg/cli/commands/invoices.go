@@ -9,15 +9,12 @@ import (
 	"strconv"
 
 	fecli "dogecoin.org/fractal-engine/pkg/cli"
-	climodels "dogecoin.org/fractal-engine/pkg/cli/climodels"
 	"dogecoin.org/fractal-engine/pkg/cli/keys"
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/indexer"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/urfave/cli/v3"
 )
@@ -119,67 +116,27 @@ func createInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	var mintHash string
+	var buyerAddress string
+	var quantity string
+	var pricePer string
 
 	group := huh.NewGroup(
 		huh.NewInput().
 			Title("What is the token hash?").
 			Value(&mintHash),
-	)
-
-	form := huh.NewForm(group)
-	err = form.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	buyOffers, err := tokenisationClient.GetBuyOffersBySellerAddress(0, 10, mintHash, address)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	items := []list.Item{}
-	for _, buyOffer := range buyOffers.Offers {
-		items = append(items, climodels.SelectSimpleListItem{
-			OfferId: buyOffer.Offer.Id,
-			Name:    "Mint: " + buyOffer.Mint.Title + " (Seller: " + buyOffer.Offer.OffererAddress + ")",
-			Desc:    "Price: " + strconv.Itoa(buyOffer.Offer.Price) + " Qty: " + strconv.Itoa(buyOffer.Offer.Quantity),
-		})
-	}
-
-	m := climodels.SelectSimpleListModel{List: list.New(items, list.NewDefaultDelegate(), 0, 0)}
-	m.List.Title = "Buy Offers"
-
-	p := tea.NewProgram(m)
-	_, err = p.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	selectedOfferId := m.List.SelectedItem().(climodels.SelectSimpleListItem)
-
-	var quantity string
-	var price string
-
-	group = huh.NewGroup(
+		huh.NewInput().
+			Title("What is the buyer address?").
+			Value(&buyerAddress),
 		huh.NewInput().
 			Title("What is the quantity?").
 			Value(&quantity),
 		huh.NewInput().
-			Title("What is the price?").
-			Value(&price),
+			Title("What is the price per?").
+			Value(&pricePer),
 	)
 
-	form = huh.NewForm(group)
+	form := huh.NewForm(group)
 	err = form.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	quantityInt, err := strconv.Atoi(quantity)
-	if err != nil {
-		log.Fatal(err)
-	}
-	priceInt, err := strconv.Atoi(price)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -205,21 +162,23 @@ func createInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 	}
 	chainCfg := doge.GetChainCfg(chainByte)
 
-	var selectedOffer rpc.BuyOfferWithMint
-	for _, offer := range buyOffers.Offers {
-		if offer.Offer.Id == selectedOfferId.OfferId {
-			selectedOffer = offer
-			break
-		}
+	quantityInt, err := strconv.Atoi(quantity)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pricePerInt, err := strconv.Atoi(pricePer)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	invoiceRequest := rpc.CreateInvoiceRequest{
 		Payload: rpc.CreateInvoiceRequestPayload{
 			PaymentAddress: address,
-			BuyerAddress:   selectedOffer.Offer.OffererAddress,
-			MintHash:       selectedOffer.Offer.MintHash,
+			BuyerAddress:   buyerAddress,
+			MintHash:       mintHash,
 			Quantity:       quantityInt,
-			Price:          priceInt,
+			Price:          pricePerInt,
 			SellerAddress:  address,
 		},
 	}
@@ -256,7 +215,7 @@ func createInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal("No utxos found for address", address)
 	}
 
-	envelope := protocol.NewInvoiceTransactionEnvelope(response.Hash, address, selectedOffer.Offer.MintHash, int32(quantityInt), protocol.ACTION_INVOICE)
+	envelope := protocol.NewInvoiceTransactionEnvelope(response.Hash, address, mintHash, int32(quantityInt), protocol.ACTION_INVOICE)
 	encodedTransactionBody := envelope.Serialize()
 
 	inputs := []interface{}{
