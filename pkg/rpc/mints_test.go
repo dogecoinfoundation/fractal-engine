@@ -63,8 +63,6 @@ func TestMints(t *testing.T) {
 	assert.Equal(t, mints[0].Description, mintRequest.Payload.Description)
 	assert.DeepEqual(t, mints[0].Tags, mintRequest.Payload.Tags)
 	assert.DeepEqual(t, mints[0].Metadata, mintRequest.Payload.Metadata)
-	assert.DeepEqual(t, mints[0].Requirements, mintRequest.Payload.Requirements)
-	assert.DeepEqual(t, mints[0].LockupOptions, mintRequest.Payload.LockupOptions)
 	assert.Equal(t, mints[0].FeedURL, mintRequest.Payload.FeedURL)
 
 	assert.Equal(t, len(dogenetClient.mints), 1)
@@ -74,7 +72,5 @@ func TestMints(t *testing.T) {
 	assert.Equal(t, dogenetClient.mints[0].Description, mintRequest.Payload.Description)
 	assert.DeepEqual(t, dogenetClient.mints[0].Tags, mintRequest.Payload.Tags)
 	assert.DeepEqual(t, dogenetClient.mints[0].Metadata, mintRequest.Payload.Metadata)
-	assert.DeepEqual(t, dogenetClient.mints[0].Requirements, mintRequest.Payload.Requirements)
-	assert.DeepEqual(t, dogenetClient.mints[0].LockupOptions, mintRequest.Payload.LockupOptions)
 	assert.Equal(t, dogenetClient.mints[0].FeedURL, mintRequest.Payload.FeedURL)
 }

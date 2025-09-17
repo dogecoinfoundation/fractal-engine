@@ -62,8 +62,8 @@ func (c *TokenisationClient) CreateInvoice(invoice *rpc.CreateInvoiceRequest) (r
 	return result, nil
 }
 
-func (c *TokenisationClient) GetInvoices(page int, limit int, mintHash string, offererAddress string) (rpc.GetInvoicesResponse, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/invoices?page=%d&limit=%d&mint_hash=%s&offerer_address=%s", page, limit, mintHash, offererAddress))
+func (c *TokenisationClient) GetInvoices(page int, limit int, mintHash string, address string) (rpc.GetInvoicesResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/invoices/%s?page=%d&limit=%d&mint_hash=%s", address, page, limit, mintHash))
 	if err != nil {
 		return rpc.GetInvoicesResponse{}, err
 	}
@@ -85,12 +85,10 @@ func (c *TokenisationClient) GetInvoices(page int, limit int, mintHash string, o
 }
 
 func (c *TokenisationClient) GetMyInvoices(page int, limit int, address string) (rpc.GetInvoicesResponse, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/my-invoices?page=%d&limit=%d&address=%s", page, limit, address))
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/invoices/%s?page=%d&limit=%d", address, page, limit))
 	if err != nil {
 		return rpc.GetInvoicesResponse{}, err
 	}
-
-	fmt.Println("URL: ", c.baseUrl+fmt.Sprintf("/my-invoices?page=%d&limit=%d&address=%s", page, limit, address))
 
 	defer resp.Body.Close()
 
@@ -408,7 +406,7 @@ func (c *TokenisationClient) Mint(mint *rpc.CreateMintRequest) (rpc.CreateMintRe
 }
 
 func (c *TokenisationClient) GetTokenBalance(address string, mintHash string) ([]store.TokenBalance, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/token-balances?address=%s&mint_hash=%s", address, mintHash))
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/token-balances/%s?mint_hash=%s", address, mintHash))
 	if err != nil {
 		return []store.TokenBalance{}, err
 	}
@@ -430,8 +428,32 @@ func (c *TokenisationClient) GetTokenBalance(address string, mintHash string) ([
 	return result, nil
 }
 
+func (c *TokenisationClient) GetTokenBalanceWithMintDetails(address string) (rpc.GetTokenBalanceWithMintsResponse, error) {
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/token-balances/%s?include_mint_details=true", address))
+	if err != nil {
+		return rpc.GetTokenBalanceWithMintsResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rpc.GetTokenBalanceWithMintsResponse{}, fmt.Errorf("failed to get token balance: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var result rpc.GetTokenBalanceWithMintsResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.GetTokenBalanceWithMintsResponse{}, err
+	}
+
+	return result, nil
+}
+
 func (c *TokenisationClient) GetPendingTokenBalance(address string, mintHash string) ([]store.TokenBalance, error) {
-	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/pending-token-balances?address=%s&mint_hash=%s", address, mintHash))
+	fmt.Println("Getting pending token balance: ADDRESS", c.baseUrl+fmt.Sprintf("/pending-token-balances/%s?mint_hash=%s", address, mintHash))
+	resp, err := c.httpClient.Get(c.baseUrl + fmt.Sprintf("/pending-token-balances/%s?mint_hash=%s", address, mintHash))
 	if err != nil {
 		return []store.TokenBalance{}, err
 	}

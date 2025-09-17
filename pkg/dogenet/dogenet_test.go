@@ -12,11 +12,11 @@ import (
 	"code.dogecoin.org/gossip/dnet"
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"gotest.tools/assert"
 )
 
@@ -50,6 +50,11 @@ func TestDogenet(t *testing.T) {
 
 	myConn.Write(br_buf[:])
 
+	privKey, dogePubKey, dogeAddress, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
+	if err != nil {
+		log.Fatalf("Failed to generate dogecoin keypair: %v", err)
+	}
+
 	record := store.Mint{
 		Id: "1",
 		MintWithoutID: store.MintWithoutID{
@@ -60,6 +65,7 @@ func TestDogenet(t *testing.T) {
 			Metadata: map[string]interface{}{
 				"test": "test",
 			},
+			OwnerAddress: dogeAddress,
 		},
 	}
 	mintMessage := protocol.MintMessage{
@@ -68,15 +74,21 @@ func TestDogenet(t *testing.T) {
 		FractionCount:   int32(record.FractionCount),
 		Tags:            record.Tags,
 		TransactionHash: record.TransactionHash,
-		Hash:            record.Hash,
 		FeedUrl:         record.FeedURL,
-		CreatedAt:       timestamppb.New(record.CreatedAt),
+		OwnerAddress:    record.OwnerAddress,
+	}
+
+	signature, err := doge.SignPayload(&mintMessage, privKey, dogePubKey)
+	if err != nil {
+		log.Fatalf("Failed to sign payload: %v", err)
 	}
 
 	envelope := protocol.MintMessageEnvelope{
-		Type:    protocol.ACTION_MINT,
-		Version: protocol.DEFAULT_VERSION,
-		Payload: &mintMessage,
+		Type:      protocol.ACTION_MINT,
+		Version:   protocol.DEFAULT_VERSION,
+		Payload:   &mintMessage,
+		PublicKey: dogePubKey,
+		Signature: signature,
 	}
 
 	data, err := proto.Marshal(&envelope)

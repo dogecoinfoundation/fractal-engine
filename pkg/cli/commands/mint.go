@@ -73,7 +73,7 @@ func mintListAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal(err)
 	}
 
-	mints, err := tokenisationClient.GetMints(1, 10, pubHex, true)
+	mints, err := tokenisationClient.GetMints(0, 10, pubHex, true)
 	if err != nil {
 		log.Fatal(err)
 	}

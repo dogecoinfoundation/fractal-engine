@@ -6,6 +6,7 @@ type Config struct {
 	RpcServerHost      string
 	RpcServerPort      string
 	RpcApiKey          string
+	DogeNetChain       string
 	DogeNetNetwork     string
 	DogeNetAddress     string
 	DogeNetWebAddress  string
@@ -29,6 +30,7 @@ func NewConfig() *Config {
 	return &Config{
 		RpcServerHost:      "0.0.0.0",
 		RpcServerPort:      "8891",
+		DogeNetChain:       "regtest",
 		DogeNetNetwork:     "tcp",
 		DogeNetAddress:     "0.0.0.0:42069",
 		DogeNetWebAddress:  "0.0.0.0:8085",

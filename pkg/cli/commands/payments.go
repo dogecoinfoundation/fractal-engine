@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/dogeorg/doge/koinu"
 	"github.com/urfave/cli/v3"
 )
 
@@ -144,12 +146,9 @@ func payInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 		},
 	}
 
-	dogeUtxoValue, err := strconv.Atoi(utxos.UTXOs[0].Value.String())
-	if err != nil {
-		log.Fatal("Failed to parse utxo value", err)
-	}
-
-	buyOfferValue := selectedInvoice.Quantity * selectedInvoice.Price
+	dogeUtxoValue := utxos.UTXOs[0].Value
+	buyOfferValue := koinu.Koinu(selectedInvoice.Quantity * selectedInvoice.Price)
+	fee, err := koinu.ParseKoinu("0.002")
 
 	if err != nil {
 		log.Fatal("Failed to parse fee value", err)
@@ -159,18 +158,22 @@ func payInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal("Insufficient balance for invoice", selectedInvoice.Hash)
 	}
 
-	fee := 1
 	change := dogeUtxoValue - buyOfferValue - fee
-
 	sellerAddress := selectedInvoice.SellerAddress
 
 	outputs := map[string]interface{}{
-		"data":        hex.EncodeToString(encodedTransactionBody),
-		address:       change,
-		sellerAddress: int(buyOfferValue),
+		"data": hex.EncodeToString(encodedTransactionBody),
 	}
 
-	log.Println(outputs)
+	if address == sellerAddress {
+		outputs[address] = change
+	} else {
+		outputs[address] = change
+		outputs[sellerAddress] = buyOfferValue
+	}
+
+	fmt.Println(outputs[address])
+	fmt.Println(outputs[sellerAddress])
 
 	dogeClient := doge.NewRpcClient(&fecfg.Config{
 		DogeScheme:   config.DogeScheme,
@@ -189,6 +192,8 @@ func payInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 	if err := json.Unmarshal(*rawTx, &rawTxResponse); err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println("rawTxResponse", rawTxResponse)
 
 	encodedTx, err := doge.SignRawTransaction(rawTxResponse, privHex, []doge.PrevOutput{
 		{

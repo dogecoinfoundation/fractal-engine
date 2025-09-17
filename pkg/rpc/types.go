@@ -295,7 +295,7 @@ type CreateInvoiceRequest struct {
 	Payload CreateInvoiceRequestPayload `json:"payload"`
 }
 
-type CreatePayInvoiceBodyRequest struct {
+type CreateNewPaymentRequest struct {
 	InvoiceHash string `json:"invoice_hash"`
 }
 

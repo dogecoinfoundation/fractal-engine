@@ -3,6 +3,7 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -21,6 +22,7 @@ func HandleDogeRoutes(store *store.TokenisationStore, dogeClient *doge.RpcClient
 
 	mux.HandleFunc("/doge/send", dr.handleSend)
 	mux.HandleFunc("/doge/confirm", dr.handleConfirm)
+	mux.HandleFunc("/doge/top-up", dr.handleTopUp)
 }
 
 func (dr *DogeRoutes) handleSend(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +47,20 @@ type SendRequest struct {
 	EncodedTrxn string `json:"encoded_transaction_hex"`
 }
 
+type SendResponse struct {
+	TransactionID string `json:"transaction_id"`
+}
+
+// @Summary		Send a raw transaction
+// @Description	Sends a raw transaction to the Dogecoin network
+// @Tags			doge
+// @Accept			json
+// @Produce		json
+// @Param			request	body		SendRequest	true	"Send transaction request"
+// @Success		201		{object}	SendResponse
+// @Failure		400		{object}	string
+// @Failure		500		{object}	string
+// @Router			/doge/send [post]
 func (dr *DogeRoutes) postSend(w http.ResponseWriter, r *http.Request) {
 	var request SendRequest
 
@@ -77,11 +93,20 @@ func (dr *DogeRoutes) postSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusCreated, map[string]string{
-		"transaction_id": txid,
+	respondJSON(w, http.StatusCreated, SendResponse{
+		TransactionID: txid,
 	})
 }
 
+// @Summary		Confirm transactions by generating blocks (Regtest only)
+// @Description	Generates 10 blocks for transaction confirmation
+// @Tags			doge
+// @Accept			json
+// @Produce		json
+// @Success		201		{object}	map[string]string
+// @Failure		400		{object}	string
+// @Failure		500		{object}	string
+// @Router			/doge/confirm [post]
 func (dr *DogeRoutes) postConfirm(w http.ResponseWriter, r *http.Request) {
 	_, err := dr.dogeClient.Request("generate", []interface{}{10})
 	if err != nil {
@@ -91,4 +116,55 @@ func (dr *DogeRoutes) postConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusCreated, map[string]string{})
+}
+
+func (dr *DogeRoutes) handleTopUp(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		dr.postTopUp(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// @Summary		Top up an address with test DOGE (Regtest only)
+// @Description	Sends 1000 DOGE to the specified address for testing/development
+// @Tags			doge
+// @Accept			json
+// @Produce		json
+// @Param			address	query		string	true	"Dogecoin address to send funds to"
+// @Success		200		{object}	string
+// @Failure		400		{object}	string
+// @Failure		500		{object}	string
+// @Router			/doge/top-up [post]
+func (dr *DogeRoutes) postTopUp(w http.ResponseWriter, r *http.Request) {
+	_, err := dr.dogeClient.Generate(101)
+	if err != nil {
+		fmt.Println("error generating blocks", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	address := r.URL.Query().Get("address")
+	if address == "" {
+		fmt.Println("address is required")
+		http.Error(w, "Address is required", http.StatusBadRequest)
+		return
+	}
+
+	_, err = dr.dogeClient.SendToAddress(address, 1000)
+	if err != nil {
+		fmt.Println("error sending to address", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = dr.dogeClient.Generate(1)
+	if err != nil {
+		fmt.Println("error generating blocks", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, address)
 }

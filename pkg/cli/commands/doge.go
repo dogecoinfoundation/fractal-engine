@@ -11,9 +11,9 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var DemoCommand = &cli.Command{
-	Name:  "demo",
-	Usage: "helper calls for demo",
+var DogeCommand = &cli.Command{
+	Name:  "doge",
+	Usage: "helper calls for doge",
 	Commands: []*cli.Command{
 		{
 			Name:   "top-up",

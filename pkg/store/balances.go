@@ -186,7 +186,7 @@ func (s *TokenisationStore) GetMyMintTokenBalances(address string, offset int, l
   COALESCE(tb.balance_quantity, 0) AS balance_quantity,
   tb.address AS token_owner_address
 FROM mints m
-LEFT JOIN (
+INNER JOIN (
   SELECT
     mint_hash,
     address,
