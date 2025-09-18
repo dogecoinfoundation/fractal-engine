@@ -18,6 +18,15 @@ func (s *TokenisationStore) ChooseInvoice() (Invoice, error) {
 	return invoice, nil
 }
 
+func (s *TokenisationStore) GetInvoiceByHash(hash string) (Invoice, error) {
+	row := s.DB.QueryRow("SELECT id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature, paid_at FROM invoices WHERE hash = $1", hash)
+	var invoice Invoice
+	if err := row.Scan(&invoice.Id, &invoice.Hash, &invoice.PaymentAddress, &invoice.BuyerAddress, &invoice.MintHash, &invoice.Quantity, &invoice.Price, &invoice.CreatedAt, &invoice.SellerAddress, &invoice.PublicKey, &invoice.Signature, &invoice.PaidAt); err != nil {
+		return Invoice{}, err
+	}
+	return invoice, nil
+}
+
 func (s *TokenisationStore) GetInvoicesForMe(offset int, limit int, myAddress string) ([]Invoice, error) {
 	rows, err := s.DB.Query("SELECT id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature, paid_at FROM invoices WHERE (buyer_address = $1 OR seller_address = $1) LIMIT $2 OFFSET $3", myAddress, limit, offset)
 	if err != nil {
@@ -250,7 +259,13 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 
 func (s *TokenisationStore) SaveInvoiceSignature(signature *InvoiceSignature) (string, error) {
 	id := uuid.New().String()
+	status := InvoiceSignatureStatus_PENDING
 
-	_, err := s.DB.Exec("INSERT INTO invoice_signatures (id, invoice_hash, signature, public_key, created_at) VALUES ($1, $2, $3, $4, $5)", id, signature.InvoiceHash, signature.Signature, signature.PublicKey, signature.CreatedAt)
+	_, err := s.DB.Exec("INSERT INTO invoice_signatures (id, invoice_hash, signature, public_key, created_at, status) VALUES ($1, $2, $3, $4, $5, $6)", id, signature.InvoiceHash, signature.Signature, signature.PublicKey, signature.CreatedAt, status)
 	return id, err
+}
+
+func (s *TokenisationStore) UpdateInvoiceSignature(status InvoiceSignatureStatus, id string) error {
+	_, err := s.DB.Exec("UPDATE invoice_signatures SET status = $1 WHERE id = $2", status, id)
+	return err
 }

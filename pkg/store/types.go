@@ -14,6 +14,8 @@ import (
 	"fmt"
 
 	"time"
+
+	"dogecoin.org/fractal-engine/pkg/doge"
 )
 
 type StringInterfaceMap map[string]interface{}
@@ -402,12 +404,63 @@ func (i *Invoice) GenerateHash() (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
+type InvoiceSignatureStatus string
+
+const (
+	InvoiceSignatureStatus_PENDING  InvoiceSignatureStatus = "pending"
+	InvoiceSignatureStatus_APPROVED InvoiceSignatureStatus = "approved"
+	InvoiceSignatureStatus_REJECTED InvoiceSignatureStatus = "rejected"
+)
+
 type InvoiceSignature struct {
-	Id          string    `json:"id"`
-	InvoiceHash string    `json:"invoice_hash"`
-	Signature   string    `json:"signature"`
-	PublicKey   string    `json:"public_key"`
-	CreatedAt   time.Time `json:"created_at"`
+	Id          string                 `json:"id"`
+	InvoiceHash string                 `json:"invoice_hash"`
+	Signature   string                 `json:"signature"`
+	PublicKey   string                 `json:"public_key"`
+	CreatedAt   time.Time              `json:"created_at"`
+	Status      InvoiceSignatureStatus `json:"status"`
+}
+
+type InvoiceSignatureBody struct {
+	Hash           string `json:"hash"`
+	MintHash       string `json:"mint_hash"`
+	Price          int    `json:"price"`
+	Quantity       int    `json:"quantity"`
+	BuyerAddress   string `json:"buyer_address"`
+	PaymentAddress string `json:"payment_address"`
+	SellerAddress  string `json:"seller_address"`
+}
+
+func (i *InvoiceSignature) Validate(mint Mint, invoice Invoice) error {
+	var assetManager AssetManager
+
+	for _, am := range mint.AssetManagers {
+		if am.PublicKey == i.PublicKey {
+			assetManager = am
+			break
+		}
+	}
+
+	if assetManager.PublicKey == "" {
+		return fmt.Errorf("public key does not match any asset managers")
+	}
+
+	invoiceBody := InvoiceSignatureBody{
+		Hash:           invoice.Hash,
+		MintHash:       invoice.MintHash,
+		Price:          invoice.Price,
+		Quantity:       invoice.Quantity,
+		BuyerAddress:   invoice.BuyerAddress,
+		PaymentAddress: invoice.PaymentAddress,
+		SellerAddress:  invoice.SellerAddress,
+	}
+
+	err := doge.ValidateSignature(invoiceBody, i.PublicKey, i.Signature)
+	if err != nil {
+		return fmt.Errorf("invalid signature: %w", err)
+	}
+
+	return nil
 }
 
 type TokenBalanceWithMint struct {

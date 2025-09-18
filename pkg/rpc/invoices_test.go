@@ -2,9 +2,11 @@ package rpc_test
 
 import (
 	"testing"
+	"time"
 
 	"dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
+	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"gotest.tools/assert"
@@ -142,15 +144,80 @@ func TestCreateInvoiceSignature(t *testing.T) {
 	tokenisationStore, dogenetClient, mux, feClient := SetupRpcTest(t)
 	rpc.HandleInvoiceRoutes(tokenisationStore, dogenetClient, mux, config.NewConfig())
 
-	invoiceHash := support.GenerateRandomHash()
-	signature := support.GenerateRandomHash()
-	pubKey := support.GenerateRandomHash()
+	assetManagerPrivKey, assetManagerPubKey, _, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
+	assert.NilError(t, err)
+
+	// Save a confirmed mint
+	confirmedMint := &store.MintWithoutID{
+		Title:                    "Confirmed Mint",
+		FractionCount:            100,
+		Description:              "Confirmed mint",
+		Tags:                     store.StringArray{},
+		Metadata:                 store.StringInterfaceMap{},
+		Requirements:             store.StringInterfaceMap{},
+		LockupOptions:            store.StringInterfaceMap{},
+		PublicKey:                "testPubKey",
+		TransactionHash:          "txHash",
+		SignatureRequirementType: store.SignatureRequirementType_ALL_SIGNATURES,
+		MinSignatures:            1,
+		AssetManagers: store.AssetManagers{
+			{
+				Name:      "asset manager",
+				PublicKey: assetManagerPubKey,
+				URL:       "https://example.com/assetManager",
+			},
+		},
+	}
+
+	confirmedMint.Hash, err = confirmedMint.GenerateHash()
+	assert.NilError(t, err)
+
+	_, err = tokenisationStore.SaveMint(confirmedMint, "owner")
+	assert.NilError(t, err)
+
+	paymentAddress := support.GenerateDogecoinAddress(true)
+	offererAddress := support.GenerateDogecoinAddress(true)
+	sellOfferAddress := support.GenerateDogecoinAddress(true)
+
+	invoice := store.Invoice{
+		Id:             "myId",
+		PaymentAddress: paymentAddress,
+		BuyerAddress:   offererAddress,
+		MintHash:       confirmedMint.Hash,
+		Quantity:       10,
+		Price:          25,
+		CreatedAt:      time.Now(),
+		PublicKey:      "myPublicKey",
+		SellerAddress:  sellOfferAddress,
+		Signature:      "mySignature",
+	}
+
+	invoice.Hash, err = invoice.GenerateHash()
+	assert.NilError(t, err)
+
+	_, err = tokenisationStore.SaveInvoice(&invoice)
+	if err != nil {
+		t.Fatalf("Failed to save invoice: %v", err)
+	}
+
+	invoiceBody := store.InvoiceSignatureBody{
+		Hash:           invoice.Hash,
+		MintHash:       invoice.MintHash,
+		Price:          invoice.Price,
+		Quantity:       invoice.Quantity,
+		BuyerAddress:   invoice.BuyerAddress,
+		PaymentAddress: invoice.PaymentAddress,
+		SellerAddress:  invoice.SellerAddress,
+	}
+
+	signature, err := doge.SignPayload(invoiceBody, assetManagerPrivKey, assetManagerPubKey)
+	assert.NilError(t, err)
 
 	createInvoiceSignatureRequest := rpc.CreateInvoiceSignatureRequest{
 		Payload: rpc.CreateInvoiceSignatureRequestPayload{
-			InvoiceHash: invoiceHash,
+			InvoiceHash: invoice.Hash,
 			Signature:   signature,
-			PublicKey:   pubKey,
+			PublicKey:   assetManagerPubKey,
 		},
 	}
 
@@ -165,5 +232,5 @@ func TestCreateInvoiceSignature(t *testing.T) {
 		t.Fatalf("Failed to get invoice signature: %v", err)
 	}
 
-	assert.Equal(t, savedInvoiceHash, invoiceHash)
+	assert.Equal(t, savedInvoiceHash, invoice.Hash)
 }

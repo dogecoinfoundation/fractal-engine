@@ -53,6 +53,24 @@ func (ir *InvoiceRoutes) postCreateInvoiceSignature(w http.ResponseWriter, r *ht
 		CreatedAt:   time.Now(),
 	}
 
+	invoice, err := ir.store.GetInvoiceByHash(request.Payload.InvoiceHash)
+	if err != nil {
+		http.Error(w, "Could not find invoice by hash", http.StatusBadRequest)
+		return
+	}
+
+	mint, err := ir.store.GetMintByHash(invoice.MintHash)
+	if err != nil {
+		http.Error(w, "Could not find mint by hash", http.StatusBadRequest)
+		return
+	}
+
+	err = newInvoiceSignature.Validate(mint, invoice)
+	if err != nil {
+		http.Error(w, "Invalid signature", http.StatusBadRequest)
+		return
+	}
+
 	id, err := ir.store.SaveInvoiceSignature(newInvoiceSignature)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)

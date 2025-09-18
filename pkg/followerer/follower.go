@@ -1,4 +1,4 @@
-package doge
+package followerer
 
 import (
 	"context"
