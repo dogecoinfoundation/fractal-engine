@@ -71,7 +71,7 @@ func (ir *InvoiceRoutes) postCreateInvoiceSignature(w http.ResponseWriter, r *ht
 		return
 	}
 
-	id, err := ir.store.SaveInvoiceSignature(newInvoiceSignature)
+	id, err := ir.store.SaveApprovedInvoiceSignature(newInvoiceSignature)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return

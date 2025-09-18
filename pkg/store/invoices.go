@@ -257,9 +257,9 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 	return nil
 }
 
-func (s *TokenisationStore) SaveInvoiceSignature(signature *InvoiceSignature) (string, error) {
+func (s *TokenisationStore) SaveApprovedInvoiceSignature(signature *InvoiceSignature) (string, error) {
 	id := uuid.New().String()
-	status := InvoiceSignatureStatus_PENDING
+	status := InvoiceSignatureStatus_APPROVED
 
 	_, err := s.DB.Exec("INSERT INTO invoice_signatures (id, invoice_hash, signature, public_key, created_at, status) VALUES ($1, $2, $3, $4, $5, $6)", id, signature.InvoiceHash, signature.Signature, signature.PublicKey, signature.CreatedAt, status)
 	return id, err
