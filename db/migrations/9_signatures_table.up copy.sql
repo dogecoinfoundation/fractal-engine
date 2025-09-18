@@ -1,0 +1,1 @@
+drop table invoice_signatures;

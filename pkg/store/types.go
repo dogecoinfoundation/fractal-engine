@@ -319,6 +319,7 @@ type UnconfirmedInvoice struct {
 	SellerAddress  string    `json:"seller_address"`
 	PublicKey      string    `json:"public_key"`
 	Signature      string    `json:"signature"`
+	Status         string    `json:"status"`
 }
 
 func (u *UnconfirmedInvoice) GenerateHash() (string, error) {
@@ -399,6 +400,14 @@ func (i *Invoice) GenerateHash() (string, error) {
 	hash := sha256.Sum256(jsonBytes)
 
 	return hex.EncodeToString(hash[:]), nil
+}
+
+type InvoiceSignature struct {
+	Id          string    `json:"id"`
+	InvoiceHash string    `json:"invoice_hash"`
+	Signature   string    `json:"signature"`
+	PublicKey   string    `json:"public_key"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type TokenBalanceWithMint struct {

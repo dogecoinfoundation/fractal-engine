@@ -502,3 +502,30 @@ func (c *TokenisationClient) GetMints(page int, limit int, publicKey string, inc
 
 	return result, nil
 }
+
+func (c *TokenisationClient) CreateInvoiceSignature(signature *rpc.CreateInvoiceSignatureRequest) (rpc.CreateInvoiceSignatureResponse, error) {
+	jsonValue, err := json.Marshal(signature)
+	if err != nil {
+		return rpc.CreateInvoiceSignatureResponse{}, err
+	}
+
+	resp, err := c.httpClient.Post(c.baseUrl+"/invoices/"+signature.Payload.InvoiceHash+"/signatures", "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return rpc.CreateInvoiceSignatureResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return rpc.CreateInvoiceSignatureResponse{}, fmt.Errorf("failed to create invoice signature: %s", resp.Status)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var result rpc.CreateInvoiceSignatureResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return rpc.CreateInvoiceSignatureResponse{}, err
+	}
+
+	return result, nil
+}

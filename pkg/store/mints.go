@@ -175,8 +175,6 @@ func (s *TokenisationStore) SaveMint(mint *MintWithoutID, ownerAddress string) (
 }
 
 func (s *TokenisationStore) SaveMintWithTx(mint *MintWithoutID, ownerAddress string, tx *sql.Tx) (string, error) {
-	fmt.Println("Saving mint:", mint.Hash)
-
 	id := uuid.New().String()
 
 	metadata, err := json.Marshal(mint.Metadata)
