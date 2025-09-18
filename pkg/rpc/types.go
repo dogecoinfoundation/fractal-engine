@@ -82,16 +82,19 @@ type CreateMintRequest struct {
 }
 
 type CreateMintRequestPayload struct {
-	Title          string                   `json:"title"`
-	FractionCount  int                      `json:"fraction_count"`
-	Description    string                   `json:"description"`
-	Tags           store.StringArray        `json:"tags,omitempty"`
-	Metadata       store.StringInterfaceMap `json:"metadata,omitempty"`
-	Requirements   store.StringInterfaceMap `json:"requirements,omitempty"`
-	LockupOptions  store.StringInterfaceMap `json:"lockup_options,omitempty"`
-	FeedURL        string                   `json:"feed_url,omitempty"`
-	ContractOfSale string                   `json:"contract_of_sale,omitempty"`
-	OwnerAddress   string                   `json:"owner_address"`
+	Title                    string                         `json:"title"`
+	FractionCount            int                            `json:"fraction_count"`
+	Description              string                         `json:"description"`
+	Tags                     store.StringArray              `json:"tags,omitempty"`
+	Metadata                 store.StringInterfaceMap       `json:"metadata,omitempty"`
+	Requirements             store.StringInterfaceMap       `json:"requirements,omitempty"`
+	LockupOptions            store.StringInterfaceMap       `json:"lockup_options,omitempty"`
+	FeedURL                  string                         `json:"feed_url,omitempty"`
+	ContractOfSale           string                         `json:"contract_of_sale,omitempty"`
+	OwnerAddress             string                         `json:"owner_address"`
+	SignatureRequirementType store.SignatureRequirementType `json:"signature_requirement_type,omitempty"`
+	AssetManagers            []store.AssetManager           `json:"asset_managers,omitempty"`
+	MinSignatures            int                            `json:"min_signatures,omitempty"`
 }
 
 func (req *CreateMintRequest) Validate() error {

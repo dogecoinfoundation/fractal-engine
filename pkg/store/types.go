@@ -59,36 +59,108 @@ func (m *StringInterfaceMap) Scan(src interface{}) error {
 	return json.Unmarshal(source, m)
 }
 
+type AssetManager struct {
+	Name      string `json:"name"`
+	PublicKey string `json:"public_key"`
+	URL       string `json:"url"`
+}
+
+func (a *AssetManager) Value() (driver.Value, error) {
+	return json.Marshal(a)
+}
+
+func (a *AssetManager) Scan(src interface{}) error {
+	return json.Unmarshal(src.([]byte), a)
+}
+
+type AssetManagers []AssetManager
+
+// Value implements driver.Valuer — converts to JSON for DB insertion.
+func (a AssetManagers) Value() (driver.Value, error) {
+	// nil slice -> NULL in DB
+	if a == nil {
+		return nil, nil
+	}
+	b, err := json.Marshal(a)
+	if err != nil {
+		return nil, fmt.Errorf("marshal AssetManagers: %w", err)
+	}
+	return string(b), nil // or return b ([]byte) — both work
+}
+
+// Scan implements sql.Scanner — converts DB value to the slice.
+func (a *AssetManagers) Scan(src interface{}) error {
+	if a == nil {
+		return fmt.Errorf("AssetManagers: Scan on nil pointer")
+	}
+	if src == nil {
+		*a = nil
+		return nil
+	}
+
+	var data []byte
+	switch v := src.(type) {
+	case string:
+		data = []byte(v)
+	case []byte:
+		data = v
+	default:
+		return fmt.Errorf("unsupported scan type for AssetManagers: %T", src)
+	}
+
+	if len(data) == 0 {
+		*a = nil
+		return nil
+	}
+
+	return json.Unmarshal(data, a)
+}
+
+type SignatureRequirementType string
+
+const (
+	SignatureRequirementType_ALL_SIGNATURES SignatureRequirementType = "REQUIRES_ALL_SIGNATURES"
+	SignatureRequirementType_ONE_SIGNATURE  SignatureRequirementType = "REQUIRES_ONE_SIGNATURE"
+	SignatureRequirementType_MIN_SIGNATURES SignatureRequirementType = "REQUIRES_MIN_SIGNATURES"
+	SignatureRequirementType_NONE           SignatureRequirementType = "NONE"
+)
+
 type MintWithoutID struct {
-	Hash            string             `json:"hash"`
-	Title           string             `json:"title"`
-	FractionCount   int                `json:"fraction_count"`
-	Description     string             `json:"description"`
-	Tags            StringArray        `json:"tags"`
-	Metadata        StringInterfaceMap `json:"metadata"`
-	TransactionHash string             `json:"transaction_hash"`
-	BlockHeight     int64              `json:"block_height"`
-	CreatedAt       time.Time          `json:"created_at"`
-	Requirements    StringInterfaceMap `json:"requirements"`
-	LockupOptions   StringInterfaceMap `json:"lockup_options"`
-	FeedURL         string             `json:"feed_url"`
-	PublicKey       string             `json:"public_key"`
-	OwnerAddress    string             `json:"owner_address"`
-	Signature       string             `json:"signature"`
-	ContractOfSale  string             `json:"contract_of_sale"`
+	Hash                     string                   `json:"hash"`
+	Title                    string                   `json:"title"`
+	FractionCount            int                      `json:"fraction_count"`
+	Description              string                   `json:"description"`
+	Tags                     StringArray              `json:"tags"`
+	Metadata                 StringInterfaceMap       `json:"metadata"`
+	TransactionHash          string                   `json:"transaction_hash"`
+	BlockHeight              int64                    `json:"block_height"`
+	CreatedAt                time.Time                `json:"created_at"`
+	Requirements             StringInterfaceMap       `json:"requirements"`
+	LockupOptions            StringInterfaceMap       `json:"lockup_options"`
+	FeedURL                  string                   `json:"feed_url"`
+	PublicKey                string                   `json:"public_key"`
+	OwnerAddress             string                   `json:"owner_address"`
+	Signature                string                   `json:"signature"`
+	ContractOfSale           string                   `json:"contract_of_sale"`
+	SignatureRequirementType SignatureRequirementType `json:"signature_requirement_type"`
+	AssetManagers            AssetManagers            `json:"asset_managers"`
+	MinSignatures            int                      `json:"min_signatures"`
 }
 
 type MintHash struct {
-	Title          string             `json:"title"`
-	FractionCount  int                `json:"fraction_count"`
-	Description    string             `json:"description"`
-	Tags           StringArray        `json:"tags"`
-	Metadata       StringInterfaceMap `json:"metadata"`
-	Requirements   StringInterfaceMap `json:"requirements"`
-	LockupOptions  StringInterfaceMap `json:"lockup_options"`
-	OwnerAddress   string             `json:"owner_address"`
-	PublicKey      string             `json:"public_key"`
-	ContractOfSale string             `json:"contract_of_sale"`
+	Title                    string                   `json:"title"`
+	FractionCount            int                      `json:"fraction_count"`
+	Description              string                   `json:"description"`
+	Tags                     StringArray              `json:"tags"`
+	Metadata                 StringInterfaceMap       `json:"metadata"`
+	Requirements             StringInterfaceMap       `json:"requirements"`
+	LockupOptions            StringInterfaceMap       `json:"lockup_options"`
+	OwnerAddress             string                   `json:"owner_address"`
+	PublicKey                string                   `json:"public_key"`
+	ContractOfSale           string                   `json:"contract_of_sale"`
+	SignatureRequirementType SignatureRequirementType `json:"signature_requirement_type"`
+	AssetManagers            AssetManagers            `json:"asset_managers"`
+	MinSignatures            int                      `json:"min_signatures"`
 }
 
 type OnChainTransaction struct {
@@ -106,15 +178,18 @@ type OnChainTransaction struct {
 
 func (m *MintWithoutID) GenerateHash() (string, error) {
 	input := MintHash{
-		Title:          m.Title,
-		FractionCount:  m.FractionCount,
-		Description:    m.Description,
-		Tags:           m.Tags,
-		Metadata:       m.Metadata,
-		Requirements:   m.Requirements,
-		LockupOptions:  m.LockupOptions,
-		PublicKey:      m.PublicKey,
-		ContractOfSale: m.ContractOfSale,
+		Title:                    m.Title,
+		FractionCount:            m.FractionCount,
+		Description:              m.Description,
+		Tags:                     m.Tags,
+		Metadata:                 m.Metadata,
+		Requirements:             m.Requirements,
+		LockupOptions:            m.LockupOptions,
+		PublicKey:                m.PublicKey,
+		ContractOfSale:           m.ContractOfSale,
+		SignatureRequirementType: m.SignatureRequirementType,
+		AssetManagers:            m.AssetManagers,
+		MinSignatures:            m.MinSignatures,
 	}
 
 	// Serialize to JSON with sorted keys
