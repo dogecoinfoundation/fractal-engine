@@ -56,7 +56,6 @@ func TestDogenet(t *testing.T) {
 	}
 
 	record := store.Mint{
-		Id: "1",
 		MintWithoutID: store.MintWithoutID{
 			Title:         "Test Mint",
 			FractionCount: 100,

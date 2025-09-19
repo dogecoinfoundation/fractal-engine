@@ -20,6 +20,13 @@ message MintMessageEnvelope {
     string signature = 5;
 }
 
+
+message AssetManager {
+    string name = 1;
+    string public_key = 2;
+    string url = 3;
+}
+
 // Payload of a mint
 message MintMessage {
     string title = 1;
@@ -36,4 +43,7 @@ message MintMessage {
     int32 block_height = 12;
     string contract_of_sale = 13;
     string owner_address = 14;
+    string signature_requirement_type = 15;
+    repeated AssetManager asset_managers = 16;
+    int32 min_signatures = 17;
 }

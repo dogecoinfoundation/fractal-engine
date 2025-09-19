@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS unconfirmed_invoices (
     seller_address TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL,
     public_key TEXT NOT NULL,
-    signature TEXT NOT NULL
+    signature TEXT NOT NULL,
+    status TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS token_balances (

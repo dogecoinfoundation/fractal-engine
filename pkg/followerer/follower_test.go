@@ -1,4 +1,4 @@
-package doge_test
+package followerer_test
 
 import (
 	"encoding/hex"
@@ -7,7 +7,7 @@ import (
 
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
-	"dogecoin.org/fractal-engine/pkg/doge"
+	"dogecoin.org/fractal-engine/pkg/followerer"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"github.com/dogecoinfoundation/chainfollower/pkg/chainfollower"
@@ -38,7 +38,7 @@ func TestDogeFollower(t *testing.T) {
 		Messages: make(chan messages.Message),
 	}
 
-	dogeFollower := doge.NewFollowerWithCustomChainFollower(&config.Config{}, tokenisationStore, chainFollower)
+	dogeFollower := followerer.NewFollowerWithCustomChainFollower(&config.Config{}, tokenisationStore, chainFollower)
 	go dogeFollower.Start()
 
 	hash := "MyMintHash123"

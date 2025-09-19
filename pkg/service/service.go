@@ -8,6 +8,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
+	"dogecoin.org/fractal-engine/pkg/followerer"
 	"dogecoin.org/fractal-engine/pkg/health"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
@@ -19,7 +20,7 @@ type TokenisationService struct {
 	Store          *store.TokenisationStore
 	DogeNetClient  *dogenet.DogeNetClient
 	DogeClient     *doge.RpcClient
-	Follower       *doge.DogeFollower
+	Follower       *followerer.DogeFollower
 	TrimmerService *TrimmerService
 	Processor      *FractalEngineProcessor
 	HealthService  *health.HealthService
@@ -27,7 +28,7 @@ type TokenisationService struct {
 
 func NewTokenisationService(cfg *config.Config, dogenetClient *dogenet.DogeNetClient, tokenStore *store.TokenisationStore) *TokenisationService {
 	dogeClient := doge.NewRpcClient(cfg)
-	follower := doge.NewFollower(cfg, tokenStore)
+	follower := followerer.NewFollower(cfg, tokenStore)
 
 	trimmerService := NewTrimmerService(20160, 100, tokenStore, dogeClient)
 	processor := NewFractalEngineProcessor(tokenStore, dogeClient)

@@ -62,6 +62,8 @@ func (p *FractalEngineProcessor) Process() error {
 		}
 
 		offset += limit
+
+		time.Sleep(5 * time.Second)
 	}
 
 	return nil

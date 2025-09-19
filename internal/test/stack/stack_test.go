@@ -51,6 +51,14 @@ func TestSimpleFlow(t *testing.T) {
 	}, sellQty, 10, 3*time.Second)
 	fmt.Println("Invoice confirmed")
 
+	inv, err := seller.TokenisationStore.GetUnconfirmedInvoiceByHash(invoiceHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	invoiceSignatureId := InvoiceSignature(seller, inv)
+	fmt.Println("Invoice signature:", invoiceSignatureId)
+
 	// Ensure new UTXO is available
 	Retry(t, func() bool {
 		fmt.Printf("Checking balance for %s\n", buyer.Address)
@@ -59,7 +67,7 @@ func TestSimpleFlow(t *testing.T) {
 			t.Fatal(err)
 		}
 		return len(utxos) > 0
-	}, 30, 5*time.Second)
+	}, 30, 10*time.Second)
 
 	// Pay for invoice
 	paymentTrxn := Payment(buyer, seller, invoiceHash, sellQty, 20)

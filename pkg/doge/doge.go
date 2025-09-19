@@ -67,10 +67,6 @@ func GetChainCfg(prefix byte) *chaincfg.Params {
 	return nil
 }
 
-func isCompressedPubHex(pubHex string) bool {
-	h := strings.ToLower(strings.TrimSpace(pubHex))
-	return strings.HasPrefix(h, "02") || strings.HasPrefix(h, "03")
-}
 func GenerateDogecoinKeypair(prefix byte) (privHex string, pubHex string, address string, err error) {
 	privKey, err := btcec.NewPrivateKey()
 	if err != nil {

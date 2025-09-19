@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"code.dogecoin.org/gossip/dnet"
-	"dogecoin.org/fractal-engine/internal/test/support"
+
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
+
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/doge"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
@@ -55,7 +56,7 @@ func TestGossipMint(t *testing.T) {
 	clientConn.Write(br_buf[:])
 
 	// Wait for client to be ready
-	support.WaitForDogeNetClient(client)
+	test_support.WaitForDogeNetClient(client)
 
 	// Create test mint record
 	testTime := time.Now()
@@ -176,7 +177,7 @@ func TestGossipMintWithNilMetadata(t *testing.T) {
 	clientConn.Write(br_buf[:])
 
 	// Wait for ready
-	support.WaitForDogeNetClient(client)
+	test_support.WaitForDogeNetClient(client)
 
 	// Create test mint record with nil metadata
 	mint := store.Mint{
@@ -248,7 +249,7 @@ func TestRecvMintViaStartWithConn(t *testing.T) {
 	clientConn.Write(br_buf[:])
 
 	// Wait for ready
-	support.WaitForDogeNetClient(client)
+	test_support.WaitForDogeNetClient(client)
 
 	privKey, dogePubKey, dogeAddress, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
 	assert.NilError(t, err)
@@ -357,7 +358,7 @@ func TestRecvMintInvalidEnvelope(t *testing.T) {
 	clientConn.Write(br_buf[:])
 
 	// Wait for ready
-	support.WaitForDogeNetClient(client)
+	test_support.WaitForDogeNetClient(client)
 
 	// Send invalid protobuf data
 	invalidData := []byte("invalid protobuf data")
@@ -406,7 +407,7 @@ func TestRecvMintWrongActionType(t *testing.T) {
 	clientConn.Write(br_buf[:])
 
 	// Wait for ready
-	support.WaitForDogeNetClient(client)
+	test_support.WaitForDogeNetClient(client)
 
 	// Create mint message with wrong action type
 	mintMessage := &protocol.MintMessage{

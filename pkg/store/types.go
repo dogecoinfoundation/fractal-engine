@@ -14,6 +14,8 @@ import (
 	"fmt"
 
 	"time"
+
+	"dogecoin.org/fractal-engine/pkg/doge"
 )
 
 type StringInterfaceMap map[string]interface{}
@@ -59,36 +61,108 @@ func (m *StringInterfaceMap) Scan(src interface{}) error {
 	return json.Unmarshal(source, m)
 }
 
+type AssetManager struct {
+	Name      string `json:"name"`
+	PublicKey string `json:"public_key"`
+	URL       string `json:"url"`
+}
+
+func (a *AssetManager) Value() (driver.Value, error) {
+	return json.Marshal(a)
+}
+
+func (a *AssetManager) Scan(src interface{}) error {
+	return json.Unmarshal(src.([]byte), a)
+}
+
+type AssetManagers []AssetManager
+
+// Value implements driver.Valuer — converts to JSON for DB insertion.
+func (a AssetManagers) Value() (driver.Value, error) {
+	// nil slice -> NULL in DB
+	if a == nil {
+		return nil, nil
+	}
+	b, err := json.Marshal(a)
+	if err != nil {
+		return nil, fmt.Errorf("marshal AssetManagers: %w", err)
+	}
+	return string(b), nil // or return b ([]byte) — both work
+}
+
+// Scan implements sql.Scanner — converts DB value to the slice.
+func (a *AssetManagers) Scan(src interface{}) error {
+	if a == nil {
+		return fmt.Errorf("AssetManagers: Scan on nil pointer")
+	}
+	if src == nil {
+		*a = nil
+		return nil
+	}
+
+	var data []byte
+	switch v := src.(type) {
+	case string:
+		data = []byte(v)
+	case []byte:
+		data = v
+	default:
+		return fmt.Errorf("unsupported scan type for AssetManagers: %T", src)
+	}
+
+	if len(data) == 0 {
+		*a = nil
+		return nil
+	}
+
+	return json.Unmarshal(data, a)
+}
+
+type SignatureRequirementType string
+
+const (
+	SignatureRequirementType_ALL_SIGNATURES SignatureRequirementType = "REQUIRES_ALL_SIGNATURES"
+	SignatureRequirementType_ONE_SIGNATURE  SignatureRequirementType = "REQUIRES_ONE_SIGNATURE"
+	SignatureRequirementType_MIN_SIGNATURES SignatureRequirementType = "REQUIRES_MIN_SIGNATURES"
+	SignatureRequirementType_NONE           SignatureRequirementType = "NONE"
+)
+
 type MintWithoutID struct {
-	Hash            string             `json:"hash"`
-	Title           string             `json:"title"`
-	FractionCount   int                `json:"fraction_count"`
-	Description     string             `json:"description"`
-	Tags            StringArray        `json:"tags"`
-	Metadata        StringInterfaceMap `json:"metadata"`
-	TransactionHash string             `json:"transaction_hash"`
-	BlockHeight     int64              `json:"block_height"`
-	CreatedAt       time.Time          `json:"created_at"`
-	Requirements    StringInterfaceMap `json:"requirements"`
-	LockupOptions   StringInterfaceMap `json:"lockup_options"`
-	FeedURL         string             `json:"feed_url"`
-	PublicKey       string             `json:"public_key"`
-	OwnerAddress    string             `json:"owner_address"`
-	Signature       string             `json:"signature"`
-	ContractOfSale  string             `json:"contract_of_sale"`
+	Hash                     string                   `json:"hash"`
+	Title                    string                   `json:"title"`
+	FractionCount            int                      `json:"fraction_count"`
+	Description              string                   `json:"description"`
+	Tags                     StringArray              `json:"tags"`
+	Metadata                 StringInterfaceMap       `json:"metadata"`
+	TransactionHash          string                   `json:"transaction_hash"`
+	BlockHeight              int64                    `json:"block_height"`
+	CreatedAt                time.Time                `json:"created_at"`
+	Requirements             StringInterfaceMap       `json:"requirements"`
+	LockupOptions            StringInterfaceMap       `json:"lockup_options"`
+	FeedURL                  string                   `json:"feed_url"`
+	PublicKey                string                   `json:"public_key"`
+	OwnerAddress             string                   `json:"owner_address"`
+	Signature                string                   `json:"signature"`
+	ContractOfSale           string                   `json:"contract_of_sale"`
+	SignatureRequirementType SignatureRequirementType `json:"signature_requirement_type"`
+	AssetManagers            AssetManagers            `json:"asset_managers"`
+	MinSignatures            int                      `json:"min_signatures"`
 }
 
 type MintHash struct {
-	Title          string             `json:"title"`
-	FractionCount  int                `json:"fraction_count"`
-	Description    string             `json:"description"`
-	Tags           StringArray        `json:"tags"`
-	Metadata       StringInterfaceMap `json:"metadata"`
-	Requirements   StringInterfaceMap `json:"requirements"`
-	LockupOptions  StringInterfaceMap `json:"lockup_options"`
-	OwnerAddress   string             `json:"owner_address"`
-	PublicKey      string             `json:"public_key"`
-	ContractOfSale string             `json:"contract_of_sale"`
+	Title                    string                   `json:"title"`
+	FractionCount            int                      `json:"fraction_count"`
+	Description              string                   `json:"description"`
+	Tags                     StringArray              `json:"tags"`
+	Metadata                 StringInterfaceMap       `json:"metadata"`
+	Requirements             StringInterfaceMap       `json:"requirements"`
+	LockupOptions            StringInterfaceMap       `json:"lockup_options"`
+	OwnerAddress             string                   `json:"owner_address"`
+	PublicKey                string                   `json:"public_key"`
+	ContractOfSale           string                   `json:"contract_of_sale"`
+	SignatureRequirementType SignatureRequirementType `json:"signature_requirement_type"`
+	AssetManagers            AssetManagers            `json:"asset_managers"`
+	MinSignatures            int                      `json:"min_signatures"`
 }
 
 type OnChainTransaction struct {
@@ -106,15 +180,18 @@ type OnChainTransaction struct {
 
 func (m *MintWithoutID) GenerateHash() (string, error) {
 	input := MintHash{
-		Title:          m.Title,
-		FractionCount:  m.FractionCount,
-		Description:    m.Description,
-		Tags:           m.Tags,
-		Metadata:       m.Metadata,
-		Requirements:   m.Requirements,
-		LockupOptions:  m.LockupOptions,
-		PublicKey:      m.PublicKey,
-		ContractOfSale: m.ContractOfSale,
+		Title:                    m.Title,
+		FractionCount:            m.FractionCount,
+		Description:              m.Description,
+		Tags:                     m.Tags,
+		Metadata:                 m.Metadata,
+		Requirements:             m.Requirements,
+		LockupOptions:            m.LockupOptions,
+		PublicKey:                m.PublicKey,
+		ContractOfSale:           m.ContractOfSale,
+		SignatureRequirementType: m.SignatureRequirementType,
+		AssetManagers:            m.AssetManagers,
+		MinSignatures:            m.MinSignatures,
 	}
 
 	// Serialize to JSON with sorted keys
@@ -133,6 +210,27 @@ func (m *MintWithoutID) GenerateHash() (string, error) {
 type Mint struct {
 	MintWithoutID
 	Id string `json:"id"`
+}
+
+func (m *Mint) SignatureRequired() bool {
+	if m.SignatureRequirementType == SignatureRequirementType_NONE || m.SignatureRequirementType == "" {
+		return false
+	}
+
+	return true
+}
+
+func (m *Mint) HasRequiredSignatures(signatures []InvoiceSignature) bool {
+	switch m.SignatureRequirementType {
+	case SignatureRequirementType_ALL_SIGNATURES:
+		return len(signatures) == len(m.AssetManagers)
+	case SignatureRequirementType_ONE_SIGNATURE:
+		return len(signatures) == 1
+	case SignatureRequirementType_MIN_SIGNATURES:
+		return len(signatures) >= m.MinSignatures
+	}
+
+	return false
 }
 
 type OnChainMint struct {
@@ -244,6 +342,7 @@ type UnconfirmedInvoice struct {
 	SellerAddress  string    `json:"seller_address"`
 	PublicKey      string    `json:"public_key"`
 	Signature      string    `json:"signature"`
+	Status         string    `json:"status"`
 }
 
 func (u *UnconfirmedInvoice) GenerateHash() (string, error) {
@@ -324,6 +423,56 @@ func (i *Invoice) GenerateHash() (string, error) {
 	hash := sha256.Sum256(jsonBytes)
 
 	return hex.EncodeToString(hash[:]), nil
+}
+
+type InvoiceSignature struct {
+	Id          string    `json:"id"`
+	InvoiceHash string    `json:"invoice_hash"`
+	Signature   string    `json:"signature"`
+	PublicKey   string    `json:"public_key"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type InvoiceSignatureBody struct {
+	Hash           string `json:"hash"`
+	MintHash       string `json:"mint_hash"`
+	Price          int    `json:"price"`
+	Quantity       int    `json:"quantity"`
+	BuyerAddress   string `json:"buyer_address"`
+	PaymentAddress string `json:"payment_address"`
+	SellerAddress  string `json:"seller_address"`
+}
+
+func (i *InvoiceSignature) Validate(mint Mint, invoice UnconfirmedInvoice) error {
+	var assetManager AssetManager
+
+	for _, am := range mint.AssetManagers {
+		if am.PublicKey == i.PublicKey {
+			assetManager = am
+			break
+		}
+	}
+
+	if assetManager.PublicKey == "" {
+		return fmt.Errorf("public key does not match any asset managers")
+	}
+
+	invoiceBody := InvoiceSignatureBody{
+		Hash:           invoice.Hash,
+		MintHash:       invoice.MintHash,
+		Price:          invoice.Price,
+		Quantity:       invoice.Quantity,
+		BuyerAddress:   invoice.BuyerAddress,
+		PaymentAddress: invoice.PaymentAddress,
+		SellerAddress:  invoice.SellerAddress,
+	}
+
+	err := doge.ValidateSignature(invoiceBody, i.PublicKey, i.Signature)
+	if err != nil {
+		return fmt.Errorf("invalid signature: %w", err)
+	}
+
+	return nil
 }
 
 type TokenBalanceWithMint struct {

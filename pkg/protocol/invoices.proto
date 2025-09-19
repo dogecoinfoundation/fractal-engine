@@ -39,3 +39,16 @@ message InvoiceMessage {
     InvoicePayload payload = 3;
     google.protobuf.Timestamp created_at = 4;
 }
+
+message InvoiceSignatureMessage {
+    string invoice_hash = 1;
+    string signature = 2;
+    string public_key = 3;
+    google.protobuf.Timestamp created_at = 4;
+}
+
+message InvoiceSignatureMessageEnvelope {
+    int32 type = 1;
+    int32 version = 2;
+    InvoiceSignatureMessage payload = 3;
+}
