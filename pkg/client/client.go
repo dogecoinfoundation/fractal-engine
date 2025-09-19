@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"dogecoin.org/fractal-engine/pkg/doge"
@@ -508,6 +509,8 @@ func (c *TokenisationClient) CreateInvoiceSignature(signature *rpc.CreateInvoice
 	if err != nil {
 		return rpc.CreateInvoiceSignatureResponse{}, err
 	}
+
+	log.Println("jsonValue", string(jsonValue))
 
 	resp, err := c.httpClient.Post(c.baseUrl+"/invoices/"+signature.Payload.InvoiceHash+"/signatures", "application/json", bytes.NewBuffer(jsonValue))
 	if err != nil {

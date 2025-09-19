@@ -47,6 +47,7 @@ type GossipClient interface {
 	GossipDeleteBuyOffer(hash string, publicKey string, signature string) error
 	GossipDeleteSellOffer(hash string, publicKey string, signature string) error
 	GossipUnconfirmedInvoice(record store.UnconfirmedInvoice) error
+	GossipInvoiceSignature(record store.InvoiceSignature) error
 	GetNodes() (GetNodesResponse, error)
 	AddPeer(addPeer AddPeer) error
 	CheckRunning() error
@@ -250,6 +251,7 @@ func (c *DogeNetClient) Run() {
 
 	go c.gossipRandomMints()
 	go c.gossipRandomInvoices()
+	go c.gossipRandomInvoiceSignatures()
 
 	for !c.Stopping {
 		msg, err := dnet.ReadMessage(reader)
@@ -354,6 +356,36 @@ func (s *DogeNetClient) gossipRandomInvoices() {
 		}
 
 		err = s.GossipUnconfirmedInvoice(unconfirmedInvoice)
+		if err != nil {
+			log.Printf("[FE] cannot gossip invoice: %v", err)
+		}
+	}
+}
+
+func (s *DogeNetClient) gossipRandomInvoiceSignatures() {
+	for !s.Stopping {
+		// wait for next turn
+		time.Sleep(GossipInterval)
+
+		// choose a random
+		invoiceSignature, err := s.store.ChooseInvoiceSignature()
+		log.Println("Choose Invoice Signature")
+
+		if err != nil {
+			log.Printf("[FE] cannot choose invoice: %v", err)
+			continue
+		}
+
+		log.Printf("[FE] Gossiping random invoice signature\n")
+		unconfirmedInvoiceSignature := store.InvoiceSignature{
+			Id:          invoiceSignature.Id,
+			InvoiceHash: invoiceSignature.InvoiceHash,
+			Signature:   invoiceSignature.Signature,
+			PublicKey:   invoiceSignature.PublicKey,
+			CreatedAt:   invoiceSignature.CreatedAt,
+		}
+
+		err = s.GossipInvoiceSignature(unconfirmedInvoiceSignature)
 		if err != nil {
 			log.Printf("[FE] cannot gossip invoice: %v", err)
 		}

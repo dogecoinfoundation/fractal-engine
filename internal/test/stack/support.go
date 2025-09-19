@@ -21,35 +21,39 @@ import (
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/rpc"
 	"dogecoin.org/fractal-engine/pkg/store"
+
 	"github.com/dogeorg/doge/koinu"
 )
 
 type StackConfig struct {
-	InstanceId         int
-	BasePort           int
-	DogePort           int
-	DogeHost           string
-	DogeP2PPort        int
-	FractalPort        int
-	FractalHost        string
-	DogeNetPort        int
-	DogeNetHost        string
-	DogeNetChain       string
-	DogeNetBindPort    int
-	DogeNetPubKey      string
-	DogeNetWebPort     int
-	IndexerURL         string
-	PortgresPort       int
-	PostgresHost       string
-	DogeNetHandlerPort int
-	PrivKey            string
-	PubKey             string
-	Address            string
-	TokenisationClient *feclient.TokenisationClient
-	IndexerClient      *indexer.IndexerClient
-	DogeClient         *doge.RpcClient
-	DogeNetClient      dogenet.GossipClient
-	TokenisationStore  *store.TokenisationStore
+	InstanceId          int
+	BasePort            int
+	DogePort            int
+	DogeHost            string
+	DogeP2PPort         int
+	FractalPort         int
+	FractalHost         string
+	DogeNetPort         int
+	DogeNetHost         string
+	DogeNetChain        string
+	DogeNetBindPort     int
+	DogeNetPubKey       string
+	DogeNetWebPort      int
+	IndexerURL          string
+	PortgresPort        int
+	PostgresHost        string
+	DogeNetHandlerPort  int
+	PrivKey             string
+	PubKey              string
+	AssetManagerPrivKey string
+	AssetManagerPubKey  string
+	AssetManagerAddress string
+	Address             string
+	TokenisationClient  *feclient.TokenisationClient
+	IndexerClient       *indexer.IndexerClient
+	DogeClient          *doge.RpcClient
+	DogeNetClient       dogenet.GossipClient
+	TokenisationStore   *store.TokenisationStore
 }
 
 var nodePubKeyRe = regexp.MustCompile(`DogeNet PubKey is:\s*([0-9a-fA-F]{64})`)
@@ -68,24 +72,33 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		panic(err)
 	}
 
+	assetManagerPrivHex, assetManagerPubHex, assetManagerAddress, err := doge.GenerateDogecoinKeypair(prefixByte)
+	if err != nil {
+		panic(err)
+	}
+
 	stackConfig := StackConfig{
-		InstanceId:         instanceId,
-		BasePort:           basePort,
-		DogePort:           basePortFirst + 14556,
-		DogeHost:           "0.0.0.0",
-		DogeP2PPort:        basePortFirst + 10,
-		DogeNetChain:       chain,
-		FractalPort:        basePort + 20,
-		FractalHost:        "0.0.0.0",
-		DogeNetPort:        basePort + 30,
-		DogeNetWebPort:     basePort + 40,
-		DogeNetHost:        "0.0.0.0",
-		IndexerURL:         "http://0.0.0.0:" + strconv.Itoa(basePortFirst+50),
-		DogeNetHandlerPort: basePort + 70,
-		DogeNetBindPort:    basePort + 73,
-		Address:            address,
-		PrivKey:            privHex,
-		PubKey:             pubHex,
+		InstanceId:          instanceId,
+		BasePort:            basePort,
+		DogePort:            basePortFirst + 14556,
+		DogeHost:            "0.0.0.0",
+		DogeP2PPort:         basePortFirst + 10,
+		DogeNetChain:        chain,
+		FractalPort:         basePort + 20,
+		FractalHost:         "0.0.0.0",
+		DogeNetPort:         basePort + 30,
+		DogeNetWebPort:      basePort + 40,
+		DogeNetHost:         "0.0.0.0",
+		IndexerURL:          "http://0.0.0.0:" + strconv.Itoa(basePortFirst+50),
+		DogeNetHandlerPort:  basePort + 70,
+		DogeNetBindPort:     basePort + 73,
+		Address:             address,
+		PrivKey:             privHex,
+		PubKey:              pubHex,
+		AssetManagerPrivKey: assetManagerPrivHex,
+		AssetManagerPubKey:  assetManagerPubHex,
+		AssetManagerAddress: assetManagerAddress,
+		PortgresPort:        basePort + 60,
 	}
 
 	home, err := os.UserHomeDir()
@@ -122,7 +135,11 @@ func NewStackConfig(instanceId int, chain string) StackConfig {
 		DogePassword: "changeme1",
 	})
 
-	tokenStore, err := store.NewTokenisationStore("postgres://fractalstore:fractalstore@0.0.0.0:"+strconv.Itoa(stackConfig.PortgresPort)+"/fractalstore?sslmode=disabled", fecfg.Config{})
+	tokenStore, err := store.NewTokenisationStore("postgres://fractalstore:fractalstore@0.0.0.0:"+strconv.Itoa(stackConfig.PortgresPort)+"/fractalstore?sslmode=disable", fecfg.Config{})
+	if err != nil {
+		panic(err)
+	}
+
 	stackConfig.TokenisationStore = tokenStore
 
 	stackConfig.DogeNetClient = dogenet.NewDogeNetClient(&fecfg.Config{
@@ -284,7 +301,7 @@ func WriteToBlockchain(stackConfig *StackConfig, paymentAddress string, hexBody 
 }
 
 func GetTokenBalance(stackConfig *StackConfig, mintHash string) int {
-	log.Println("GetTokenBalance ", stackConfig.Address)
+	log.Printf("GetTokenBalance %s %s \n", stackConfig.Address, mintHash)
 
 	tokens, err := stackConfig.TokenisationClient.GetTokenBalance(stackConfig.Address, mintHash)
 	if err != nil {
@@ -296,7 +313,7 @@ func GetTokenBalance(stackConfig *StackConfig, mintHash string) int {
 		balance += token.Quantity
 	}
 
-	log.Printf("GetTokenBalance %s : %d", stackConfig.Address, balance)
+	log.Printf("GetTokenBalance %s %s : %d\n", stackConfig.Address, mintHash, balance)
 
 	return balance
 }
@@ -383,15 +400,56 @@ func Invoice(stackConfig *StackConfig, buyerAddress string, mintHash string, qua
 	return res.Hash
 }
 
+func InvoiceSignature(stackConfig *StackConfig, invoice store.UnconfirmedInvoice) string {
+	invoiceBody := store.InvoiceSignatureBody{
+		Hash:           invoice.Hash,
+		MintHash:       invoice.MintHash,
+		Price:          invoice.Price,
+		Quantity:       invoice.Quantity,
+		BuyerAddress:   invoice.BuyerAddress,
+		PaymentAddress: invoice.PaymentAddress,
+		SellerAddress:  invoice.SellerAddress,
+	}
+
+	signature, err := doge.SignPayload(invoiceBody, stackConfig.AssetManagerPrivKey, stackConfig.AssetManagerPubKey)
+	if err != nil {
+		panic(err)
+	}
+
+	createInvoiceSignatureRequest := rpc.CreateInvoiceSignatureRequest{
+		Payload: rpc.CreateInvoiceSignatureRequestPayload{
+			InvoiceHash: invoice.Hash,
+			Signature:   signature,
+			PublicKey:   stackConfig.AssetManagerPubKey,
+		},
+	}
+
+	createInvoiceSignatureResponse, err := stackConfig.TokenisationClient.CreateInvoiceSignature(&createInvoiceSignatureRequest)
+	if err != nil {
+		panic(err)
+	}
+
+	return createInvoiceSignatureResponse.Id
+}
+
 func Mint(stackConfig *StackConfig) string {
 	mintPayload := rpc.CreateMintRequestPayload{
-		Title:          "Super Lambo",
-		FractionCount:  100,
-		Description:    "Fast Car",
-		ContractOfSale: "contract of sale",
-		Tags:           []string{"car"},
-		FeedURL:        "https://example.com/feed",
-		OwnerAddress:   stackConfig.Address,
+		Title:                    "Super Lambo",
+		FractionCount:            100,
+		Description:              "Fast Car",
+		ContractOfSale:           "contract of sale",
+		Tags:                     []string{"car"},
+		FeedURL:                  "https://example.com/feed",
+		OwnerAddress:             stackConfig.Address,
+		SignatureRequirementType: store.SignatureRequirementType_ALL_SIGNATURES,
+		AssetManagers: []store.AssetManager{
+			{
+				Name:      "asset manager",
+				PublicKey: stackConfig.AssetManagerPubKey,
+				URL:       "https://example.com/assetManager",
+			},
+		},
+		MinSignatures: 1,
 	}
 
 	mintRequest := rpc.CreateMintRequest{

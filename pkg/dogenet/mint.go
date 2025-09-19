@@ -13,20 +13,32 @@ import (
 )
 
 func (c *DogeNetClient) GossipMint(record store.Mint) error {
+
+	var assetManagers []*protocol.AssetManager
+	for _, assetManager := range record.AssetManagers {
+		assetManagers = append(assetManagers, &protocol.AssetManager{
+			Name:      assetManager.Name,
+			PublicKey: assetManager.PublicKey,
+			Url:       assetManager.URL,
+		})
+	}
 	mintMessage := protocol.MintMessage{
-		Title:           record.Title,
-		Description:     record.Description,
-		FractionCount:   int32(record.FractionCount),
-		Tags:            record.Tags,
-		TransactionHash: record.TransactionHash,
-		Metadata:        &structpb.Struct{Fields: convertToStructPBMap(record.Metadata)},
-		Hash:            record.Hash,
-		Requirements:    &structpb.Struct{Fields: convertToStructPBMap(record.Requirements)},
-		LockupOptions:   &structpb.Struct{Fields: convertToStructPBMap(record.LockupOptions)},
-		FeedUrl:         record.FeedURL,
-		CreatedAt:       timestamppb.New(record.CreatedAt),
-		ContractOfSale:  record.ContractOfSale,
-		OwnerAddress:    record.OwnerAddress,
+		Title:                    record.Title,
+		Description:              record.Description,
+		FractionCount:            int32(record.FractionCount),
+		Tags:                     record.Tags,
+		TransactionHash:          record.TransactionHash,
+		Metadata:                 &structpb.Struct{Fields: convertToStructPBMap(record.Metadata)},
+		Hash:                     record.Hash,
+		Requirements:             &structpb.Struct{Fields: convertToStructPBMap(record.Requirements)},
+		LockupOptions:            &structpb.Struct{Fields: convertToStructPBMap(record.LockupOptions)},
+		FeedUrl:                  record.FeedURL,
+		CreatedAt:                timestamppb.New(record.CreatedAt),
+		ContractOfSale:           record.ContractOfSale,
+		OwnerAddress:             record.OwnerAddress,
+		SignatureRequirementType: string(record.SignatureRequirementType),
+		AssetManagers:            assetManagers,
+		MinSignatures:            int32(record.MinSignatures),
 	}
 
 	envelope := protocol.MintMessageEnvelope{
@@ -69,35 +81,50 @@ func (c *DogeNetClient) recvMint(msg dnet.Message) {
 
 	mintMessage := envelope.Payload
 
+	var assetManagers store.AssetManagers
+	for _, assetManager := range mintMessage.AssetManagers {
+		assetManagers = append(assetManagers, store.AssetManager{
+			Name:      assetManager.Name,
+			PublicKey: assetManager.PublicKey,
+			URL:       assetManager.Url,
+		})
+	}
+
 	mintRecord := &store.MintWithoutID{
-		Hash:            mintMessage.Hash,
-		Title:           mintMessage.Title,
-		FractionCount:   int(mintMessage.FractionCount),
-		Description:     mintMessage.Description,
-		Tags:            mintMessage.Tags,
-		Metadata:        mintMessage.Metadata.AsMap(),
-		TransactionHash: mintMessage.TransactionHash,
-		CreatedAt:       mintMessage.CreatedAt.AsTime(),
-		Requirements:    mintMessage.Requirements.AsMap(),
-		LockupOptions:   mintMessage.LockupOptions.AsMap(),
-		PublicKey:       envelope.PublicKey,
-		Signature:       envelope.Signature,
-		FeedURL:         mintMessage.FeedUrl,
-		ContractOfSale:  mintMessage.ContractOfSale,
-		OwnerAddress:    mintMessage.OwnerAddress,
+		Hash:                     mintMessage.Hash,
+		Title:                    mintMessage.Title,
+		FractionCount:            int(mintMessage.FractionCount),
+		Description:              mintMessage.Description,
+		Tags:                     mintMessage.Tags,
+		Metadata:                 mintMessage.Metadata.AsMap(),
+		TransactionHash:          mintMessage.TransactionHash,
+		CreatedAt:                mintMessage.CreatedAt.AsTime(),
+		Requirements:             mintMessage.Requirements.AsMap(),
+		LockupOptions:            mintMessage.LockupOptions.AsMap(),
+		PublicKey:                envelope.PublicKey,
+		Signature:                envelope.Signature,
+		FeedURL:                  mintMessage.FeedUrl,
+		ContractOfSale:           mintMessage.ContractOfSale,
+		OwnerAddress:             mintMessage.OwnerAddress,
+		SignatureRequirementType: store.SignatureRequirementType(mintMessage.SignatureRequirementType),
+		AssetManagers:            assetManagers,
+		MinSignatures:            int(mintMessage.MinSignatures),
 	}
 
 	mintSignaturePayload := protocol.MintMessage{
-		Title:          mintRecord.Title,
-		Description:    mintRecord.Description,
-		FractionCount:  int32(mintRecord.FractionCount),
-		Tags:           mintRecord.Tags,
-		Metadata:       &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Metadata)},
-		Requirements:   &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Requirements)},
-		LockupOptions:  &structpb.Struct{Fields: convertToStructPBMap(mintRecord.LockupOptions)},
-		FeedUrl:        mintRecord.FeedURL,
-		ContractOfSale: mintRecord.ContractOfSale,
-		OwnerAddress:   mintRecord.OwnerAddress,
+		Title:                    mintRecord.Title,
+		Description:              mintRecord.Description,
+		FractionCount:            int32(mintRecord.FractionCount),
+		Tags:                     mintRecord.Tags,
+		Metadata:                 &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Metadata)},
+		Requirements:             &structpb.Struct{Fields: convertToStructPBMap(mintRecord.Requirements)},
+		LockupOptions:            &structpb.Struct{Fields: convertToStructPBMap(mintRecord.LockupOptions)},
+		FeedUrl:                  mintRecord.FeedURL,
+		ContractOfSale:           mintRecord.ContractOfSale,
+		OwnerAddress:             mintRecord.OwnerAddress,
+		SignatureRequirementType: mintMessage.SignatureRequirementType,
+		AssetManagers:            mintMessage.AssetManagers,
+		MinSignatures:            mintMessage.MinSignatures,
 	}
 
 	if len(mintRecord.Metadata) == 0 {

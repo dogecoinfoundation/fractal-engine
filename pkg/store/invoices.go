@@ -18,11 +18,29 @@ func (s *TokenisationStore) ChooseInvoice() (Invoice, error) {
 	return invoice, nil
 }
 
+func (s *TokenisationStore) ChooseInvoiceSignature() (InvoiceSignature, error) {
+	row := s.DB.QueryRow("SELECT id, invoice_hash, signature, public_key, created_at FROM invoice_signatures WHERE id IN (SELECT id FROM invoice_signatures ORDER BY RANDOM() LIMIT 1)")
+	var invoice InvoiceSignature
+	if err := row.Scan(&invoice.Id, &invoice.InvoiceHash, &invoice.Signature, &invoice.PublicKey, &invoice.CreatedAt); err != nil {
+		return InvoiceSignature{}, err
+	}
+	return invoice, nil
+}
+
 func (s *TokenisationStore) GetInvoiceByHash(hash string) (Invoice, error) {
 	row := s.DB.QueryRow("SELECT id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature, paid_at FROM invoices WHERE hash = $1", hash)
 	var invoice Invoice
 	if err := row.Scan(&invoice.Id, &invoice.Hash, &invoice.PaymentAddress, &invoice.BuyerAddress, &invoice.MintHash, &invoice.Quantity, &invoice.Price, &invoice.CreatedAt, &invoice.SellerAddress, &invoice.PublicKey, &invoice.Signature, &invoice.PaidAt); err != nil {
 		return Invoice{}, err
+	}
+	return invoice, nil
+}
+
+func (s *TokenisationStore) GetUnconfirmedInvoiceByHash(hash string) (UnconfirmedInvoice, error) {
+	row := s.DB.QueryRow("SELECT id, hash, payment_address, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature FROM unconfirmed_invoices WHERE hash = $1", hash)
+	var invoice UnconfirmedInvoice
+	if err := row.Scan(&invoice.Id, &invoice.Hash, &invoice.PaymentAddress, &invoice.BuyerAddress, &invoice.MintHash, &invoice.Quantity, &invoice.Price, &invoice.CreatedAt, &invoice.SellerAddress, &invoice.PublicKey, &invoice.Signature); err != nil {
+		return UnconfirmedInvoice{}, err
 	}
 	return invoice, nil
 }

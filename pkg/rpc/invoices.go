@@ -42,6 +42,7 @@ func (ir *InvoiceRoutes) handleCreateInvoiceSignature(w http.ResponseWriter, r *
 func (ir *InvoiceRoutes) postCreateInvoiceSignature(w http.ResponseWriter, r *http.Request) {
 	var request CreateInvoiceSignatureRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		log.Println("error decoding request", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -53,27 +54,37 @@ func (ir *InvoiceRoutes) postCreateInvoiceSignature(w http.ResponseWriter, r *ht
 		CreatedAt:   time.Now(),
 	}
 
-	invoice, err := ir.store.GetInvoiceByHash(request.Payload.InvoiceHash)
+	invoice, err := ir.store.GetUnconfirmedInvoiceByHash(request.Payload.InvoiceHash)
 	if err != nil {
+		log.Println("error getting invoice by hash", err)
 		http.Error(w, "Could not find invoice by hash", http.StatusBadRequest)
 		return
 	}
 
 	mint, err := ir.store.GetMintByHash(invoice.MintHash)
 	if err != nil {
+		log.Println("error getting mint by hash", err)
 		http.Error(w, "Could not find mint by hash", http.StatusBadRequest)
 		return
 	}
 
 	err = newInvoiceSignature.Validate(mint, invoice)
 	if err != nil {
+		log.Println("error validating signature", err)
 		http.Error(w, "Invalid signature", http.StatusBadRequest)
 		return
 	}
 
 	id, err := ir.store.SaveApprovedInvoiceSignature(newInvoiceSignature)
 	if err != nil {
+		log.Println("error saving approved invoice signature", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	err = ir.gossipClient.GossipInvoiceSignature(*newInvoiceSignature)
+	if err != nil {
+		http.Error(w, "Unable to gossip", http.StatusInternalServerError)
 		return
 	}
 

@@ -19,7 +19,7 @@ func (c *DogeNetClient) GossipInvoiceSignature(record store.InvoiceSignature) er
 	}
 
 	envelope := protocol.InvoiceSignatureMessageEnvelope{
-		Type:    protocol.ACTION_INVOICE,
+		Type:    protocol.ACTION_INVOICE_SIGNATURE,
 		Version: protocol.DEFAULT_VERSION,
 		Payload: &invoiceSignatureMessage,
 	}

@@ -443,7 +443,7 @@ type InvoiceSignatureBody struct {
 	SellerAddress  string `json:"seller_address"`
 }
 
-func (i *InvoiceSignature) Validate(mint Mint, invoice Invoice) error {
+func (i *InvoiceSignature) Validate(mint Mint, invoice UnconfirmedInvoice) error {
 	var assetManager AssetManager
 
 	for _, am := range mint.AssetManagers {
