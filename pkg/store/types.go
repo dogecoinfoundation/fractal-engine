@@ -212,6 +212,27 @@ type Mint struct {
 	Id string `json:"id"`
 }
 
+func (m *Mint) SignatureRequired() bool {
+	if m.SignatureRequirementType == SignatureRequirementType_NONE || m.SignatureRequirementType == "" {
+		return false
+	}
+
+	return true
+}
+
+func (m *Mint) HasRequiredSignatures(signatures []InvoiceSignature) bool {
+	switch m.SignatureRequirementType {
+	case SignatureRequirementType_ALL_SIGNATURES:
+		return len(signatures) == len(m.AssetManagers)
+	case SignatureRequirementType_ONE_SIGNATURE:
+		return len(signatures) == 1
+	case SignatureRequirementType_MIN_SIGNATURES:
+		return len(signatures) >= m.MinSignatures
+	}
+
+	return false
+}
+
 type OnChainMint struct {
 	MintId          string `json:"mint_id"`
 	TransactionHash string `json:"transaction_hash"`
@@ -404,21 +425,12 @@ func (i *Invoice) GenerateHash() (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
-type InvoiceSignatureStatus string
-
-const (
-	InvoiceSignatureStatus_PENDING  InvoiceSignatureStatus = "pending"
-	InvoiceSignatureStatus_APPROVED InvoiceSignatureStatus = "approved"
-	InvoiceSignatureStatus_REJECTED InvoiceSignatureStatus = "rejected"
-)
-
 type InvoiceSignature struct {
-	Id          string                 `json:"id"`
-	InvoiceHash string                 `json:"invoice_hash"`
-	Signature   string                 `json:"signature"`
-	PublicKey   string                 `json:"public_key"`
-	CreatedAt   time.Time              `json:"created_at"`
-	Status      InvoiceSignatureStatus `json:"status"`
+	Id          string    `json:"id"`
+	InvoiceHash string    `json:"invoice_hash"`
+	Signature   string    `json:"signature"`
+	PublicKey   string    `json:"public_key"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type InvoiceSignatureBody struct {

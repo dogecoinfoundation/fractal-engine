@@ -259,13 +259,30 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 
 func (s *TokenisationStore) SaveApprovedInvoiceSignature(signature *InvoiceSignature) (string, error) {
 	id := uuid.New().String()
-	status := InvoiceSignatureStatus_APPROVED
 
-	_, err := s.DB.Exec("INSERT INTO invoice_signatures (id, invoice_hash, signature, public_key, created_at, status) VALUES ($1, $2, $3, $4, $5, $6)", id, signature.InvoiceHash, signature.Signature, signature.PublicKey, signature.CreatedAt, status)
+	_, err := s.DB.Exec("INSERT INTO invoice_signatures (id, invoice_hash, signature, public_key, created_at) VALUES ($1, $2, $3, $4, $5)", id, signature.InvoiceHash, signature.Signature, signature.PublicKey, signature.CreatedAt)
 	return id, err
 }
 
-func (s *TokenisationStore) UpdateInvoiceSignature(status InvoiceSignatureStatus, id string) error {
-	_, err := s.DB.Exec("UPDATE invoice_signatures SET status = $1 WHERE id = $2", status, id)
-	return err
+func (s *TokenisationStore) GetApprovedInvoiceSignatures(invoiceHash string) ([]InvoiceSignature, error) {
+	rows, err := s.DB.Query("SELECT id, invoice_hash, signature, public_key, created_at FROM invoice_signatures WHERE invoice_hash = $1", invoiceHash)
+	if err != nil {
+		return []InvoiceSignature{}, err
+	}
+	defer rows.Close()
+
+	var signatures []InvoiceSignature
+	for rows.Next() {
+		var signature InvoiceSignature
+		if err := rows.Scan(&signature.Id, &signature.InvoiceHash, &signature.Signature, &signature.PublicKey, &signature.CreatedAt); err != nil {
+			return []InvoiceSignature{}, err
+		}
+		signatures = append(signatures, signature)
+	}
+
+	if err := rows.Err(); err != nil {
+		return []InvoiceSignature{}, err
+	}
+
+	return signatures, nil
 }

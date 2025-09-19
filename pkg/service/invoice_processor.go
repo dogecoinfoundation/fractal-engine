@@ -90,6 +90,26 @@ func (p *InvoiceProcessor) Process(tx store.OnChainTransaction) error {
 		return nil
 	}
 
+	mint, err := p.store.GetMintByHash(invoice.MintHash)
+	if err != nil {
+		log.Println("Error getting mint:", err)
+		return err
+	}
+
+	// Check if signatures are required and if the number of signatures is correct
+	if mint.SignatureRequired() {
+		signatures, err := p.store.GetApprovedInvoiceSignatures(invoice.InvoiceHash)
+		if err != nil {
+			log.Println("Error getting invoice signatures:", err)
+			return err
+		}
+
+		if !mint.HasRequiredSignatures(signatures) {
+			log.Println("Invalid number of signatures")
+			return err
+		}
+	}
+
 	// Try to match confirmed invoice first
 	if p.store.MatchInvoice(tx) {
 		return nil
