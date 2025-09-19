@@ -286,6 +286,8 @@ func (c *DogeNetClient) Run() {
 			c.recvDeleteBuyOffer(msg)
 		case TagDeleteSellOffer:
 			c.recvDeleteSellOffer(msg)
+		case TagInvoiceSignature:
+			c.recvInvoiceSignature(msg)
 		default:
 			log.Printf("[FE] unknown message: [%s][%s]", msg.Chan, msg.Tag)
 		}
