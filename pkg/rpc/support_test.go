@@ -15,10 +15,11 @@ import (
 
 type FakeGossipClient struct {
 	dogenet.GossipClient
-	buyOffers  []store.BuyOffer
-	sellOffers []store.SellOffer
-	mints      []store.Mint
-	invoices   []store.UnconfirmedInvoice
+	buyOffers         []store.BuyOffer
+	sellOffers        []store.SellOffer
+	mints             []store.Mint
+	invoices          []store.UnconfirmedInvoice
+	invoiceSignatures []store.InvoiceSignature
 }
 
 func (g *FakeGossipClient) GossipBuyOffer(offer store.BuyOffer) error {
@@ -65,15 +66,21 @@ func (g *FakeGossipClient) GossipDeleteSellOffer(hash string, publicKey string, 
 	return nil
 }
 
+func (g *FakeGossipClient) GossipInvoiceSignature(invoiceSignature store.InvoiceSignature) error {
+	g.invoiceSignatures = append(g.invoiceSignatures, invoiceSignature)
+	return nil
+}
+
 func SetupRpcTest(t *testing.T) (*store.TokenisationStore, *FakeGossipClient, *http.ServeMux, *client.TokenisationClient) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 
 	dogenetClient := &FakeGossipClient{
-		buyOffers:  []store.BuyOffer{},
-		sellOffers: []store.SellOffer{},
-		mints:      []store.Mint{},
-		invoices:   []store.UnconfirmedInvoice{},
+		buyOffers:         []store.BuyOffer{},
+		sellOffers:        []store.SellOffer{},
+		mints:             []store.Mint{},
+		invoices:          []store.UnconfirmedInvoice{},
+		invoiceSignatures: []store.InvoiceSignature{},
 	}
 
 	privHex, pubHex, _, err := doge.GenerateDogecoinKeypair(doge.PrefixTestnet)

@@ -179,7 +179,7 @@ func TestCreateInvoiceSignature(t *testing.T) {
 	offererAddress := support.GenerateDogecoinAddress(true)
 	sellOfferAddress := support.GenerateDogecoinAddress(true)
 
-	invoice := store.Invoice{
+	invoice := store.UnconfirmedInvoice{
 		Id:             "myId",
 		PaymentAddress: paymentAddress,
 		BuyerAddress:   offererAddress,
@@ -195,7 +195,7 @@ func TestCreateInvoiceSignature(t *testing.T) {
 	invoice.Hash, err = invoice.GenerateHash()
 	assert.NilError(t, err)
 
-	_, err = tokenisationStore.SaveInvoice(&invoice)
+	_, err = tokenisationStore.SaveUnconfirmedInvoice(&invoice)
 	if err != nil {
 		t.Fatalf("Failed to save invoice: %v", err)
 	}
