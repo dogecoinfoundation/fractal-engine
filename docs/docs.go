@@ -172,9 +172,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/invoices": {
+        "/invoices/{address}": {
             "get": {
-                "description": "Returns a list of invoices with optional filtering by mint_hash and offerer_address",
+                "description": "Returns a list of invoices with optional filtering by mint_hash and address",
                 "consumes": [
                     "application/json"
                 ],
@@ -186,6 +186,13 @@ const docTemplate = `{
                 ],
                 "summary": "Get invoices",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by address of buyer or seller",
+                        "name": "address",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Limit number of results (max 100)",
@@ -203,13 +210,6 @@ const docTemplate = `{
                         "description": "Filter by mint hash",
                         "name": "mint_hash",
                         "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by address of buyer or seller",
-                        "name": "offerer_address",
-                        "in": "query",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -217,6 +217,46 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/rpc.GetInvoicesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/invoices/{hash}/signatures": {
+            "post": {
+                "description": "Creates a new invoice signature",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "invoices"
+                ],
+                "summary": "Create an invoice signature",
+                "parameters": [
+                    {
+                        "description": "Invoice signature request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/rpc.CreateInvoiceSignatureRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/rpc.CreateInvoiceSignatureResponse"
                         }
                     },
                     "400": {
@@ -364,7 +404,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/pending-token-balances": {
+        "/pending-token-balances/{address}": {
             "get": {
                 "description": "Returns pending token balances for an address, optionally filtered by mint hash",
                 "consumes": [
@@ -382,7 +422,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Address to get pending token balances for",
                         "name": "address",
-                        "in": "query"
+                        "in": "path",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -399,6 +440,12 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/store.TokenBalance"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
@@ -439,7 +486,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/token-balances": {
+        "/token-balances/{address}": {
             "get": {
                 "description": "Returns token balances for an address, optionally filtered by mint hash and with optional mint details",
                 "consumes": [
@@ -457,11 +504,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Address to get token balances for",
                         "name": "address",
-                        "in": "query"
+                        "in": "path",
+                        "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Filter by mint hash",
+                        "description": "Filter by mint hash (not avaiable with include_mint_details)",
                         "name": "mint_hash",
                         "in": "query"
                     },
@@ -489,6 +537,12 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {}
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -500,6 +554,36 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "rpc.CreateInvoiceSignatureRequest": {
+            "type": "object",
+            "properties": {
+                "payload": {
+                    "$ref": "#/definitions/rpc.CreateInvoiceSignatureRequestPayload"
+                }
+            }
+        },
+        "rpc.CreateInvoiceSignatureRequestPayload": {
+            "type": "object",
+            "properties": {
+                "invoice_hash": {
+                    "type": "string"
+                },
+                "public_key": {
+                    "type": "string"
+                },
+                "signature": {
+                    "type": "string"
+                }
+            }
+        },
+        "rpc.CreateInvoiceSignatureResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
         "rpc.CreateMintRequest": {
             "type": "object",
             "properties": {
@@ -517,6 +601,12 @@ const docTemplate = `{
         "rpc.CreateMintRequestPayload": {
             "type": "object",
             "properties": {
+                "asset_managers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/store.AssetManager"
+                    }
+                },
                 "contract_of_sale": {
                     "type": "string"
                 },
@@ -535,11 +625,17 @@ const docTemplate = `{
                 "metadata": {
                     "$ref": "#/definitions/store.StringInterfaceMap"
                 },
+                "min_signatures": {
+                    "type": "integer"
+                },
                 "owner_address": {
                     "type": "string"
                 },
                 "requirements": {
                     "$ref": "#/definitions/store.StringInterfaceMap"
+                },
+                "signature_requirement_type": {
+                    "$ref": "#/definitions/store.SignatureRequirementType"
                 },
                 "tags": {
                     "type": "array",
@@ -673,6 +769,20 @@ const docTemplate = `{
                 }
             }
         },
+        "store.AssetManager": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "public_key": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "store.Invoice": {
             "type": "object",
             "properties": {
@@ -726,6 +836,12 @@ const docTemplate = `{
         "store.Mint": {
             "type": "object",
             "properties": {
+                "asset_managers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/store.AssetManager"
+                    }
+                },
                 "block_height": {
                     "type": "integer"
                 },
@@ -756,6 +872,9 @@ const docTemplate = `{
                 "metadata": {
                     "$ref": "#/definitions/store.StringInterfaceMap"
                 },
+                "min_signatures": {
+                    "type": "integer"
+                },
                 "owner_address": {
                     "type": "string"
                 },
@@ -767,6 +886,9 @@ const docTemplate = `{
                 },
                 "signature": {
                     "type": "string"
+                },
+                "signature_requirement_type": {
+                    "$ref": "#/definitions/store.SignatureRequirementType"
                 },
                 "tags": {
                     "type": "array",
@@ -781,6 +903,21 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "store.SignatureRequirementType": {
+            "type": "string",
+            "enum": [
+                "REQUIRES_ALL_SIGNATURES",
+                "REQUIRES_ONE_SIGNATURE",
+                "REQUIRES_MIN_SIGNATURES",
+                "NONE"
+            ],
+            "x-enum-varnames": [
+                "SignatureRequirementType_ALL_SIGNATURES",
+                "SignatureRequirementType_ONE_SIGNATURE",
+                "SignatureRequirementType_MIN_SIGNATURES",
+                "SignatureRequirementType_NONE"
+            ]
         },
         "store.StringInterfaceMap": {
             "type": "object",

@@ -39,6 +39,15 @@ func (ir *InvoiceRoutes) handleCreateInvoiceSignature(w http.ResponseWriter, r *
 	}
 }
 
+// @Summary		Create an invoice signature
+// @Description	Creates a new invoice signature
+// @Tags			invoices
+// @Accept			json
+// @Produce		json
+// @Param			request	body		CreateInvoiceSignatureRequest	true	"Invoice signature request"
+// @Success		201		{object}	CreateInvoiceSignatureResponse
+// @Failure		400		{object}	string
+// @Router			/invoices/{hash}/signatures [post]
 func (ir *InvoiceRoutes) postCreateInvoiceSignature(w http.ResponseWriter, r *http.Request) {
 	var request CreateInvoiceSignatureRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
