@@ -7,7 +7,7 @@ var TagMint = dnet.NewTag("Mint")
 var TagBuyOffer = dnet.NewTag("BuyOffer")
 var TagSellOffer = dnet.NewTag("SellOffer")
 var TagInvoice = dnet.NewTag("Invoice")
-var TagInvoiceSignature = dnet.NewTag("InvoiceSignature")
+var TagInvoiceSignature = dnet.NewTag("Signature")
 var TagDeleteBuyOffer = dnet.NewTag("DeleteBuyOffer")
 var TagDeleteSellOffer = dnet.NewTag("DeleteSellOffer")
 
