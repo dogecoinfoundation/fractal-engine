@@ -1,4 +1,4 @@
-package doge
+package followerer
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	fecfg "dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/protocol"
 	"dogecoin.org/fractal-engine/pkg/store"
+
 	"github.com/dogecoinfoundation/chainfollower/pkg/chainfollower"
 	"github.com/dogecoinfoundation/chainfollower/pkg/config"
 	"github.com/dogecoinfoundation/chainfollower/pkg/messages"

@@ -21,6 +21,7 @@ const (
 	ACTION_PAYMENT            = 0x05
 	ACTION_DELETE_BUY_OFFER   = 0x06
 	ACTION_DELETE_SELL_OFFER  = 0x07
+	ACTION_INVOICE_SIGNATURE  = 0x08
 )
 
 type MessageEnvelope struct {

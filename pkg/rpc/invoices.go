@@ -24,9 +24,98 @@ type InvoiceRoutes struct {
 func HandleInvoiceRoutes(store *store.TokenisationStore, gossipClient dogenet.GossipClient, mux *http.ServeMux, cfg *config.Config) {
 	ir := &InvoiceRoutes{store: store, gossipClient: gossipClient, cfg: cfg}
 
+	mux.HandleFunc("/invoices/{hash}/signatures", ir.handleCreateInvoiceSignature)
 	mux.HandleFunc("/invoices", ir.handleInvoices)
 	mux.HandleFunc("/invoices/{address}", ir.handleInvoices)
 
+}
+
+func (ir *InvoiceRoutes) handleCreateInvoiceSignature(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		ir.postCreateInvoiceSignature(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// @Summary		Create an invoice signature
+// @Description	Creates a new invoice signature
+// @Tags			invoices
+// @Accept			json
+// @Produce		json
+// @Param			request	body		CreateInvoiceSignatureRequest	true	"Invoice signature request"
+// @Success		201		{object}	CreateInvoiceSignatureResponse
+// @Failure		400		{object}	string
+// @Router			/invoices/{hash}/signatures [post]
+func (ir *InvoiceRoutes) postCreateInvoiceSignature(w http.ResponseWriter, r *http.Request) {
+	var request CreateInvoiceSignatureRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		log.Println("error decoding request", err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	newInvoiceSignature := &store.InvoiceSignature{
+		InvoiceHash: request.Payload.InvoiceHash,
+		Signature:   request.Payload.Signature,
+		PublicKey:   request.Payload.PublicKey,
+		CreatedAt:   time.Now(),
+	}
+
+	invoice, err := ir.store.GetUnconfirmedInvoiceByHash(request.Payload.InvoiceHash)
+	if err != nil {
+		log.Println("error getting invoice by hash", err)
+		http.Error(w, "Could not find invoice by hash", http.StatusBadRequest)
+		return
+	}
+
+	mint, err := ir.store.GetMintByHash(invoice.MintHash)
+	if err != nil {
+		log.Println("error getting mint by hash", err)
+		http.Error(w, "Could not find mint by hash", http.StatusBadRequest)
+		return
+	}
+
+	err = newInvoiceSignature.Validate(mint, invoice)
+	if err != nil {
+		log.Println("error validating signature", err)
+		http.Error(w, "Invalid signature", http.StatusBadRequest)
+		return
+	}
+
+	id, err := ir.store.SaveApprovedInvoiceSignature(newInvoiceSignature)
+	if err != nil {
+		log.Println("error saving approved invoice signature", err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	err = ir.gossipClient.GossipInvoiceSignature(*newInvoiceSignature)
+	if err != nil {
+		http.Error(w, "Unable to gossip", http.StatusInternalServerError)
+		return
+	}
+
+	response := CreateInvoiceSignatureResponse{
+		Id: id,
+	}
+
+	respondJSON(w, http.StatusCreated, response)
+}
+
+type CreateInvoiceSignatureRequest struct {
+	Payload CreateInvoiceSignatureRequestPayload `json:"payload"`
+}
+
+type CreateInvoiceSignatureRequestPayload struct {
+	InvoiceHash string `json:"invoice_hash"`
+	Signature   string `json:"signature"`
+	PublicKey   string `json:"public_key"`
+}
+
+type CreateInvoiceSignatureResponse struct {
+	Id string `json:"id"`
 }
 
 func (ir *InvoiceRoutes) handleInvoices(w http.ResponseWriter, r *http.Request) {
@@ -157,6 +246,19 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mint, err := ir.store.GetMintByHash(request.Payload.MintHash)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	var initialStatus string
+	if mint.SignatureRequirementType == store.SignatureRequirementType_NONE || mint.SignatureRequirementType == "" {
+		initialStatus = "draft"
+	} else {
+		initialStatus = "pending_signatures"
+	}
+
 	newInvoiceWithoutId := &store.UnconfirmedInvoice{
 		MintHash:       request.Payload.MintHash,
 		Quantity:       request.Payload.Quantity,
@@ -167,6 +269,7 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		SellerAddress:  request.Payload.SellerAddress,
 		PublicKey:      request.PublicKey,
 		Signature:      request.Signature,
+		Status:         initialStatus,
 	}
 
 	newInvoiceWithoutId.Hash, err = newInvoiceWithoutId.GenerateHash()

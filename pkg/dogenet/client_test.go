@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"code.dogecoin.org/gossip/dnet"
-	"dogecoin.org/fractal-engine/internal/test/support"
+
 	test_support "dogecoin.org/fractal-engine/internal/test/support"
 	"dogecoin.org/fractal-engine/pkg/config"
 	"dogecoin.org/fractal-engine/pkg/dogenet"
@@ -275,7 +275,7 @@ func TestDogeNetClientStartWithConn(t *testing.T) {
 		clientConn.Write(br_buf[:])
 
 		// Wait for status
-		support.WaitForDogeNetClient(client)
+		test_support.WaitForDogeNetClient(client)
 	}
 
 	// Test Stop

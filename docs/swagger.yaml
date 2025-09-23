@@ -1,4 +1,23 @@
 definitions:
+  rpc.CreateInvoiceSignatureRequest:
+    properties:
+      payload:
+        $ref: '#/definitions/rpc.CreateInvoiceSignatureRequestPayload'
+    type: object
+  rpc.CreateInvoiceSignatureRequestPayload:
+    properties:
+      invoice_hash:
+        type: string
+      public_key:
+        type: string
+      signature:
+        type: string
+    type: object
+  rpc.CreateInvoiceSignatureResponse:
+    properties:
+      id:
+        type: string
+    type: object
   rpc.CreateMintRequest:
     properties:
       payload:
@@ -10,6 +29,10 @@ definitions:
     type: object
   rpc.CreateMintRequestPayload:
     properties:
+      asset_managers:
+        items:
+          $ref: '#/definitions/store.AssetManager'
+        type: array
       contract_of_sale:
         type: string
       description:
@@ -22,10 +45,14 @@ definitions:
         $ref: '#/definitions/store.StringInterfaceMap'
       metadata:
         $ref: '#/definitions/store.StringInterfaceMap'
+      min_signatures:
+        type: integer
       owner_address:
         type: string
       requirements:
         $ref: '#/definitions/store.StringInterfaceMap'
+      signature_requirement_type:
+        $ref: '#/definitions/store.SignatureRequirementType'
       tags:
         items:
           type: string
@@ -111,6 +138,15 @@ definitions:
         description: Valid is true if Time is not NULL
         type: boolean
     type: object
+  store.AssetManager:
+    properties:
+      name:
+        type: string
+      public_key:
+        type: string
+      url:
+        type: string
+    type: object
   store.Invoice:
     properties:
       block_height:
@@ -146,6 +182,10 @@ definitions:
     type: object
   store.Mint:
     properties:
+      asset_managers:
+        items:
+          $ref: '#/definitions/store.AssetManager'
+        type: array
       block_height:
         type: integer
       contract_of_sale:
@@ -166,6 +206,8 @@ definitions:
         $ref: '#/definitions/store.StringInterfaceMap'
       metadata:
         $ref: '#/definitions/store.StringInterfaceMap'
+      min_signatures:
+        type: integer
       owner_address:
         type: string
       public_key:
@@ -174,6 +216,8 @@ definitions:
         $ref: '#/definitions/store.StringInterfaceMap'
       signature:
         type: string
+      signature_requirement_type:
+        $ref: '#/definitions/store.SignatureRequirementType'
       tags:
         items:
           type: string
@@ -183,6 +227,18 @@ definitions:
       transaction_hash:
         type: string
     type: object
+  store.SignatureRequirementType:
+    enum:
+    - REQUIRES_ALL_SIGNATURES
+    - REQUIRES_ONE_SIGNATURE
+    - REQUIRES_MIN_SIGNATURES
+    - NONE
+    type: string
+    x-enum-varnames:
+    - SignatureRequirementType_ALL_SIGNATURES
+    - SignatureRequirementType_ONE_SIGNATURE
+    - SignatureRequirementType_MIN_SIGNATURES
+    - SignatureRequirementType_NONE
   store.StringInterfaceMap:
     additionalProperties: true
     type: object
@@ -308,13 +364,18 @@ paths:
       summary: Get health
       tags:
       - health
-  /invoices:
+  /invoices/{address}:
     get:
       consumes:
       - application/json
       description: Returns a list of invoices with optional filtering by mint_hash
-        and offerer_address
+        and address
       parameters:
+      - description: Filter by address of buyer or seller
+        in: path
+        name: address
+        required: true
+        type: string
       - description: Limit number of results (max 100)
         in: query
         name: limit
@@ -326,11 +387,6 @@ paths:
       - description: Filter by mint hash
         in: query
         name: mint_hash
-        type: string
-      - description: Filter by address of buyer or seller
-        in: query
-        name: offerer_address
-        required: true
         type: string
       produces:
       - application/json
@@ -344,6 +400,32 @@ paths:
           schema:
             type: string
       summary: Get invoices
+      tags:
+      - invoices
+  /invoices/{hash}/signatures:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new invoice signature
+      parameters:
+      - description: Invoice signature request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/rpc.CreateInvoiceSignatureRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/rpc.CreateInvoiceSignatureResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Create an invoice signature
       tags:
       - invoices
   /mints:
@@ -435,7 +517,7 @@ paths:
       summary: Prepares an encoded transaction body for a new payment
       tags:
       - payments
-  /pending-token-balances:
+  /pending-token-balances/{address}:
     get:
       consumes:
       - application/json
@@ -443,8 +525,9 @@ paths:
         by mint hash
       parameters:
       - description: Address to get pending token balances for
-        in: query
+        in: path
         name: address
+        required: true
         type: string
       - description: Filter by mint hash
         in: query
@@ -459,6 +542,10 @@ paths:
             items:
               $ref: '#/definitions/store.TokenBalance'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
         "500":
           description: Internal Server Error
           schema:
@@ -485,7 +572,7 @@ paths:
       summary: Get stats
       tags:
       - stats
-  /token-balances:
+  /token-balances/{address}:
     get:
       consumes:
       - application/json
@@ -493,10 +580,11 @@ paths:
         hash and with optional mint details
       parameters:
       - description: Address to get token balances for
-        in: query
+        in: path
         name: address
+        required: true
         type: string
-      - description: Filter by mint hash
+      - description: Filter by mint hash (not avaiable with include_mint_details)
         in: query
         name: mint_hash
         type: string
@@ -518,6 +606,10 @@ paths:
         "200":
           description: OK
           schema: {}
+        "400":
+          description: Bad Request
+          schema:
+            type: string
         "500":
           description: Internal Server Error
           schema:

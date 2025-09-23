@@ -14,21 +14,24 @@ func TestSaveMint(t *testing.T) {
 	db := support.SetupTestDB()
 
 	mint := &store.MintWithoutID{
-		Hash:            "testHash123",
-		Title:           "Test Mint",
-		FractionCount:   1000,
-		Description:     "Test Description",
-		Tags:            store.StringArray{"tag1", "tag2"},
-		Metadata:        store.StringInterfaceMap{"key": "value"},
-		TransactionHash: "txHash123",
-		BlockHeight:     12345,
-		Requirements:    store.StringInterfaceMap{"req": "value"},
-		LockupOptions:   store.StringInterfaceMap{"lockup": "option"},
-		FeedURL:         "https://example.com/feed",
-		PublicKey:       "publicKey123",
-		OwnerAddress:    "ownerAddress123",
-		Signature:       "signature123",
-		ContractOfSale:  "contract of sale",
+		Hash:                     "testHash123",
+		Title:                    "Test Mint",
+		FractionCount:            1000,
+		Description:              "Test Description",
+		Tags:                     store.StringArray{"tag1", "tag2"},
+		Metadata:                 store.StringInterfaceMap{"key": "value"},
+		TransactionHash:          "txHash123",
+		BlockHeight:              12345,
+		Requirements:             store.StringInterfaceMap{"req": "value"},
+		LockupOptions:            store.StringInterfaceMap{"lockup": "option"},
+		FeedURL:                  "https://example.com/feed",
+		PublicKey:                "publicKey123",
+		OwnerAddress:             "ownerAddress123",
+		Signature:                "signature123",
+		ContractOfSale:           "contract of sale",
+		SignatureRequirementType: store.SignatureRequirementType_ALL_SIGNATURES,
+		AssetManagers:            store.AssetManagers{{Name: "asset manager", PublicKey: "publicKey123", URL: "https://example.com/assetManager"}},
+		MinSignatures:            1,
 	}
 
 	id, err := db.SaveMint(mint, "ownerAddress123")
@@ -57,15 +60,18 @@ func TestGetMintByHash(t *testing.T) {
 
 	// Save a mint
 	mintToSave := &store.MintWithoutID{
-		Hash:          "testHash456",
-		Title:         "Test Mint 2",
-		FractionCount: 500,
-		Description:   "Another test mint",
-		Tags:          store.StringArray{},
-		Metadata:      store.StringInterfaceMap{},
-		Requirements:  store.StringInterfaceMap{},
-		LockupOptions: store.StringInterfaceMap{},
-		PublicKey:     "pubKey456",
+		Hash:                     "testHash456",
+		Title:                    "Test Mint 2",
+		FractionCount:            500,
+		Description:              "Another test mint",
+		Tags:                     store.StringArray{},
+		Metadata:                 store.StringInterfaceMap{},
+		Requirements:             store.StringInterfaceMap{},
+		LockupOptions:            store.StringInterfaceMap{},
+		PublicKey:                "pubKey456",
+		SignatureRequirementType: store.SignatureRequirementType_ALL_SIGNATURES,
+		AssetManagers:            store.AssetManagers{{Name: "asset manager", PublicKey: "publicKey123", URL: "https://example.com/assetManager"}},
+		MinSignatures:            1,
 	}
 
 	_, err = db.SaveMint(mintToSave, "owner456")
@@ -76,6 +82,9 @@ func TestGetMintByHash(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, retrievedMint.Hash, "testHash456")
 	assert.Equal(t, retrievedMint.Title, "Test Mint 2")
+	assert.Equal(t, retrievedMint.SignatureRequirementType, store.SignatureRequirementType_ALL_SIGNATURES)
+	assert.Equal(t, retrievedMint.AssetManagers[0].Name, "asset manager")
+	assert.Equal(t, retrievedMint.MinSignatures, 1)
 }
 
 func TestGetMints(t *testing.T) {
@@ -186,18 +195,21 @@ func TestSaveUnconfirmedMint(t *testing.T) {
 	db := support.SetupTestDB()
 
 	mint := &store.MintWithoutID{
-		Hash:            "unconfirmedHash123",
-		Title:           "Unconfirmed Mint",
-		FractionCount:   1500,
-		Description:     "Unconfirmed test mint",
-		Tags:            store.StringArray{"unconfirmed"},
-		Metadata:        store.StringInterfaceMap{"status": "unconfirmed"},
-		Requirements:    store.StringInterfaceMap{},
-		LockupOptions:   store.StringInterfaceMap{},
-		FeedURL:         "https://example.com/unconfirmed",
-		PublicKey:       "unconfirmedPubKey",
-		OwnerAddress:    "unconfirmedOwner",
-		TransactionHash: "",
+		Hash:                     "unconfirmedHash123",
+		Title:                    "Unconfirmed Mint",
+		FractionCount:            1500,
+		Description:              "Unconfirmed test mint",
+		Tags:                     store.StringArray{"unconfirmed"},
+		Metadata:                 store.StringInterfaceMap{"status": "unconfirmed"},
+		Requirements:             store.StringInterfaceMap{},
+		LockupOptions:            store.StringInterfaceMap{},
+		FeedURL:                  "https://example.com/unconfirmed",
+		PublicKey:                "unconfirmedPubKey",
+		OwnerAddress:             "unconfirmedOwner",
+		TransactionHash:          "",
+		SignatureRequirementType: store.SignatureRequirementType_ALL_SIGNATURES,
+		AssetManagers:            store.AssetManagers{{Name: "asset manager", PublicKey: "publicKey123", URL: "https://example.com/assetManager"}},
+		MinSignatures:            1,
 	}
 
 	id, err := db.SaveUnconfirmedMint(mint)
@@ -210,6 +222,9 @@ func TestSaveUnconfirmedMint(t *testing.T) {
 	assert.Equal(t, len(unconfirmedMints), 1)
 	assert.Equal(t, unconfirmedMints[0].Hash, "unconfirmedHash123")
 	assert.Equal(t, unconfirmedMints[0].Title, "Unconfirmed Mint")
+	assert.Equal(t, unconfirmedMints[0].SignatureRequirementType, store.SignatureRequirementType_ALL_SIGNATURES)
+	assert.Equal(t, unconfirmedMints[0].AssetManagers[0].Name, "asset manager")
+	assert.Equal(t, unconfirmedMints[0].MinSignatures, 1)
 }
 
 func TestGetUnconfirmedMints(t *testing.T) {

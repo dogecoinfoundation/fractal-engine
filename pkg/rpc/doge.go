@@ -107,7 +107,7 @@ func (dr *DogeRoutes) postSend(w http.ResponseWriter, r *http.Request) {
 // @Failure		400		{object}	string
 // @Failure		500		{object}	string
 // @Router			/doge/confirm [post]
-func (dr *DogeRoutes) postConfirm(w http.ResponseWriter, r *http.Request) {
+func (dr *DogeRoutes) postConfirm(w http.ResponseWriter, _ *http.Request) {
 	_, err := dr.dogeClient.Request("generate", []interface{}{10})
 	if err != nil {
 		log.Println("error sending raw transaction", err)
