@@ -1,0 +1,21 @@
+---
+title: Payments
+---
+
+### Pay For Invoice
+- Build Payload for Dogecoin Core (with Invoice Hash)
+- Write Dogecoin Transfer for specified Invoice Amount to specified details on the Invoice
+
+### Receive Fractal Engine Message on Dogecoin Core
+- Check Transaction for OP_RETURN
+- Decode OP_RETURN to check for Fractal Engine Message
+- Store Onchain Transaction (with Address + Values from VOUT)
+
+### Payment Matching Process 
+- For each Onchain Transaction where Action is Payment
+- Check for matching Invoice record
+- Validate Payment Amount matches Invoice Record
+- Ensure at least 6 confirmations (otherwise we will recheck this again next iteration)
+- Set Invoice as Paid
+- Remove Onchain Transaction
+- Move Pending Token Balance to Token Balance of new owner

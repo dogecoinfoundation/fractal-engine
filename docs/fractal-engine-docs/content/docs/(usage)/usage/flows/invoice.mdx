@@ -1,0 +1,41 @@
+---
+title: Invoices
+---
+
+### Create Invoice
+- Build Payload
+- Sign Payload
+- Call Invoice Endpoint
+- Invoice written to Unconfirmed Invoice table
+- Unconfirmed Invoice gossiped to Dogenet P2P network
+- Write Invoice to Dogecoin Core
+
+### Invoice Signature (Optional)
+- Build Payload 
+- Sign Payload
+- Call Invoice Signature Endpoint
+- Validate Invoice Signature matches one of the Asset Managers on the Mint
+- Ensure Signature cryptographically matches Asset Manager Public Key
+- Store Invoice Signature Record (Only stores valid unique signatures)
+- Invoice Signature gossiped to Dogenet P2P network
+
+### Receive Unconfirmed Invoice on Dogenet P2P network
+- Validate Payload + Signature
+- Validate Address of Invoice Owner equals Public Key address
+- Store Invoice into Unconfirmed Mints
+
+### Receive Fractal Engine Message on Dogecoin Core
+- Check Transaction for OP_RETURN
+- Decode OP_RETURN to check for Fractal Engine Message
+- Store Onchain Transaction (with Address + Values from VOUT)
+
+### Invoice Matching Process 
+- For each Onchain Transaction where Action is Invoice
+- Validate available Token Balance
+- Move Token Balance into Pending Token Balance
+- Check Mint if Signatures required
+- Validate required amount of Invoice Signature records
+- Check for matching Unconfirmed Invoice record
+- Copy Unconfirmed Invoice to Invoice table
+- Remove Unconfirmed Invoice record
+- Remove Onchain Transaction record

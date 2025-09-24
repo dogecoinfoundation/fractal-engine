@@ -1,0 +1,27 @@
+---
+title: Minting
+---
+### Create Mint
+- Build Payload
+- Sign Payload
+- Call Mint Endpoint
+- Mint written to Unconfirmed Mint table
+- Unconfirmed Mint gossiped to Dogenet P2P network
+- Write Mint to Dogecoin Core
+
+### Receive Unconfirmed Mint on Dogenet P2P network
+- Validate Payload + Signature
+- Validate Address of Mint Owner equals Public Key address
+- Store Mint into Unconfirmed Mints
+
+### Receive Fractal Engine Message on Dogecoin Core
+- Check Transaction for OP_RETURN
+- Decode OP_RETURN to check for Fractal Engine Message
+- Store Onchain Transaction (with Address + Values from VOUT)
+
+### Mint Matching Process 
+- For each Onchain Transaction where Action is Mint
+- Check for matching Unconfirmed Mint record
+- Copy Unconfirmed Mint to Mint table
+- Remove Unconfirmed Mint record
+- Remove Onchain Transaction record
