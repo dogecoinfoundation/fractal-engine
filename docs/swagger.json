@@ -164,6 +164,52 @@
                 }
             }
         },
+        "/invoices": {
+            "post": {
+                "description": "Creates a new invoice",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "invoices"
+                ],
+                "summary": "Create an invoice",
+                "parameters": [
+                    {
+                        "description": "Invoice request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/rpc.CreateInvoiceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/rpc.CreateInvoiceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/invoices/{address}": {
             "get": {
                 "description": "Returns a list of invoices with optional filtering by mint_hash and address",
@@ -546,6 +592,54 @@
         }
     },
     "definitions": {
+        "rpc.CreateInvoiceRequest": {
+            "type": "object",
+            "properties": {
+                "payload": {
+                    "$ref": "#/definitions/rpc.CreateInvoiceRequestPayload"
+                },
+                "public_key": {
+                    "type": "string"
+                },
+                "signature": {
+                    "type": "string"
+                }
+            }
+        },
+        "rpc.CreateInvoiceRequestPayload": {
+            "type": "object",
+            "properties": {
+                "buyer_address": {
+                    "type": "string"
+                },
+                "mint_hash": {
+                    "type": "string"
+                },
+                "payment_address": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "seller_address": {
+                    "type": "string"
+                }
+            }
+        },
+        "rpc.CreateInvoiceResponse": {
+            "type": "object",
+            "properties": {
+                "encoded_transaction_body": {
+                    "type": "string"
+                },
+                "hash": {
+                    "type": "string"
+                }
+            }
+        },
         "rpc.CreateInvoiceSignatureRequest": {
             "type": "object",
             "properties": {

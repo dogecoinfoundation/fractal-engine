@@ -221,7 +221,6 @@ func (ir *InvoiceRoutes) getInvoices(w http.ResponseWriter, r *http.Request) {
 // @Failure		400		{object}	string
 // @Failure		500		{object}	string
 // @Router			/invoices [post]
-
 func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 	var request CreateInvoiceRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {

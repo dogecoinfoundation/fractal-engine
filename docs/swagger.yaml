@@ -1,4 +1,35 @@
 definitions:
+  rpc.CreateInvoiceRequest:
+    properties:
+      payload:
+        $ref: '#/definitions/rpc.CreateInvoiceRequestPayload'
+      public_key:
+        type: string
+      signature:
+        type: string
+    type: object
+  rpc.CreateInvoiceRequestPayload:
+    properties:
+      buyer_address:
+        type: string
+      mint_hash:
+        type: string
+      payment_address:
+        type: string
+      price:
+        type: integer
+      quantity:
+        type: integer
+      seller_address:
+        type: string
+    type: object
+  rpc.CreateInvoiceResponse:
+    properties:
+      encoded_transaction_body:
+        type: string
+      hash:
+        type: string
+    type: object
   rpc.CreateInvoiceSignatureRequest:
     properties:
       payload:
@@ -364,6 +395,36 @@ paths:
       summary: Get health
       tags:
       - health
+  /invoices:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new invoice
+      parameters:
+      - description: Invoice request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/rpc.CreateInvoiceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/rpc.CreateInvoiceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create an invoice
+      tags:
+      - invoices
   /invoices/{address}:
     get:
       consumes:

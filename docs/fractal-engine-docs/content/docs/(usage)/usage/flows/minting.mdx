@@ -1,27 +1,69 @@
 ---
 title: Minting
 ---
-### Create Mint
-- Build Payload
-- Sign Payload
-- Call Mint Endpoint
-- Mint written to Unconfirmed Mint table
-- Unconfirmed Mint gossiped to Dogenet P2P network
-- Write Mint to Dogecoin Core
 
-### Receive Unconfirmed Mint on Dogenet P2P network
-- Validate Payload + Signature
-- Validate Address of Mint Owner equals Public Key address
-- Store Mint into Unconfirmed Mints
+### References
+- [Create Mint API](/docs/api/mints/post)
+- [Signing Payload](/docs/usage/signing/signing)
+- [Writing To Blockchain](/docs/usage/blockchain/blockchain)
 
-### Receive Fractal Engine Message on Dogecoin Core
-- Check Transaction for OP_RETURN
-- Decode OP_RETURN to check for Fractal Engine Message
-- Store Onchain Transaction (with Address + Values from VOUT)
+### Creating a basic Mint
+```json
+{
+  "public_key": "YOUR_PUBLIC_KEY",
+  "signature": "SIGNATURE",
+  "payload": {
+    "title": "Lambo",
+    "fraction_count": 1000,
+    "description": "Red Lambo Super Car",
+    "owner_address": "YOUR_ADDRESS"
+  }
+}
+```
 
-### Mint Matching Process 
-- For each Onchain Transaction where Action is Mint
-- Check for matching Unconfirmed Mint record
-- Copy Unconfirmed Mint to Mint table
-- Remove Unconfirmed Mint record
-- Remove Onchain Transaction record
+### Creating a basic Mint with Metadata
+```json
+{
+  "public_key": "YOUR_PUBLIC_KEY",
+  "signature": "SIGNATURE",
+  "payload": {
+    "title": "Lambo",
+    "fraction_count": 1000,
+    "description": "Red Lambo Super Car",
+    "metadata": {
+      "vehicle": "car",
+      "vin": "23123213213213",
+      "wheels": 6
+    },
+    "owner_address": "YOUR_ADDRESS"
+  }
+}
+```
+
+### Creating a basic Mint with Invoice Signature requirements
+```json
+{
+  "public_key": "YOUR_PUBLIC_KEY",
+  "signature": "SIGNATURE",
+  "payload": {
+    "title": "Lambo",
+    "fraction_count": 1000,
+    "description": "Red Lambo Super Car",
+    "owner_address": "YOUR_ADDRESS",
+    "signature_requirement_type": "REQUIRES_MIN_SIGNATURES",
+    "asset_managers": [
+      {
+        "name": "Asset Manager",
+        "public_key": "AM_PUBLIC_KEY",
+        "url": "https://example.com/assetManager"
+      },
+      {
+        "name": "Asset Manager 2",
+        "public_key": "AM_PUBLIC_KEY_2",
+        "url": "https://example.com/assetManager2"
+      }
+    ],
+    "min_signatures": 2
+  }
+}
+```

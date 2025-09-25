@@ -1,0 +1,93 @@
+---
+title: Signing Payloads
+---
+
+## Signing Flow 
+- Serialize Payload as JSON
+- Transform raw JSON data from a []byte array into a canonicalized version according RFC 8785
+- SHA256 checksum
+- Sign with Private Key (ecdsa)
+- Base64 Encode
+
+## Go example
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"dogecoin.org/fractal-engine/pkg/doge"
+)
+
+type MyBody struct {
+	Content string `json:"content"`
+}
+
+func main() {
+	privHex, pubHex, _, err := doge.GenerateDogecoinKeypair(doge.PrefixRegtest)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	body := MyBody{
+		Content: "Hello, World!",
+	}
+	sig, err := doge.SignPayload(body, privHex, pubHex)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(sig)
+}
+```
+ 
+## Typescript Example
+```typescript
+import km2, {
+    Crypto,
+    Net,
+    Language,
+} from "@houseofdoge/km2";
+import { canonicalize } from "json-canonicalize";
+import crypto from "crypto";
+
+
+export function sha256Hash(input: string | Uint8Array): string {
+    const buf =
+        typeof input === "string" ? Buffer.from(input, "utf8") : Buffer.from(input);
+    return crypto.createHash("sha256").update(buf).digest("hex"); // 32 bytes
+}
+
+export function jsonStringifyCanonical(payload: unknown): Uint8Array {
+    const canon = canonicalize(payload); // RFC 8785 canonical JSON
+    return new TextEncoder().encode(canon); // UTF-8
+}
+
+// This will generate a new wallet (purely for example purposes)
+using seed = new km2.SeedPhrase({
+    wordCount: 24,
+    language: Language.English,
+});
+
+using wallet = new km2.Wallet(seed, {
+    cryptocurrency: Crypto.Dogecoin,
+    network: Net.Mainnet
+});
+
+using kp = wallet.deriveKeypair({ account: 1, change: 0, index: 0 });
+
+const myBodyData = {
+    name: "Test",
+    description: "Test",
+}
+
+const hashedPayload = sha256Hash(jsonStringifyCanonical(myBodyData));
+
+const signature = kp.signMessage({
+    message: hashedPayload,
+});
+
+console.log(signature.toBase64());
+```
