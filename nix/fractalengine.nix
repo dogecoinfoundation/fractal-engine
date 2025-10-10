@@ -7,9 +7,8 @@
 
 let
   releaseVersion = "0.0.1";
-  musl = pkgs.stdenv.hostPlatform.isMusl;
 in
-pkgs.buildGo124Module rec {
+pkgs.pkgsMusl.buildGo124Module rec {
   pname = "fractal-engine";
   version = releaseVersion;
 
@@ -23,7 +22,7 @@ pkgs.buildGo124Module rec {
   # Build the main binary
   subPackages = [ "cmd/fractal-engine" ];
 
-  # Set build flags
+  # Set build flags for static linking with musl
   ldflags = [
     "-s"
     "-w"
@@ -33,8 +32,6 @@ pkgs.buildGo124Module rec {
     "dogecoin.org/fractal-engine/pkg/version.Commit=${rev}"
     "-X"
     "dogecoin.org/fractal-engine/pkg/version.Date=${date}"
-  ]
-  ++ lib.optionals musl [
     "-linkmode=external"
     "-extldflags=-static"
   ];
