@@ -589,7 +589,7 @@ export DATABASE_URL="postgres://postgres:password@localhost:5432/fractal_engine?
 ```go
 // Example from test files
 func setupTestStore() (*store.TokenisationStore, error) {
-    cfg := config.Config{MigrationsPath: "../../db/migrations"}
+    cfg := config.Config{}
     return store.NewTokenisationStore("memory://", cfg)
 }
 ```

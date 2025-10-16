@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -112,19 +111,7 @@ func SetupTestDBShared() *store.TokenisationStore {
 
 	log.Printf("Using shared database: %s\n", newConnStr)
 
-	paths := []string{"db/migrations", "../db/migrations", "../../db/migrations", "../../../db/migrations", "../../../../db/migrations", "../../../../../db/migrations"}
-
-	var validPath string
-
-	for _, p := range paths {
-		if folderExists(p) {
-			validPath = p
-		}
-	}
-
-	tokenisationStore, err := store.NewTokenisationStore(newConnStr, config.Config{
-		MigrationsPath: validPath,
-	})
+	tokenisationStore, err := store.NewTokenisationStore(newConnStr, config.Config{})
 	if err != nil {
 		log.Fatalf("Failed to create tokenisation store: %v", err)
 	}
@@ -135,12 +122,4 @@ func SetupTestDBShared() *store.TokenisationStore {
 	}
 
 	return tokenisationStore
-}
-
-func folderExists(path string) bool {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return err == nil && info.IsDir()
 }

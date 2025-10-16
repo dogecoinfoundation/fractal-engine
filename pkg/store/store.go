@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
-	"os"
-	"path/filepath"
 
 	"dogecoin.org/fractal-engine/db/migrations"
 	"dogecoin.org/fractal-engine/pkg/config"
@@ -70,36 +68,6 @@ func (s *TokenisationStore) Migrate() error {
 	}
 
 	return nil
-}
-
-func ProjectRoot() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	for {
-		// Check if go.mod exists in this directory
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, nil
-		}
-
-		// Move up one directory
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			// Reached root directory, cannot find go.mod
-			return "", os.ErrNotExist
-		}
-		dir = parent
-	}
-}
-
-func MigrationsPath() (string, error) {
-	root, err := ProjectRoot()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(root, "db", "migrations"), nil
 }
 
 func (s *TokenisationStore) getMigrationDriver() (database.Driver, error) {

@@ -18,7 +18,6 @@ type Config struct {
 	DogePassword       string
 	DatabaseURL        string
 	PersistFollower    bool
-	MigrationsPath     string
 	RateLimitPerSecond int
 	InvoiceLimit       int
 	BuyOfferLimit      int
@@ -42,7 +41,6 @@ func NewConfig() *Config {
 		DogePassword:       "test",
 		DatabaseURL:        "sqlite://fractal-engine.db",
 		PersistFollower:    true,
-		MigrationsPath:     "db/migrations",
 		RateLimitPerSecond: 10,
 		InvoiceLimit:       10,
 		BuyOfferLimit:      10,
