@@ -36,7 +36,6 @@ func main() {
 	var dogePassword string
 	var databaseURL string
 	var persistFollower bool
-	var migrationsPath string
 	var rateLimitPerSecond int
 	var invoiceLimit int
 	var buyOfferLimit int
@@ -72,7 +71,6 @@ func main() {
 	flag.StringVar(&databaseUsername, "database-username", getEnv("DATABASE_USERNAME", ""), "Database Username")
 	flag.StringVar(&databasePassword, "database-password", getEnv("DATABASE_PASSWORD", ""), "Database Password")
 
-	flag.StringVar(&migrationsPath, "migrations-path", getEnv("MIGRATIONS_PATH", "db/migrations"), "Migrations Path")
 	flag.BoolVar(&persistFollower, "persist-follower", getEnvBool("PERSIST_FOLLOWER", true), "Persist Follower")
 	flag.IntVar(&rateLimitPerSecond, "api-rate-limit-per-second", getEnvInt("API_RATE_LIMIT_PER_SECOND", 10), "API Rate Limit Per Second")
 	flag.IntVar(&invoiceLimit, "invoice-limit", getEnvInt("INVOICE_LIMIT", 100), "Invoice Limit (per mint)")
@@ -107,7 +105,6 @@ func main() {
 		DogePassword:       dogePassword,
 		DatabaseURL:        databaseURL,
 		PersistFollower:    persistFollower,
-		MigrationsPath:     migrationsPath,
 		RateLimitPerSecond: rateLimitPerSecond,
 		InvoiceLimit:       invoiceLimit,
 		BuyOfferLimit:      buyOfferLimit,
