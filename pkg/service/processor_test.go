@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"encoding/hex"
 	"testing"
 	"time"
 
@@ -45,10 +46,10 @@ func TestInvoiceMatch(t *testing.T) {
 	txHash3 := support.GenerateDogecoinAddress(true)
 	txHash4 := support.GenerateDogecoinAddress(true)
 
-	CreateOnChainInvoiceMessage(t, txHash2, 1, 1, ownerAddress, ownerAddress, invoiceHash, hash, 50, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, txHash2, 1, 1, ownerAddress, invoiceHash, hash, 50, tokenisationStore)
 	processor.Process()
 
-	CreateOnChainInvoiceMessage(t, txHash3, 1, 1, ownerAddress, ownerAddress, invoiceHash2, hash, 90, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, txHash3, 1, 1, ownerAddress, invoiceHash2, hash, 90, tokenisationStore)
 	processor.Process()
 
 	SaveUnconfirmedInvoice(t, ownerAddress, buyerAddress, invoiceHash, hash, 50, tokenisationStore)
@@ -82,9 +83,9 @@ func TestInvoiceMatchEarlierBlockHeightAndTransactionNumber(t *testing.T) {
 	txHash3 := support.GenerateDogecoinAddress(true)
 	txHash4 := support.GenerateDogecoinAddress(true)
 
-	CreateOnChainInvoiceMessage(t, txHash2, 3, 1, ownerAddress, ownerAddress, invoiceHash, hash, 66, tokenisationStore)
-	CreateOnChainInvoiceMessage(t, txHash3, 1, 2, ownerAddress, ownerAddress, invoiceHash2, hash, 77, tokenisationStore)
-	CreateOnChainInvoiceMessage(t, txHash4, 1, 1, ownerAddress, ownerAddress, invoiceHash3, hash, 88, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, txHash2, 3, 1, ownerAddress, invoiceHash, hash, 66, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, txHash3, 1, 2, ownerAddress, invoiceHash2, hash, 77, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, txHash4, 1, 1, ownerAddress, invoiceHash3, hash, 88, tokenisationStore)
 
 	processor.Process()
 
@@ -107,7 +108,7 @@ func TestPaymentIsLessThanExpected(t *testing.T) {
 	txHash2 := support.GenerateDogecoinAddress(true)
 	txHash3 := support.GenerateDogecoinAddress(true)
 
-	CreateOnChainInvoiceMessage(t, txHash2, 3, 1, ownerAddress, ownerAddress, invoiceHash, hash, 50, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, txHash2, 3, 1, ownerAddress, invoiceHash, hash, 50, tokenisationStore)
 	SaveUnconfirmedInvoice(t, ownerAddress, buyerAddress, invoiceHash, hash, 50, tokenisationStore)
 
 	processor.Process()
@@ -136,32 +137,12 @@ func TestInvoiceTimesOutAfter14BlockDays(t *testing.T) {
 	invoiceHash := support.GenerateRandomHash()
 	txHash2 := support.GenerateDogecoinAddress(true)
 
-	CreateOnChainInvoiceMessage(t, txHash2, 3, 1, ownerAddress, ownerAddress, invoiceHash, hash, 50, tokenisationStore)
+	CreateOnChainInvoiceMessage(t, txHash2, 3, 1, ownerAddress, invoiceHash, hash, 50, tokenisationStore)
 	processor.Process()
 
 	AssertPendingTokenBalance(t, invoiceHash, hash, 50, tokenisationStore)
 
 	invoiceTimeoutProcessor.Process(4)
-
-	AssertNoPendingTokenBalance(t, invoiceHash, hash, tokenisationStore)
-}
-
-func TestInvoiceCreationNotFromSeller(t *testing.T) {
-	tokenisationStore := test_support.SetupTestDB()
-	rpcClient := support.NewTestDogeClient(t)
-
-	hash := CreateUnconfirmedMint(t, support.GenerateRandomHash(), tokenisationStore)
-
-	processor := service.NewFractalEngineProcessor(tokenisationStore, rpcClient)
-	processor.Process()
-
-	AssertUnconfirmedMintCreation(t, hash, tokenisationStore)
-
-	invoiceHash := support.GenerateRandomHash()
-	txHash2 := support.GenerateDogecoinAddress(true)
-
-	CreateOnChainInvoiceMessage(t, txHash2, 3, 1, ownerAddress, support.GenerateDogecoinAddress(true), invoiceHash, hash, 50, tokenisationStore)
-	processor.Process()
 
 	AssertNoPendingTokenBalance(t, invoiceHash, hash, tokenisationStore)
 }
@@ -244,15 +225,18 @@ func SaveUnconfirmedInvoice(t *testing.T, ownerAddress string, buyerAddress stri
 
 }
 
-func CreateOnChainInvoiceMessage(t *testing.T, trxnHash string, blockHeight int64, trxnNo int, ownerAddress string, sellOfferAddress string, invoiceHash string, mintHash string, quantity int, tokenisationStore *store.TokenisationStore) {
-	message := protocol.OnChainInvoiceMessage{
-		SellerAddress: sellOfferAddress,
-		InvoiceHash:   invoiceHash,
-		MintHash:      mintHash,
-		Quantity:      int32(quantity),
-	}
+func CreateOnChainInvoiceMessage(t *testing.T, trxnHash string, blockHeight int64, trxnNo int, ownerAddress string, invoiceHash string, mintHash string, quantity int, tokenisationStore *store.TokenisationStore) {
+	invoiceHashBytes, err := hex.DecodeString(invoiceHash)
+	assert.NilError(t, err)
+	mintHashBytes, err := hex.DecodeString(mintHash)
+	assert.NilError(t, err)
 
-	encodedMessage, err := proto.Marshal(&message)
+	message := &protocol.OnChainInvoiceMessage{
+		InvoiceHash: invoiceHashBytes,
+		MintHash:    mintHashBytes,
+		Quantity:    int32(quantity),
+	}
+	encodedMessage, err := proto.Marshal(message)
 	if err != nil {
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
