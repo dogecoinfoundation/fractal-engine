@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 
 	"dogecoin.org/fractal-engine/pkg/protocol"
@@ -171,7 +172,7 @@ func (s *TokenisationStore) MatchInvoice(onchainTransaction OnChainTransaction) 
 		return false
 	}
 
-	rows, err := s.DB.Query("SELECT hash, transaction_hash FROM invoices WHERE transaction_hash = $1 and block_height = $2 and hash = $3", onchainTransaction.TxHash, onchainTransaction.Height, onchainMessage.InvoiceHash)
+	rows, err := s.DB.Query("SELECT hash, transaction_hash FROM invoices WHERE transaction_hash = $1 and block_height = $2 and hash = $3", onchainTransaction.TxHash, onchainTransaction.Height, hex.EncodeToString(onchainMessage.InvoiceHash))
 	if err != nil {
 		return false
 	}
@@ -207,7 +208,7 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 	}
 	defer tx.Rollback()
 
-	rows, err := tx.Query("SELECT id, hash, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature, status FROM unconfirmed_invoices WHERE hash = $1", onchainMessage.InvoiceHash)
+	rows, err := tx.Query("SELECT id, hash, buyer_address, mint_hash, quantity, price, created_at, seller_address, public_key, signature, status FROM unconfirmed_invoices WHERE hash = $1", hex.EncodeToString(onchainMessage.InvoiceHash))
 	if err != nil {
 		return err
 	}
@@ -220,7 +221,7 @@ func (s *TokenisationStore) MatchUnconfirmedInvoice(onchainTransaction OnChainTr
 		}
 	} else {
 		rows.Close()
-		return fmt.Errorf("no unconfirmed invoice found for hash: %s", onchainMessage.InvoiceHash)
+		return fmt.Errorf("no unconfirmed invoice found for hash: %s", hex.EncodeToString(onchainMessage.InvoiceHash))
 	}
 
 	rows.Close()

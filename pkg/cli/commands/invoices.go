@@ -215,7 +215,7 @@ func createInvoiceAction(ctx context.Context, cmd *cli.Command) error {
 		log.Fatal("No utxos found for address", address)
 	}
 
-	envelope := protocol.NewInvoiceTransactionEnvelope(response.Hash, address, mintHash, int32(quantityInt), protocol.ACTION_INVOICE)
+	envelope := protocol.NewInvoiceTransactionEnvelope(response.Hash, mintHash, int32(quantityInt), protocol.ACTION_INVOICE)
 	encodedTransactionBody := envelope.Serialize()
 
 	inputs := []interface{}{

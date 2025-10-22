@@ -389,7 +389,7 @@ func Invoice(stackConfig *StackConfig, buyerAddress string, mintHash string, qua
 		panic(err)
 	}
 
-	envelope := protocol.NewInvoiceTransactionEnvelope(res.Hash, stackConfig.Address, mintHash, int32(quantity), protocol.ACTION_INVOICE)
+	envelope := protocol.NewInvoiceTransactionEnvelope(res.Hash, mintHash, int32(quantity), protocol.ACTION_INVOICE)
 	encodedTransactionBody := envelope.Serialize()
 
 	// just network fees

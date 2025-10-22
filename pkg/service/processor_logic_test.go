@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	"dogecoin.org/fractal-engine/pkg/service"
 	"dogecoin.org/fractal-engine/pkg/store"
 	"google.golang.org/protobuf/proto"
+	"gotest.tools/assert"
 )
 
 func TestProcessEmptyDatabase(t *testing.T) {
@@ -172,12 +174,17 @@ func TestProcessPaymentTransaction(t *testing.T) {
 	}
 
 	// Create and process invoice transaction
+	invoiceHashBytes, err := hex.DecodeString(invoiceHash)
+	assert.NilError(t, err)
+	mintHashBytes, err := hex.DecodeString(mintHash)
+	assert.NilError(t, err)
+
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellerAddress: sellerAddress,
-		InvoiceHash:   invoiceHash,
-		MintHash:      mintHash,
-		Quantity:      50,
+		InvoiceHash: invoiceHashBytes,
+		MintHash:    mintHashBytes,
+		Quantity:    50,
 	}
+
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, map[string]interface{}{
 		sellerAddress: 50,
@@ -256,11 +263,15 @@ func TestProcessInvoiceTransaction(t *testing.T) {
 
 	// Create invoice transaction
 	invoiceHash := support.GenerateRandomHash()
+	invoiceHashBytes, err := hex.DecodeString(invoiceHash)
+	assert.NilError(t, err)
+	mintHashBytes, err := hex.DecodeString(mintHash)
+	assert.NilError(t, err)
+
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellerAddress: ownerAddress,
-		InvoiceHash:   invoiceHash,
-		MintHash:      mintHash,
-		Quantity:      30,
+		InvoiceHash: invoiceHashBytes,
+		MintHash:    mintHashBytes,
+		Quantity:    30,
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	_, err = tokenStore.SaveOnChainTransaction("txInvoice", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, ownerAddress, map[string]interface{}{

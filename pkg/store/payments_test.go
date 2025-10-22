@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"time"
@@ -31,8 +32,8 @@ func TestMatchPaymentSuccess(t *testing.T) {
 	// 2. Create invoice and match it to establish pending token balance
 	// 3. Create payment and match it to transfer tokens
 
-	mintHash := "testMint123"
-	invoiceHash := "testInvoice123"
+	mintHash := test_support.GenerateRandomHash()
+	invoiceHash := test_support.GenerateRandomHash()
 	sellerAddress := test_support.GenerateDogecoinAddress(true)
 	buyerAddress := test_support.GenerateDogecoinAddress(true)
 	quantity := 50
@@ -77,11 +78,15 @@ func TestMatchPaymentSuccess(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
+	invoiceHashBytes, err := hex.DecodeString(invoiceHash)
+	assert.NilError(t, err)
+	mintHashBytes, err := hex.DecodeString(mintHash)
+	assert.NilError(t, err)
+
 	invoiceMsg := &protocol.OnChainInvoiceMessage{
-		SellerAddress: sellerAddress,
-		InvoiceHash:   invoiceHash,
-		MintHash:      mintHash,
-		Quantity:      int32(quantity),
+		InvoiceHash: invoiceHashBytes,
+		MintHash:    mintHashBytes,
+		Quantity:    int32(quantity),
 	}
 	encodedInvoiceMsg, _ := proto.Marshal(invoiceMsg)
 	invoiceTxId, err := tokenStore.SaveOnChainTransaction("invoiceTx", 2, "blockHash", 1, protocol.ACTION_INVOICE, protocol.DEFAULT_VERSION, encodedInvoiceMsg, sellerAddress, map[string]interface{}{

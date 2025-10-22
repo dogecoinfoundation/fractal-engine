@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/hex"
 	"log"
 
 	"dogecoin.org/fractal-engine/pkg/protocol"
@@ -33,14 +34,14 @@ func (p *InvoiceTimeoutProcessor) Process(oldestBlockHeight int) error {
 				continue
 			}
 
-			pendingTokenBalance, err := p.store.GetPendingTokenBalance(invoiceMessage.InvoiceHash, invoiceMessage.MintHash, nil)
+			pendingTokenBalance, err := p.store.GetPendingTokenBalance(hex.EncodeToString(invoiceMessage.InvoiceHash), hex.EncodeToString(invoiceMessage.MintHash), nil)
 			if err != nil {
 				log.Println("Error getting pending token balance:", err)
 				continue
 			}
 
 			if pendingTokenBalance.InvoiceHash != "" {
-				err = p.store.RemovePendingTokenBalance(invoiceMessage.InvoiceHash, invoiceMessage.MintHash)
+				err = p.store.RemovePendingTokenBalance(hex.EncodeToString(invoiceMessage.InvoiceHash), hex.EncodeToString(invoiceMessage.MintHash))
 				if err != nil {
 					log.Println("Error removing pending token balance:", err)
 					continue
