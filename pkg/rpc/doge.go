@@ -74,14 +74,14 @@ func (dr *DogeRoutes) postSend(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(bytes.NewReader(bodyBytes)).Decode(&request); err != nil {
 		log.Println("error decoding request", err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	res, err := dr.dogeClient.Request("sendrawtransaction", []interface{}{request.EncodedTrxn, true})
 	if err != nil {
 		log.Println("error sending raw transaction", err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (dr *DogeRoutes) postSend(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.Unmarshal(*res, &txid); err != nil {
 		log.Println("error parsing send raw transaction response", err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
