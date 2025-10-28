@@ -176,8 +176,8 @@ func main() {
 	if embedDogenet {
 		for {
 			log.Println("Checking for dogenet socket...")
-			active, err := dogenetClient.UnixSockActive()
-			if active || err != nil {
+			active, _ := dogenetClient.ServerReady()
+			if active {
 				break
 			}
 
@@ -186,6 +186,16 @@ func main() {
 	}
 
 	go dogenetClient.Run()
+
+	log.Println("Waiting for DogeNet socket to be ready...")
+	for {
+		if dogenetClient.SocketReady() {
+			break
+		}
+		log.Println("DogeNet socket not ready, waiting...")
+		time.Sleep(200 * time.Millisecond)
+	}
+	log.Println("DogeNet socket ready")
 
 	service := service.NewTokenisationService(cfg, dogenetClient, tokenStore)
 	service.Run()

@@ -13,7 +13,6 @@ import (
 )
 
 func (c *DogeNetClient) GossipMint(record store.Mint) error {
-
 	var assetManagers []*protocol.AssetManager
 	for _, assetManager := range record.AssetManagers {
 		assetManagers = append(assetManagers, &protocol.AssetManager{
