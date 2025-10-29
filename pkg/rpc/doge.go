@@ -93,6 +93,8 @@ func (dr *DogeRoutes) postSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("transaction sent", txid)
+
 	respondJSON(w, http.StatusCreated, SendResponse{
 		TransactionID: txid,
 	})

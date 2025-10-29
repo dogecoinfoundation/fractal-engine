@@ -292,7 +292,7 @@ func (ir *InvoiceRoutes) postInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	envelope := protocol.NewInvoiceTransactionEnvelope(newInvoiceWithoutId.Hash, newInvoiceWithoutId.SellerAddress, newInvoiceWithoutId.MintHash, int32(newInvoiceWithoutId.Quantity), protocol.ACTION_INVOICE)
+	envelope := protocol.NewInvoiceTransactionEnvelope(newInvoiceWithoutId.Hash, newInvoiceWithoutId.MintHash, int32(newInvoiceWithoutId.Quantity), protocol.ACTION_INVOICE)
 	encodedTransactionBody := envelope.Serialize()
 
 	response := CreateInvoiceResponse{

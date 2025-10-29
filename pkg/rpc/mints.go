@@ -238,10 +238,11 @@ func (mr *MintRoutes) postMint(w http.ResponseWriter, r *http.Request) {
 		Id:            id,
 	}
 
+	// Continue even if gossiping fails
+	// it will eventually be gossiped by the engine
 	err = mr.gossipClient.GossipMint(*newMint)
 	if err != nil {
-		http.Error(w, "Unable to gossip", http.StatusInternalServerError)
-		return
+		log.Println("error gossiping mint", err)
 	}
 
 	envelope := protocol.NewMintTransactionEnvelope(newMintWithoutId.Hash, protocol.ACTION_MINT)
